@@ -1,6 +1,15 @@
 #include <iostream>
 #include <limits>
 
+// #define IDENTITY glm::mat4(1.0f)
+// #define RIGHT glm::vec3(1.0f, 0.0f, 0.0f)
+// #define UP glm::vec3(0.0f, 1.0f, 0.0f)
+// #define FORWARD glm::vec3(0.0f, 0.0f, 1.0f)
+// #define ZERO glm::vec3(0.0f, 0.0f, 0.0f)
+// #define ONE glm::vec3(1.0f, 1.0f, 1.0f)
+
+// TODO: Refactor this shit
+
 #include "engine.h"
 #include "camera.h"
 #include "shapes.h"
@@ -23,81 +32,97 @@ protected:
     Triangle triB_;
 
     void IsError(const std::string& file, int line);
-    glm::vec2 Collision(Triangle a, Triangle b);
+    glm::vec3 Collision(Triangle a, Triangle b);
 };
 
-glm::vec2 GetNormal(glm::vec2 v)
+glm::vec3 GetNormal(glm::vec3 v)
 {
-    return glm::vec2(-v.y, v.x);
+    return glm::vec3(-v.y, v.x, v.z);
 }
 
-glm::vec2 HelloTriangle::Collision(Triangle a, Triangle b)
+void PrintOut(glm::mat4 m)
 {
-    glm::vec2 axis[6] = {
-        glm::normalize(GetNormal(a.points_[1] - a.points_[0])),
-        glm::normalize(GetNormal(a.points_[2] - a.points_[1])),
-        glm::normalize(GetNormal(a.points_[0] - a.points_[2])),
+    std::cout << 
+        m[0][0] << "\t" << m[0][1] << "\t" << m[0][2] << "\t" << m[0][3] << "\n" <<
+        m[1][0] << "\t" << m[1][1] << "\t" << m[1][2] << "\t" << m[1][3] << "\n" <<
+        m[2][0] << "\t" << m[2][1] << "\t" << m[2][2] << "\t" << m[2][3] << "\n" <<
+        m[3][0] << "\t" << m[3][1] << "\t" << m[3][2] << "\t" << m[3][3] << "\n=====================================" <<
+    std::endl;
+}
 
-        glm::normalize(GetNormal(b.points_[1] - b.points_[0])),
-        glm::normalize(GetNormal(b.points_[2] - b.points_[1])),
-        glm::normalize(GetNormal(b.points_[0] - b.points_[2]))
-    };
-    glm::vec2 mtv = glm::vec2(0.0f, 0.0f);
-    float smallestOverlap = std::numeric_limits<float>::max();
+glm::vec3 HelloTriangle::Collision(Triangle a, Triangle b)
+{
+    glm::vec3 separatingAxis[6]; // All axis on which to check both shapes's projections overlap.
+    glm::vec3 mtv = glm::vec3(0.0f); // Correction vector returned at the end.
+    float smallestOverlap = std::numeric_limits<float>::max(); // magnitude of the mtv
+    std::array<glm::vec3, 3> pointsOfA = a.GetWorldPoints(); // World coordinates of points. model * localPos
+    std::array<glm::vec3, 3> pointsOfB = b.GetWorldPoints();
 
-    for (size_t ax = 0; ax < 6; ax++)
+    // Fill out the list of axis to project onto.
     {
-        float aMin = std::numeric_limits<float>::max();
+        std::array<glm::vec3, 3> sideDirsOfA = a.GetAxis(); // This returns tangents to sides
+        std::array<glm::vec3, 3> sideDirsOfB = b.GetAxis();
+        for (size_t i = 0; i < 3; i++)
+        {
+            separatingAxis[i] = GetNormal(sideDirsOfA[i]); // Where we need normals instead.
+        }
+        for (size_t i = 3; i < 6; i++)
+        {
+            separatingAxis[i] = GetNormal(sideDirsOfB[i - 3]);
+        }
+    }
+
+    // Compute projections.
+    for (size_t axis = 0; axis < 6; axis++)
+    {
+        float aMin = std::numeric_limits<float>::max(); // Set limits to extremes so that anything it's being compared will always overwrite these at the start.
         float aMax = -std::numeric_limits<float>::max();
         float bMin = std::numeric_limits<float>::max();
         float bMax = -std::numeric_limits<float>::max();
+
         for (size_t side = 0; side < 3; side++)
         {
-            float projOfA = glm::dot(a.points_[side] + a.GetPosition(), axis[ax]);
-            if (projOfA < aMin) aMin = projOfA;
+            float projOfA = glm::dot(pointsOfA[side], separatingAxis[axis]); // Project coordinate vector onto axis.
+            if (projOfA < aMin) aMin = projOfA; // Find the edges of the "shadow" of the shape on the axis.
             if (projOfA > aMax) aMax = projOfA;
-            float projOfB = glm::dot(b.points_[side] + b.GetPosition(), axis[ax]);
+            float projOfB = glm::dot(pointsOfB[side], separatingAxis[axis]);
             if (projOfB < bMin) bMin = projOfB;
             if (projOfB > bMax) bMax = projOfB;
-        }
-        if ((bMin >= aMin && bMin <= aMax))
+        } // Detect overlap and store it for mtv.
+        if (bMin >= aMin && bMin <= aMax) // B is overlapping A from the right
         {
             float overlap = aMax - bMin;
-            assert(overlap >= 0.0f);
             if (overlap < smallestOverlap)
             {
                 smallestOverlap = overlap;
-                mtv = -axis[ax]; // Direction is lost when working with differences, hence the reintroduction of the direction.
+                mtv = -separatingAxis[axis]; // Direction is lost when working with differences, hence the reintroduction of the direction.
             }
         }
-        else if ((bMax >= aMin && bMax <= aMax))
+        else if (bMax >= aMin && bMax <= aMax) // B is overlapping A from the left
         {
             float overlap = bMax - aMin;
-            assert(overlap >= 0.0f);
             if (overlap < smallestOverlap)
             {
                 smallestOverlap = overlap;
-                mtv = axis[ax];
+                mtv = separatingAxis[axis];
             }
         }
-        else if ((bMin <= aMin && bMax >= aMax))
+        else if (bMin <= aMin && bMax >= aMax) // B is overlapping A on both sides.
         {
             float overlap = aMax - aMin;
-            assert(overlap >= 0.0f);
             if (overlap < smallestOverlap)
             {
                 smallestOverlap = overlap;
-                mtv = axis[ax];
+                mtv = separatingAxis[axis];
             }
         }
-        else // No collision.
+        else // No collision. Exit function and return a zero vector.
         {
-            return glm::vec2(0.0f, 0.0f);
+            return glm::vec3(0.0f);
         }
     }
-    assert(smallestOverlap >= 0.0f);
+    // Collision detected.
     mtv *= smallestOverlap;
-    std::cout << "MTV: (" << mtv.x << ";" << mtv.y << ")" << std::endl;
     return mtv;
 }
 
@@ -123,18 +148,18 @@ void HelloTriangle::Init()
     IsError(__FILE__, __LINE__);
 
     axis_.Init();
-    glm::vec2 pointsOfA[3] = {
-        glm::vec2(0.0f, 0.0f),
-        glm::vec2(-1.0f, 1.0f),
-        glm::vec2(-2.0f, -2.0f)
+    glm::vec3 pointsOfA[3] = {
+        glm::vec3(0.0f, 0.0f, 0.0f),
+        glm::vec3(-1.0f, 1.0f, 0.0f),
+        glm::vec3(-2.0f, -2.0f, 0.0f)
     };
-    glm::vec2 pointsOfB[3] = {
-        glm::vec2(3.0f, 3.0f),
-        glm::vec2(1.0f, 1.0f),
-        glm::vec2(2.0f, 1.0f)
+    glm::vec3 pointsOfB[3] = {
+        glm::vec3(3.0f, 3.0f, 0.0f),
+        glm::vec3(1.0f, 1.0f, 0.0f),
+        glm::vec3(2.0f, 1.0f, 0.0f)
     };
-    triA_.Init(pointsOfA, glm::vec2(0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    triB_.Init(pointsOfB, glm::vec2(0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    triA_.Init(pointsOfA, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::radians(45.0f));
+    triB_.Init(pointsOfB, glm::vec3(2.0f, 2.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::radians(90.0f));
 }
 
 void HelloTriangle::Update(seconds dt)
@@ -144,7 +169,7 @@ void HelloTriangle::Update(seconds dt)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     IsError(__FILE__, __LINE__);
 
-    triA_.Move(Collision(triA_, triB_));
+    triA_.Move(Collision(triA_, triB_)); // Correct the position of the triangle if there's a collision.
 
     axis_.Draw(camera_);
     triA_.Draw(camera_);
@@ -172,19 +197,19 @@ void HelloTriangle::OnEvent(SDL_Event& event)
         switch (event.key.keysym.sym)
         {
         case SDLK_w:
-            triA_.Move(glm::vec2(0.0f, 1.0f) * 0.1f);
+            triA_.Move(glm::vec3(0.0f, 1.0f, 0.0f) * 0.1f);
             break;
         case SDLK_s:
-            triA_.Move(glm::vec2(0.0f, -1.0f) * 0.1f);
+            triA_.Move(-glm::vec3(0.0f, 1.0f, 0.0f) * 0.1f);
             break;
         case SDLK_a:
-            triA_.Move(glm::vec2(-1.0f, 0.0f) * 0.1f);
+            triA_.Move(-glm::vec3(1.0f, 0.0f, 0.0f) * 0.1f);
             break;
         case SDLK_d:
-            triA_.Move(glm::vec2(1.0f, 0.0f) * 0.1f);
+            triA_.Move(glm::vec3(1.0f, 0.0f, 0.0f) * 0.1f);
             break;
         case SDLK_SPACE:
-
+            PrintOut(glm::transpose(triA_.GetTransform().model));
             break;
         case SDLK_LCTRL:
 

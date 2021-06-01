@@ -1,5 +1,9 @@
 #pragma once
 
+// TODO: Refactor this shit
+
+#include <array>
+
 #include "shader.h"
 
 namespace gl {
@@ -78,141 +82,6 @@ private:
     unsigned int VAO_ = 0, VBO_ = 0;
 };
 
-class Rectangle
-{
-public:
-    Rectangle() {};
-    void Init(glm::vec2 center, float width, float height, glm::vec3 color, BodyPhysicsType physicsType, float mass)
-    {
-        const glm::vec2 halfDimensions = glm::vec2(width, height) * 0.5f;
-        bottomLeft_ = center - halfDimensions;
-        topRight_ = center + halfDimensions;
-        type_ = physicsType;
-        mass_ = mass;
-
-        shader_ = Shader("../data/shaders/plainColor.vert", "../data/shaders/plainColor.frag");
-        shader_.Bind();
-        shader_.SetVec3("color", color);
-        shader_.SetMat4("perspective", glm::perspective(glm::radians(45.0f), 1024.0f / 720.0f, 0.1f, 1000.0f));
-        shader_.SetMat4("model", glm::mat4(1.0f));
-
-        float vertices[18] = {
-            -halfDimensions.x,  -halfDimensions.y,  0.0f,
-             halfDimensions.x,  -halfDimensions.y,  0.0f,
-             halfDimensions.x,   halfDimensions.y,  0.0f,
-
-            -halfDimensions.x,  -halfDimensions.y,  0.0f,
-             halfDimensions.x,   halfDimensions.y,  0.0f,
-            -halfDimensions.x,   halfDimensions.y,  0.0f
-        };
-
-        glGenVertexArrays(1, &VAO_);
-        glBindVertexArray(VAO_);
-        glGenBuffers(1, &VBO_);
-        glBindBuffer(GL_ARRAY_BUFFER, VBO_);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(0);
-
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
-        shader_.UnBind();
-    }
-    void Draw(const Camera& camera)
-    {
-        shader_.Bind();
-        glBindVertexArray(VAO_);
-        glBindBuffer(GL_ARRAY_BUFFER, VBO_);
-
-        shader_.SetMat4("view", camera.GetViewMatrix());
-        shader_.SetMat4("model", glm::translate(glm::mat4(1.0f), glm::vec3(GetCenter(), 0.0f)));
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
-        shader_.UnBind();
-    }
-    void PhysicsUpdate(float dt)
-    {
-        lastDt_ = dt;
-
-        switch (type_)
-        {
-        case gl::BodyPhysicsType::STATIC:
-            break;
-        case gl::BodyPhysicsType::DYNAMIC:
-        {
-            linearVelocity_ += GRAVITY_ * GRAVITY_FACTOR_;
-            Move(linearVelocity_);
-        }
-            break;
-        default:
-            break;
-        }
-    }
-    void Destroy()
-    {
-        shader_.Destroy();
-        glDeleteBuffers(1, &VBO_);
-        glDeleteVertexArrays(1, &VAO_);
-    }
-    void Move(glm::vec2 movement)
-    {
-        bottomLeft_ += movement * lastDt_;
-        topRight_ += movement * lastDt_;
-    }
-    glm::vec2 GetCenter() const
-    {
-        return glm::vec2(bottomLeft_ + topRight_) * 0.5f;
-    }
-    glm::vec2 GetBottomLeft() const
-    {
-        return bottomLeft_;
-    }
-    glm::vec2 GetBottomRight() const
-    {
-        return glm::vec2(topRight_.x, bottomLeft_.y);
-    }
-    glm::vec2 GetTopRight() const
-    {
-        return topRight_;
-    }
-    glm::vec2 GetTopLeft() const
-    {
-        return glm::vec2(bottomLeft_.x, topRight_.y);
-    }
-    glm::vec2 GetRight() const
-    {
-        return glm::normalize(GetBottomRight() - GetBottomLeft());
-    }
-    glm::vec2 GetUp() const
-    {
-        return glm::normalize(GetTopLeft() - GetBottomLeft());
-    }
-    Shader& GetShader()
-    {
-        return shader_;
-    }
-    void SetCenter(glm::vec2 pos)
-    {
-        const glm::vec2 widthAndHeight = glm::vec2(topRight_.x - bottomLeft_.x, topRight_.y - bottomLeft_.y);
-        topRight_ = pos + (widthAndHeight * 0.5f);
-        bottomLeft_ = pos - (widthAndHeight * 0.5f);
-    }
-private:
-
-    Shader shader_ = Shader();
-    glm::vec2 bottomLeft_ = glm::vec2(0.0);
-    glm::vec2 topRight_ = glm::vec2(0.0);
-    unsigned int VAO_ = 0, VBO_ = 0;
-    BodyPhysicsType type_ = BodyPhysicsType::STATIC;
-    const glm::vec2 GRAVITY_ = glm::vec2(-10.0f, -10.0f);
-    float mass_ = 1.0f;
-    glm::vec2 linearVelocity_ = glm::vec2(0.0f, 0.0f);
-    const float GRAVITY_FACTOR_ = 0.1f;
-    float lastDt_ = 0.0f;
-};
-
 class Arrow
 {
 public:
@@ -277,28 +146,42 @@ private:
     unsigned int VAO_ = 0, VBO_ = 0;
 };
 
+struct Transform
+{
+    glm::mat4 model = glm::mat4(1.0f);
+    glm::vec3 pos = glm::vec3(0.0f, 0.0f, 0.0f);
+    float rotation = 0.0f;
+};
+
 class Triangle
 {
 public:
     Triangle() {};
-    void Init(glm::vec2 points[3], glm::vec2 position, glm::vec3 color)
+    void Init(glm::vec3 points[3], glm::vec3 position, glm::vec3 color, float rotation)
     {
+        // Setup transform.
+        transform_.pos = position;
+        transform_.rotation = rotation;
+        transform_.model = glm::translate(glm::mat4(1.0f), transform_.pos);
+        transform_.model = glm::rotate(transform_.model, transform_.rotation, glm::vec3(0.0f, 0.0f, 1.0f));
+
+        // Center the points on the origin (0;0) for consistency sake.
+        const glm::vec3 centroid = ((points[0] + points[1] + points[2]) / 3.0f);
         for (size_t i = 0; i < 3; i++)
         {
-            points_[i] = points[i];
+            points_[i] = points[i] - centroid; // Note that the points are left in local space centered on origin.
         }
-        position_ = position;
 
         shader_ = Shader("../data/shaders/plainColor.vert", "../data/shaders/plainColor.frag");
         shader_.Bind();
         shader_.SetVec3("color", color);
         shader_.SetMat4("perspective", glm::perspective(glm::radians(45.0f), 1024.0f / 720.0f, 0.1f, 1000.0f));
-        shader_.SetMat4("model", glm::mat4(1.0f));
+        shader_.SetMat4("model", transform_.model);
 
         float vertices[9] = {
-            points[0].x, points[0].y, 0.0f,
-            points[1].x, points[1].y, 0.0f,
-            points[2].x, points[2].y, 0.0f
+            points_[0].x, points_[0].y, 0.0f,
+            points_[1].x, points_[1].y, 0.0f,
+            points_[2].x, points_[2].y, 0.0f
         };
 
         glGenVertexArrays(1, &VAO_);
@@ -320,7 +203,7 @@ public:
         glBindBuffer(GL_ARRAY_BUFFER, VBO_);
 
         shader_.SetMat4("view", camera.GetViewMatrix());
-        shader_.SetMat4("model", glm::translate(glm::mat4(1.0f), glm::vec3(position_, 0.0f)));
+        shader_.SetMat4("model", transform_.model);
         glDrawArrays(GL_TRIANGLES, 0, 3);
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -333,25 +216,49 @@ public:
         glDeleteBuffers(1, &VBO_);
         glDeleteVertexArrays(1, &VAO_);
     }
-    void Move(glm::vec2 movement)
+    void Move(glm::vec3 movement)
     {
-        position_ += movement;
+        transform_.pos += movement;
+        transform_.model = glm::translate(glm::mat4(1.0f), transform_.pos);
+        transform_.model = glm::rotate(transform_.model, transform_.rotation, glm::vec3(0.0f, 0.0f, 1.0f));
     }
-    glm::vec2 GetPosition() const
+    Transform GetTransform()
     {
-        return position_;
+        return transform_;
     }
     Shader& GetShader()
     {
         return shader_;
     }
-    void SetCenter(glm::vec2 pos)
+    std::array<glm::vec3, 3> GetAxis()
     {
-        position_ = pos;
+        std::array<glm::vec3, 3> returnVal;
+        auto points = GetWorldPoints();
+        returnVal[0] = glm::normalize(points[1] - points[0]);
+        returnVal[1] = glm::normalize(points[2] - points[1]);
+        returnVal[2] = glm::normalize(points[0] - points[2]);
+        return returnVal;
     }
-    glm::vec2 points_[3];
+    std::array<glm::vec3, 3> GetLocalPoints()
+    {
+        return points_;
+    }
+    std::array<glm::vec3, 3> GetWorldPoints()
+    {
+        std::array<glm::vec3, 3> returnVal;
+        for (size_t i = 0; i < 3; i++)
+        {
+            returnVal[i] = transform_.model * glm::vec4(points_[i], 1.0f);
+        }
+        return returnVal;
+    }
+    glm::vec3 GetPosition()
+    {
+        return transform_.pos;
+    }
 private:
-    glm::vec2 position_ = glm::vec2(0.0f);
+    Transform transform_ = Transform(); // Contains offset for all points, rotation and the model mat representing these transformations.
+    std::array<glm::vec3, 3> points_; // triangle has it's centroid on (0;0)
     Shader shader_ = Shader();
     unsigned int VAO_ = 0, VBO_ = 0;
 };
