@@ -12,7 +12,6 @@ find_package(imgui CONFIG REQUIRED)
 set(OpenGL_GL_PREFERENCE GLVND)
 find_package(OpenGL REQUIRED)
 find_package(glad CONFIG REQUIRED)
-find_package(tinyobjloader CONFIG REQUIRED)
 find_path(STB_INCLUDE_DIRS "stb.h")
 
 file(GLOB_RECURSE GLSL_SOURCE_FILES
@@ -37,7 +36,6 @@ target_include_directories(CommonLib PUBLIC "include/")
 target_link_libraries(CommonLib PUBLIC SDL2::SDL2 SDL2::SDL2main)
 target_link_libraries(CommonLib PUBLIC imgui::imgui)
 target_link_libraries(CommonLib PUBLIC glad::glad)
-target_link_libraries(CommonLib PUBLIC tinyobjloader::tinyobjloader)
 target_link_libraries(CommonLib PUBLIC ${OPENGL_LIBRARIES})
 target_include_directories(CommonLib PUBLIC ${STB_INCLUDE_DIRS})
 

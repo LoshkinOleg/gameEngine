@@ -5,6 +5,7 @@
     [
         "glm",
         "sdl2",
+		"tinyobjloader",
       {
         "name": "glad",
         "features": [ "extensions", "gles2-api-latest" ]
