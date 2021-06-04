@@ -61,7 +61,7 @@ void HelloTriangle::Init()
 
     // Internal variables.
     shader_ = Shader("../data/shaders/hello_phong/phong.vert", "../data/shaders/hello_phong/phong.frag");
-    axisShader_ = Shader("../data/shaders/axis.vert", "../data/shaders/axis.frag");
+    axisShader_ = Shader("../data/shaders/plain.vert", "../data/shaders/plain.frag");
     diffuseTex_ = Texture("../data/textures/crate_diffuse.png");
     specularTex_ = Texture("../data/textures/crate_specular.png");
 
@@ -151,7 +151,7 @@ void HelloTriangle::Init()
     glm::mat4 view = camera_.GetViewMatrix();
     shader_.SetMat4("view", view);
     axisShader_.Bind();
-    axisShader_.SetMat4("perspective", perspective);
+    axisShader_.SetMat4("projection", perspective);
     axisShader_.SetMat4("view", view);
     axisShader_.SetMat4("model", glm::mat4(1.0f));
     shader_.Bind();
@@ -194,11 +194,11 @@ void HelloTriangle::Update(seconds dt)
     glBindVertexArray(axisVAO_);
     glBindBuffer(GL_ARRAY_BUFFER, axisVBO_);
     axisShader_.SetMat4("view", camera_.GetViewMatrix());
-    axisShader_.SetVec3("lineColor", glm::vec3(1.0f, 0.0f, 0.0f));
+    axisShader_.SetVec3("color", glm::vec3(1.0f, 0.0f, 0.0f));
     glDrawArrays(GL_LINES, 0, 2);
-    axisShader_.SetVec3("lineColor", glm::vec3(0.0f, 1.0f, 0.0f));
+    axisShader_.SetVec3("color", glm::vec3(0.0f, 1.0f, 0.0f));
     glDrawArrays(GL_LINES, 2, 2);
-    axisShader_.SetVec3("lineColor", glm::vec3(0.0f, 0.0f, 1.0f));
+    axisShader_.SetVec3("color", glm::vec3(0.0f, 0.0f, 1.0f));
     glDrawArrays(GL_LINES, 4, 2);
 
     shader_.Bind();

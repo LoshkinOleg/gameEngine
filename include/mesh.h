@@ -114,6 +114,18 @@ public:
         }
         verticesCount_ = vertices.size();
 
+        // Center mesh on origin.
+        // glm::vec3 centroid = glm::vec3(0.0f);
+        // for (size_t i = 0; i < vertices.size(); i++)
+        // {
+        //     centroid += vertices[i].pos;
+        // }
+        // centroid /= (float)vertices.size();
+        // for (size_t i = 0; i < vertices.size(); i++)
+        // {
+        //     vertices[i].pos = vertices[i].pos - centroid;
+        // }
+
         // Transfer vertices to GPU.
         glGenVertexArrays(1, &VAO_);
         glBindVertexArray(VAO_);

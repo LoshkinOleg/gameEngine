@@ -25,7 +25,7 @@ public:
     void Init()
     {
         // Internal variables.
-        shader_ = Shader("../data/shaders/axis.vert", "../data/shaders/axis.frag");
+        shader_ = Shader("../data/shaders/plain.vert", "../data/shaders/plain.frag");
 
         // Data.
         float axisVertices[18] = {
@@ -49,10 +49,10 @@ public:
         glEnableVertexAttribArray(0);
 
         // Set up uniforms.
-        glm::mat4 perspective = glm::perspective(glm::radians(45.0f), 1024.0f / 720.0f, 0.1f, 1000.0f);
+        glm::mat4 perspective = glm::perspective(glm::radians(45.0f), 1024.0f / 720.0f, 0.1f, 100.0f);
         shader_.Bind();
         shader_.SetMat4("model", glm::mat4(1.0f));
-        shader_.SetMat4("perspective", perspective);
+        shader_.SetMat4("projection", perspective);
 
         shader_.UnBind();
         glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -65,11 +65,11 @@ public:
         glBindVertexArray(VAO_);
         glBindBuffer(GL_ARRAY_BUFFER, VBO_);
         shader_.SetMat4("view", camera.GetViewMatrix());
-        shader_.SetVec3("lineColor", glm::vec3(1.0f, 0.0f, 0.0f));
+        shader_.SetVec3("color", glm::vec3(1.0f, 0.0f, 0.0f));
         glDrawArrays(GL_LINES, 0, 2);
-        shader_.SetVec3("lineColor", glm::vec3(0.0f, 1.0f, 0.0f));
+        shader_.SetVec3("color", glm::vec3(0.0f, 1.0f, 0.0f));
         glDrawArrays(GL_LINES, 2, 2);
-        shader_.SetVec3("lineColor", glm::vec3(0.0f, 0.0f, 1.0f));
+        shader_.SetVec3("color", glm::vec3(0.0f, 0.0f, 1.0f));
         glDrawArrays(GL_LINES, 4, 2);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
@@ -94,7 +94,7 @@ public:
     {
         direction = glm::normalize(direction) * length;
 
-        shader_ = Shader("../data/shaders/axis.vert", "../data/shaders/axis.frag");
+        shader_ = Shader("../data/shaders/plain.vert", "../data/shaders/plain.frag");
 
         const glm::vec2 crossLineHorizontalStart = pos - glm::vec2(0.1f, 0.0f);
         const glm::vec2 crossLineHorizontalEnd = pos + glm::vec2(0.1f, 0.0f);
@@ -121,9 +121,9 @@ public:
         glBindVertexArray(0);
 
         shader_.Bind();
-        shader_.SetMat4("perspective", glm::perspective(glm::radians(45.0f), 1024.0f / 720.0f, 0.1f, 1000.0f));
+        shader_.SetMat4("projection", glm::perspective(glm::radians(45.0f), 1024.0f / 720.0f, 0.1f, 100.0f));
         shader_.SetMat4("model", glm::mat4(1.0f));
-        shader_.SetVec3("lineColor", color);
+        shader_.SetVec3("color", color);
         shader_.UnBind();
     }
     void Draw(const Camera& camera)
@@ -176,10 +176,10 @@ public:
             points_[i] = points[i] - centroid; // Note that the points are left in local space centered on origin.
         }
 
-        shader_ = Shader("../data/shaders/plainColor.vert", "../data/shaders/plainColor.frag");
+        shader_ = Shader("../data/shaders/plain.vert", "../data/shaders/plain.frag");
         shader_.Bind();
         shader_.SetVec3("color", color);
-        shader_.SetMat4("perspective", glm::perspective(glm::radians(45.0f), 1024.0f / 720.0f, 0.1f, 1000.0f));
+        shader_.SetMat4("projection", glm::perspective(glm::radians(45.0f), 1024.0f / 720.0f, 0.1f, 100.0f));
         shader_.SetMat4("model", transform_.model);
 
         float vertices[9] = {

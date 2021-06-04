@@ -6,6 +6,7 @@
 #include <fstream>
 
 #include "engine.h"
+#include "texture.h"
 
 namespace gl {
 

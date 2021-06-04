@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "engine.h"
+#include "mesh.h"
 #include "shapes.h"
 
 namespace gl {
@@ -16,7 +17,7 @@ public:
 
 protected:
     Camera camera_;
-    // Box box_;
+    Model crate_;
     Quad quad_;
 
     const float SCREEN_RESOLUTION[2] = { 1024.0f, 720.0f };
@@ -41,34 +42,7 @@ void HelloTriangle::Init()
 {
     glEnable(GL_DEPTH_TEST);
 
-    // box_.Init
-    // (
-    //     std::array<glm::vec3, 8> // points
-    //     {
-    //         glm::vec3(0.0f, 0.0f, 0.0f),
-    //         glm::vec3(1.0f, 0.0f, 0.0f),
-    //         glm::vec3(1.0f, 1.0f, 0.0f),
-    //         glm::vec3(0.0f, 1.0f, 0.0f),
-    // 
-    //         glm::vec3(0.0f, 0.0f, 1.0f),
-    //         glm::vec3(1.0f, 0.0f, 1.0f),
-    //         glm::vec3(1.0f, 1.0f, 1.0f),
-    //         glm::vec3(0.0f, 1.0f, 1.0f)
-    //     },
-    //     glm::vec3(0.0f), // position
-    //     glm::vec3(0.0f), // rotation
-    //     "plainColor", // shader to use
-    //     [this](Shader shader)->void // shader's on init
-    //     {
-    //         shader.SetMat4("perspective", glm::perspective(glm::radians(45.0f), SCREEN_RESOLUTION[0] / SCREEN_RESOLUTION[1], 0.01f, 100.0f));
-    //         shader.SetVec3("color", glm::vec3(1.0f, 1.0f, 1.0f));
-    //     },
-    //     [this](Shader shader)->void // shader's on draw
-    //     {
-    //         shader.SetMat4("view", camera_.GetViewMatrix());
-    //         shader.SetMat4("model", box_.GetTransform3D().model);
-    //     }
-    // );
+    crate_ = Model("../data/models/crate/", "crate", "../data/shaders/hello_model/", "model");
 
     quad_.Init
     (
@@ -79,12 +53,12 @@ void HelloTriangle::Init()
             glm::vec3(1.0f, 1.0f, 0.0f),
             glm::vec3(0.0f, 1.0f, 0.0f)
         },
-        glm::vec3(0.0f), // position
-        glm::vec3(0.0f), // rotation
-        "plainColor", // shader to use
+        glm::vec3(-2.0f, 0.0f, 0.0f), // position
+        glm::vec3(glm::radians(45.0f), glm::radians(45.0f), 0.0f), // rotation
+        "plain", // shader to use
         [this](Shader shader)->void // shader's on init
         {
-            shader.SetMat4("perspective", glm::perspective(glm::radians(45.0f), SCREEN_RESOLUTION[0] / SCREEN_RESOLUTION[1], 0.01f, 100.0f));
+            shader.SetMat4("projection", glm::perspective(glm::radians(45.0f), SCREEN_RESOLUTION[0] / SCREEN_RESOLUTION[1], 0.1f, 100.0f));
             shader.SetVec3("color", glm::vec3(1.0f, 1.0f, 1.0f));
         },
         [this](Shader shader)->void // shader's on draw
@@ -100,14 +74,13 @@ void HelloTriangle::Update(seconds dt)
     glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    
-    // box_.Draw();
+    crate_.Draw(camera_);
     quad_.Draw();
 }
 
 void HelloTriangle::Destroy()
 {
-    //box_.Destroy();
+    crate_.Destroy();
     quad_.Destroy();
 }
 
