@@ -32,8 +32,8 @@ namespace gl
         void DrawImGui();
 
         Program& program_;
-        SDL_Window* window_;
-        SDL_GLContext glRenderContext_;
+        SDL_Window* window_ = nullptr;
+        SDL_GLContext glRenderContext_ = nullptr;
         glm::vec2 windowSize_{1024,720};
         float deltaTime_ = 0.0f;
     };

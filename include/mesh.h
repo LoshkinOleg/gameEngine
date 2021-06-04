@@ -112,7 +112,7 @@ public:
                 vertices.push_back(Vertex(points, normals, texCoords));
             }
         }
-        verticesCount_ = vertices.size();
+        verticesCount_ = (unsigned int)vertices.size();
 
         // Center mesh on origin.
         // glm::vec3 centroid = glm::vec3(0.0f);
@@ -150,7 +150,7 @@ public:
         glBindBuffer(GL_ARRAY_BUFFER, VBO_);
         for (size_t i = 0; i < 3; i++)
         {
-            textures_[i].Bind(i);
+            textures_[i].Bind((unsigned int)i);
         }
 
         // Set up uniforms for next draw call.
@@ -239,7 +239,7 @@ public:
 
         for (size_t i = 0; i < meshes_.size(); i++)
         {
-            meshes_[i] = Mesh(modelDir, shader_, reader, i);
+            meshes_[i] = Mesh(modelDir, shader_, reader, (unsigned int)i);
         }
     }
     void Draw(const Camera& camera)

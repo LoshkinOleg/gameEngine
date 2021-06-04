@@ -262,7 +262,7 @@ public:
     }
 private:
     Transform transform_ = Transform(); // Contains offset for all points, rotation and the model mat representing these transformations.
-    std::array<glm::vec3, 3> points_; // triangle has it's centroid on (0;0)
+    std::array<glm::vec3, 3> points_ = {}; // triangle has it's centroid on (0;0)
     Shader shader_ = Shader();
     unsigned int VAO_ = 0, VBO_ = 0;
 };
@@ -319,7 +319,7 @@ public:
         catch (const std::exception& e)
         {
             std::cerr << "ERROR: failed to call shaderOnInit in Box::Init(): " << e.what() << std::endl;
-            abort;
+            abort();
         }
         shader_.UnBind();
 
@@ -403,7 +403,7 @@ public:
         catch (const std::exception& e)
         {
             std::cerr << "ERROR: failed to call shaderOnDraw in Box::Draw(): " << e.what() << std::endl;
-            abort;
+            abort();
         }
 
         glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -450,7 +450,7 @@ public:
     }
 private:
     Transform3D transform_ = Transform3D(); // Contains offset for all points, rotation and the model mat representing these transformations.
-    std::array<glm::vec3, 8> points_; // cube has it's centroid on (0;0)
+    std::array<glm::vec3, 8> points_ = {}; // cube has it's centroid on (0;0)
     std::function<void(Shader)> shaderOnDraw_ = nullptr;
     Shader shader_ = Shader();
     unsigned int VAO_ = 0, VBO_ = 0;
@@ -489,7 +489,7 @@ public:
         catch (const std::exception& e)
         {
             std::cerr << "ERROR: failed to call shaderOnInit in Box::Init(): " << e.what() << std::endl;
-            abort;
+            abort();
         }
         shader_.UnBind();
 
@@ -527,7 +527,7 @@ public:
         catch (const std::exception& e)
         {
             std::cerr << "ERROR: failed to call shaderOnDraw in Box::Draw(): " << e.what() << std::endl;
-            abort;
+            abort();
         }
 
         glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -574,7 +574,7 @@ public:
     }
 private:
     Transform3D transform_ = Transform3D(); // Contains offset for all points, rotation and the model mat representing these transformations.
-    std::array<glm::vec3, 4> points_; // quad has it's centroid on (0;0)
+    std::array<glm::vec3, 4> points_ = {}; // quad has it's centroid on (0;0)
     std::function<void(Shader)> shaderOnDraw_ = nullptr;
     Shader shader_ = Shader();
     unsigned int VAO_ = 0, VBO_ = 0;

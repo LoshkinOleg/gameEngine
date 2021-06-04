@@ -41,8 +41,8 @@ void Engine::Init()
 		"GPR5300",
 		SDL_WINDOWPOS_UNDEFINED,
 		SDL_WINDOWPOS_UNDEFINED,
-		windowSize_.x,
-		windowSize_.y,
+		(int)windowSize_.x,
+		(int)windowSize_.y,
 		flags);
 
 	// Check that everything worked out okay

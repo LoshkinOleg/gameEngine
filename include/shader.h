@@ -13,27 +13,22 @@ namespace gl {
 	class Shader
 	{
 	public:
-		unsigned int id;
+		unsigned int id = 0;
 		// constructor generates the shader on the fly
 		Shader() {};
 		Shader(
 			const std::string& vertexPath, 
-			const std::string& fragmentPath, 
-			const std::string& geometryPath = "")
+			const std::string& fragmentPath)
 		{
 			// 1. retrieve the vertex/fragment source code from filePath
 			std::string vertexCode;
 			std::string fragmentCode;
-			std::string geometryCode;
 			std::ifstream vShaderFile;
 			std::ifstream fShaderFile;
-			std::ifstream gShaderFile;
 			// ensure ifstream objects can throw exceptions:
 			vShaderFile.exceptions(
 				std::ifstream::failbit | std::ifstream::badbit);
 			fShaderFile.exceptions(
-				std::ifstream::failbit | std::ifstream::badbit);
-			gShaderFile.exceptions(
 				std::ifstream::failbit | std::ifstream::badbit);
 			try
 			{
@@ -50,16 +45,6 @@ namespace gl {
 				// convert stream into string
 				vertexCode = vShaderStream.str();
 				fragmentCode = fShaderStream.str();
-				// if geometry shader path is present, also load a geometry
-				// shader
-				if (!geometryPath.empty())
-				{
-					gShaderFile.open(geometryPath);
-					std::stringstream gShaderStream;
-					gShaderStream << gShaderFile.rdbuf();
-					gShaderFile.close();
-					geometryCode = gShaderStream.str();
-				}
 			}
 			catch (std::ifstream::failure& e)
 			{
@@ -86,19 +71,6 @@ namespace gl {
 			glCompileShader(fragment);
 			IsError(__FILE__, __LINE__);
 			CheckCompileErrors(fragment, "FRAGMENT");
-			// if geometry shader is given, compile geometry shader
-			unsigned int geometry;
-			if (!geometryPath.empty())
-			{
-				const char* gShaderCode = geometryCode.c_str();
-				geometry = glCreateShader(GL_GEOMETRY_SHADER);
-				IsError(__FILE__, __LINE__);
-				glShaderSource(geometry, 1, &gShaderCode, NULL);
-				IsError(__FILE__, __LINE__);
-				glCompileShader(geometry);
-				IsError(__FILE__, __LINE__);
-				CheckCompileErrors(geometry, "GEOMETRY");
-			}
 			// shader Program
 			id = glCreateProgram();
 			IsError(__FILE__, __LINE__);
@@ -106,11 +78,6 @@ namespace gl {
 			IsError(__FILE__, __LINE__);
 			glAttachShader(id, fragment);
 			IsError(__FILE__, __LINE__);
-			if (!geometryPath.empty())
-			{
-				glAttachShader(id, geometry);
-				IsError(__FILE__, __LINE__);
-			}
 			glLinkProgram(id);
 			IsError(__FILE__, __LINE__);
 			CheckCompileErrors(id, "PROGRAM");
@@ -120,11 +87,6 @@ namespace gl {
 			IsError(__FILE__, __LINE__);
 			glDeleteShader(fragment);
 			IsError(__FILE__, __LINE__);
-			if (!geometryPath.empty())
-			{
-				glDeleteShader(geometry);
-				IsError(__FILE__, __LINE__);
-			}
 		}
 		// activate the shader
 		void Bind()
