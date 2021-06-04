@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <functional>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -15,25 +16,26 @@ namespace gl {
 
 struct Vertex
 {
-    glm::vec3 pos;
-    glm::vec3 normal;
-    glm::vec2 texCoord;
+    glm::vec3 pos = glm::vec3(0.0f);
+    glm::vec3 normal = glm::vec3(0.0f);
+    glm::vec2 texCoord = glm::vec2(0.0f);
 };
 
 class Mesh
 {
 public:
     Mesh() {};
-    Mesh(const std::string& modelDir, Shader& shader, tinyobj::ObjReader reader, unsigned int shapeIndex)
+    void Init(const std::string& modelDir, tinyobj::ObjReader reader, unsigned int shapeIndex, const std::string& shaderName, std::function<void(Shader)> shaderOnInit, std::function<void(Shader, Mesh)> shaderOnDraw)
     {
-        std::vector<Vertex> vertices;
+        // Init shader.
+        shader_ = Shader("../data/shaders/" + shaderName + ".vert", "../data/shaders/" + shaderName + ".frag");
+        shaderOnDraw_ = shaderOnDraw;
 
         auto& attrib = reader.GetAttrib();
         auto& shapes = reader.GetShapes();
         auto& materials = reader.GetMaterials();
 
         // Load materials.
-        // TODO: make an assert that verifies that all values of shapes[shapeIndex].mesh.material_ids are identical: accumulate the values, then modulo by the array's size.
         const int matId = shapes[shapeIndex].mesh.material_ids[0]; // An obj should have 1 material per mesh. Therefore shapes[shapeIndex].mesh.material_ids values should all be the same.
         if (!materials[matId].ambient_texname.empty())
         {
@@ -69,6 +71,7 @@ public:
 
         // Load vertices.
         const size_t numOfTriangles = shapes[shapeIndex].mesh.num_face_vertices.size();
+        std::vector<Vertex> vertices;
         for (size_t f = 0; f < numOfTriangles * 3; f += 3) // Traverse the index array 3 spots at a time since we're working with triangles.
         {
             for (size_t v = 0; v < 3; v++)
@@ -88,7 +91,7 @@ public:
                 else
                 {
                     std::cerr << "ERROR: Mesh does not contain position data!" << std::endl;
-                    throw;
+                    abort();
                 }
                 if (indices.normal_index > -1)
                 {
@@ -114,18 +117,6 @@ public:
         }
         verticesCount_ = (unsigned int)vertices.size();
 
-        // Center mesh on origin.
-        // glm::vec3 centroid = glm::vec3(0.0f);
-        // for (size_t i = 0; i < vertices.size(); i++)
-        // {
-        //     centroid += vertices[i].pos;
-        // }
-        // centroid /= (float)vertices.size();
-        // for (size_t i = 0; i < vertices.size(); i++)
-        // {
-        //     vertices[i].pos = vertices[i].pos - centroid;
-        // }
-
         // Transfer vertices to GPU.
         glGenVertexArrays(1, &VAO_);
         glBindVertexArray(VAO_);
@@ -141,11 +132,32 @@ public:
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
+
+        shader_.Bind();
+        try
+        {
+            shaderOnInit(shader_);
+        }
+        catch (const std::exception& e)
+        {
+            std::cerr << "ERROR: Exception from invoking shaderOnInit in Mesh::Init(): " << e.what() << std::endl;
+            abort();
+        }
+        Shader::UnBind();
     }
-    void Draw(Shader& shader)
+    void Draw(const Camera& camera)
     {
         // Bind everything.
-        shader.Bind();
+        shader_.Bind();
+        try
+        {
+            shaderOnDraw_(shader_, *this);
+        }
+        catch (const std::exception& e)
+        {
+            std::cerr << "ERROR: Exception from invoking shaderOnDraw in Mesh::Draw(): " << e.what() << std::endl;
+            abort();
+        }
         glBindVertexArray(VAO_);
         glBindBuffer(GL_ARRAY_BUFFER, VBO_);
         for (size_t i = 0; i < 3; i++)
@@ -153,19 +165,11 @@ public:
             textures_[i].Bind((unsigned int)i);
         }
 
-        // Set up uniforms for next draw call.
-        shader.SetInt("mat.ambientMap", 0);
-        shader.SetInt("mat.diffuseMap", 1);
-        shader.SetInt("mat.specularMap", 2);
-        shader.SetVec3("mat.ambientColor", ambientColor_);
-        shader.SetVec3("mat.diffuseColor", diffuseColor_);
-        shader.SetVec3("mat.specularColor", specularColor_);
-        shader.SetFloat("mat.shininess", shininess_);
-
         // Send draw call.
         glDrawArrays(GL_TRIANGLES, 0, verticesCount_);
 
         // Unbind everything.
+        Shader::UnBind();
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
         Texture::UnBind();
@@ -177,8 +181,25 @@ public:
         {
             textures_[i].Destroy();
         }
+        shader_.Destroy();
         glDeleteBuffers(1, &VBO_);
         glDeleteVertexArrays(1, &VAO_);
+    }
+    glm::vec3 GetAmbientColor() const
+    {
+        return ambientColor_;
+    }
+    glm::vec3 GetDiffuseColor() const
+    {
+        return diffuseColor_;
+    }
+    glm::vec3 GetSpecularColor() const
+    {
+        return specularColor_;
+    }
+    float GetShininess() const
+    {
+        return shininess_;
     }
 private:
     unsigned int VAO_ = 0, VBO_ = 0;
@@ -188,44 +209,35 @@ private:
     glm::vec3 specularColor_ = glm::vec3(0.0f);
     float shininess_ = 0.0f;
     Texture textures_[3] = { Texture(), Texture(), Texture() };
+    Shader shader_ = {};
+    std::function<void(Shader, Mesh)> shaderOnDraw_ = nullptr;
 };
 
 class Model
 {
 public:
-    Model() {};
+    Model() = default;
     /*
     @modelDir: Must end with a '/'
     @modelName: Don't include the extension.
     @shaderDir: Must end with a '/'
     @shaderName: Don't include the extension.
     */
-    Model(const std::string& modelDir, const std::string& modelName, const std::string& shaderDir, const std::string& shaderName)
+    void Init(const std::string& modelName, const std::string& shaderName, std::function<void(Shader)> shaderOnInit, std::function<void(Shader, Mesh)> shaderOnDraw)
     {
-        // Init shader.
-        shader_ = Shader(shaderDir + shaderName + ".vert", shaderDir + shaderName + ".frag");
-        shader_.Bind();
-        shader_.SetMat4("perspective", glm::perspective(glm::radians(45.0f), 1024.0f / 720.0f, 0.1f, 100.0f));
-        shader_.SetMat4("model", glm::mat4(1.0f));
-        shader_.SetVec3("dirLight.dir", glm::normalize(glm::vec3(-1.0f, -1.0f, -1.0f)));
-        shader_.SetVec3("dirLight.ambient", glm::vec3(0.1f, 0.1f, 0.1f));
-        shader_.SetVec3("dirLight.diffuse", glm::vec3(0.9f, 0.9f, 0.9f));
-        shader_.SetVec3("dirLight.specular", glm::vec3(1.0f, 1.0f, 1.0f));
-        Shader::UnBind();
-
         // Init meshes.
         tinyobj::ObjReader reader;
         tinyobj::ObjReaderConfig config;
-        config.mtl_search_path = modelDir;
+        config.mtl_search_path = "../data/models/" + modelName + "/";
         config.triangulate = true;
 
-        if (!reader.ParseFromFile(modelDir + modelName + ".obj", config))
+        if (!reader.ParseFromFile("../data/models/" + modelName + "/" + modelName + ".obj", config))
         {
             std::cerr << "ERROR: tinyObj could not open file!" << std::endl;
             if (!reader.Error().empty())
             {
                 std::cerr << "objLoader: " << reader.Error() << std::endl;
-                throw;
+                abort();
             }
             std::cerr << "objLoader: reader.Error() is empty." << std::endl;
             throw;
@@ -239,18 +251,14 @@ public:
 
         for (size_t i = 0; i < meshes_.size(); i++)
         {
-            meshes_[i] = Mesh(modelDir, shader_, reader, (unsigned int)i);
+            meshes_[i].Init("../data/models/" + modelName + "/", reader, (unsigned int)i, shaderName, shaderOnInit, shaderOnDraw);
         }
     }
     void Draw(const Camera& camera)
     {
-        shader_.Bind();
-        shader_.SetMat4("view", camera.GetViewMatrix());
-        shader_.SetVec3("viewPos", camera.GetPos());
-        Shader::UnBind();
         for (size_t i = 0; i < meshes_.size(); i++)
         {
-            meshes_[i].Draw(shader_);
+            meshes_[i].Draw(camera);
         }
     }
     void Destroy()
@@ -258,12 +266,11 @@ public:
         for (size_t i = 0; i < meshes_.size(); i++)
         {
             meshes_[i].Destroy();
-            shader_.Destroy();
+            
         }
     }
 private:
-    std::vector<Mesh> meshes_;
-    Shader shader_;
+    std::vector<Mesh> meshes_ = {};
 };
 
 } // End namespace gl.

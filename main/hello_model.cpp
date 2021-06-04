@@ -15,11 +15,6 @@ public:
     void DrawImGui() override;
 
 protected:
-    unsigned int axisVAO_;
-    unsigned int axisVBO_;
-    unsigned int axisProgram_;
-
-    Shader axisShader_ = Shader();
     Model model_;
     Camera camera_;
 
@@ -45,47 +40,36 @@ void HelloTriangle::Init()
 {
     // GL testings.
     glEnable(GL_DEPTH_TEST);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_BLEND);
 
     IsError(__FILE__, __LINE__);
 
     // Internal variables.
-    axisShader_ = Shader("../data/shaders/plain.vert", "../data/shaders/plain.frag");
-    model_ = Model("../data/models/crate/", "crate", "../data/shaders/hello_model/", "model");
-
-    // Data.
-    float axisVertices[18] = {
-        0.0f, 0.0f, 0.0f, // X
-        1.0f, 0.0f, 0.0f,
-
-        0.0f, 0.0f, 0.0f, // Y
-        0.0f, 1.0f, 0.0f,
-
-        0.0f, 0.0f, 0.0f, // Z
-        0.0f, 0.0f, 1.0f
-    };
-
-    // Fill out buffers.
-    glGenVertexArrays(1, &axisVAO_);
-    glBindVertexArray(axisVAO_);
-    glGenBuffers(1, &axisVBO_);
-    glBindBuffer(GL_ARRAY_BUFFER, axisVBO_);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(axisVertices), axisVertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    IsError(__FILE__, __LINE__);
-
-    // Set up uniforms.
-    glm::mat4 perspective = glm::perspective(glm::radians(45.0f), SCREEN_RESOLUTION[0] / SCREEN_RESOLUTION[1], 0.1f, 1000.0f);
-    glm::mat4 view = camera_.GetViewMatrix();
-    axisShader_.Bind();
-    axisShader_.SetMat4("projection", perspective);
-    axisShader_.SetMat4("view", view);
-    axisShader_.SetMat4("model", glm::mat4(1.0f));
-
-    IsError(__FILE__, __LINE__);
+    model_.Init
+    (
+        "crate", // model's folder name
+        "hello_model/model", // shader's name
+        [](Shader shader)->void // shader on init
+        {
+            shader.SetMat4("perspective", glm::perspective(glm::radians(45.0f), 1024.0f / 720.0f, 0.1f, 100.0f));
+            shader.SetMat4("model", glm::mat4(1.0f));
+            shader.SetVec3("dirLight.dir", glm::normalize(glm::vec3(-1.0f, -1.0f, -1.0f)));
+            shader.SetVec3("dirLight.ambient", glm::vec3(0.1f, 0.1f, 0.1f));
+            shader.SetVec3("dirLight.diffuse", glm::vec3(0.9f, 0.9f, 0.9f));
+            shader.SetVec3("dirLight.specular", glm::vec3(1.0f, 1.0f, 1.0f));
+        },
+        [this](Shader shader, Mesh mesh)->void // shader on draw
+        {
+            shader.SetMat4("view", camera_.GetViewMatrix());
+            shader.SetVec3("viewPos", camera_.GetPosition());
+            shader.SetInt("mat.ambientMap", 0);
+            shader.SetInt("mat.diffuseMap", 1);
+            shader.SetInt("mat.specularMap", 2);
+            shader.SetVec3("mat.ambientColor", mesh.GetAmbientColor());
+            shader.SetVec3("mat.diffuseColor", mesh.GetDiffuseColor());
+            shader.SetVec3("mat.specularColor", mesh.GetSpecularColor());
+            shader.SetFloat("mat.shininess", mesh.GetShininess());
+        }
+    );
 }
 
 void HelloTriangle::Update(seconds dt)
@@ -93,19 +77,6 @@ void HelloTriangle::Update(seconds dt)
     glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
     IsError(__FILE__, __LINE__);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    IsError(__FILE__, __LINE__);
-
-    // Draw world axis.
-    axisShader_.Bind();
-    glBindVertexArray(axisVAO_);
-    glBindBuffer(GL_ARRAY_BUFFER, axisVBO_);
-    axisShader_.SetMat4("view", camera_.GetViewMatrix());
-    axisShader_.SetVec3("color", glm::vec3(1.0f, 0.0f, 0.0f));
-    glDrawArrays(GL_LINES, 0, 2);
-    axisShader_.SetVec3("color", glm::vec3(0.0f, 1.0f, 0.0f));
-    glDrawArrays(GL_LINES, 2, 2);
-    axisShader_.SetVec3("color", glm::vec3(0.0f, 0.0f, 1.0f));
-    glDrawArrays(GL_LINES, 4, 2);
     IsError(__FILE__, __LINE__);
 
     model_.Draw(camera_);
@@ -134,7 +105,7 @@ void HelloTriangle::OnEvent(SDL_Event& event)
             camera_.ProcessKeyboard(Camera::Camera_Movement::FORWARD);
             break;
         case SDLK_s:
-            camera_.ProcessKeyboard(Camera::Camera_Movement::BACKWARDS);
+            camera_.ProcessKeyboard(Camera::Camera_Movement::BACKWARD);
             break;
         case SDLK_a:
             camera_.ProcessKeyboard(Camera::Camera_Movement::LEFT);

@@ -261,7 +261,7 @@ void HelloTriangle::OnEvent(SDL_Event& event)
             camera_.ProcessKeyboard(Camera::Camera_Movement::FORWARD);
             break;
         case SDLK_s:
-            camera_.ProcessKeyboard(Camera::Camera_Movement::BACKWARDS);
+            camera_.ProcessKeyboard(Camera::Camera_Movement::BACKWARD);
             break;
         case SDLK_a:
             camera_.ProcessKeyboard(Camera::Camera_Movement::LEFT);
