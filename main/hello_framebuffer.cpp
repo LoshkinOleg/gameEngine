@@ -45,7 +45,21 @@ void HelloTriangle::Init()
     glEnable(GL_DEPTH_TEST);
 
     // Objects in the scene.
-    crate_ = Model("../data/models/crate/", "crate", "../data/shaders/hello_model/", "model");
+    crate_.Init
+    (
+        "crate", // name of obj's dir
+        "textured", // name of shaders
+        [this](Shader shader)->void // on shader init
+        {
+            shader.SetMat4("projection", glm::perspective(glm::radians(45.0f), SCREEN_RESOLUTION[0] / SCREEN_RESOLUTION[1], 0.1f, 100.0f));
+            shader.SetMat4("model", glm::mat4(1.0));
+        },
+        [this](Shader shader, Mesh mesh)->void // on shader draw
+        {
+            shader.SetInt("ambient", 0);
+            shader.SetMat4("view", camera_.GetViewMatrix());
+        }
+    );
     framebuffer_.Init("hello_framebuffer/framebuffer", (int)SCREEN_RESOLUTION[0], (int)SCREEN_RESOLUTION[1]);
 }
 

@@ -27,7 +27,6 @@ public:
 
 protected:
     Camera camera_;
-    Axis axis_;
     Triangle triA_;
     Triangle triB_;
 
@@ -147,7 +146,6 @@ void HelloTriangle::Init()
     glEnable(GL_BLEND);
     IsError(__FILE__, __LINE__);
 
-    axis_.Init();
     glm::vec3 pointsOfA[3] = {
         glm::vec3(0.0f, 0.0f, 0.0f),
         glm::vec3(-1.0f, 1.0f, 0.0f),
@@ -171,14 +169,12 @@ void HelloTriangle::Update(seconds dt)
 
     triA_.Move(Collision(triA_, triB_)); // Correct the position of the triangle if there's a collision.
 
-    axis_.Draw(camera_);
     triA_.Draw(camera_);
     triB_.Draw(camera_);
 }
 
 void HelloTriangle::Destroy()
 {
-    axis_.Destroy();
     triA_.Destroy();
     triB_.Destroy();
 }
@@ -209,7 +205,7 @@ void HelloTriangle::OnEvent(SDL_Event& event)
             triA_.Move(glm::vec3(1.0f, 0.0f, 0.0f) * 0.1f);
             break;
         case SDLK_SPACE:
-            PrintOut(glm::transpose(triA_.GetTransform().model));
+
             break;
         case SDLK_LCTRL:
 

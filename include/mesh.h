@@ -169,7 +169,6 @@ public:
         glDrawArrays(GL_TRIANGLES, 0, verticesCount_);
 
         // Unbind everything.
-        Shader::UnBind();
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
         Texture::UnBind();

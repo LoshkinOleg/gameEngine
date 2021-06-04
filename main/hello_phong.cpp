@@ -169,7 +169,7 @@ void HelloTriangle::Init()
     shader_.SetFloat("ptLight.constant", 1.0f);
     shader_.SetFloat("ptLight.linear", 0.027f);
     shader_.SetFloat("ptLight.quadratic", 0.0028f);
-    shader_.SetVec3("spotLight.pos", camera_.GetPos());
+    shader_.SetVec3("spotLight.pos", camera_.GetPosition());
     shader_.SetVec3("spotLight.dir", camera_.GetFront());
     shader_.SetVec3("spotLight.ambient", glm::vec3(0.05f, 0.05f, 0.05f));
     shader_.SetVec3("spotLight.diffuse", glm::vec3(0.75f, 0.15f, 0.15f));
@@ -179,7 +179,7 @@ void HelloTriangle::Init()
     shader_.SetFloat("spotLight.quadratic", 0.0028f);
     shader_.SetFloat("spotLight.innerCutoff", glm::cos(glm::radians(12.5f)));
     shader_.SetFloat("spotLight.outerCutoff", glm::cos(glm::radians(17.5f)));
-    shader_.SetVec3("viewPos", camera_.GetPos());
+    shader_.SetVec3("viewPos", camera_.GetPosition());
 }
 
 void HelloTriangle::Update(seconds dt)
@@ -210,8 +210,8 @@ void HelloTriangle::Update(seconds dt)
     IsError(__FILE__, __LINE__);
 
     shader_.SetMat4("view", camera_.GetViewMatrix());
-    shader_.SetVec3("viewPos", camera_.GetPos());
-    shader_.SetVec3("spotLight.pos", camera_.GetPos());
+    shader_.SetVec3("viewPos", camera_.GetPosition());
+    shader_.SetVec3("spotLight.pos", camera_.GetPosition());
     shader_.SetVec3("spotLight.dir", camera_.GetFront());
 
     glm::vec3 cubePositions[10] = {

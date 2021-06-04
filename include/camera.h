@@ -86,7 +86,7 @@ namespace gl {
         {
             return zoom_;
         }
-        glm::mat4 GetViewMatrix()
+        glm::mat4 GetViewMatrix() const
         {
             return glm::lookAt(position_, position_ + front_, up_); // pos + front as 2nd arg to have camera always face something right in front of it.
         }
