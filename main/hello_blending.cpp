@@ -19,6 +19,7 @@ public:
 
 protected:
     Camera camera_;
+    Model stainedGlass_[3];
     Model crate_;
     Framebuffer framebuffer_;
 
@@ -43,16 +44,19 @@ void HelloTriangle::IsError(const std::string& file, int line)
 void HelloTriangle::Init()
 {
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Objects in the scene.
-    crate_.Init
+    stainedGlass_[1].Init
     (
-        "crate", // name of obj's dir
-        "textured", // name of shaders
+        "stainedGlass", // name of obj's dir
+        "hello_blending/blending", // name of shaders
         [this](Shader shader)->void // on shader init
         {
             shader.SetMat4("projection", glm::perspective(glm::radians(45.0f), SCREEN_RESOLUTION[0] / SCREEN_RESOLUTION[1], 0.1f, 100.0f));
-            shader.SetMat4("model", glm::mat4(1.0));
+            glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 0.0f, 2.0f));
+            shader.SetMat4("model", model);
         },
         [this](Shader shader, Mesh mesh)->void // on shader draw
         {
@@ -60,13 +64,64 @@ void HelloTriangle::Init()
             shader.SetMat4("view", camera_.GetViewMatrix());
         }
     );
-    framebuffer_.Init("hello_framebuffer/framebuffer", (int)SCREEN_RESOLUTION[0], (int)SCREEN_RESOLUTION[1]);
+    stainedGlass_[0].Init
+    (
+        "stainedGlass", // name of obj's dir
+        "hello_blending/blending", // name of shaders
+        [this](Shader shader)->void // on shader init
+        {
+            shader.SetMat4("projection", glm::perspective(glm::radians(45.0f), SCREEN_RESOLUTION[0] / SCREEN_RESOLUTION[1], 0.1f, 100.0f));
+            glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 0.0f, -2.0f));
+            shader.SetMat4("model", model);
+        },
+        [this](Shader shader, Mesh mesh)->void // on shader draw
+        {
+            shader.SetInt("ambient", 0);
+            shader.SetMat4("view", camera_.GetViewMatrix());
+        }
+        );
+    stainedGlass_[2].Init
+    (
+        "stainedGlass", // name of obj's dir
+        "hello_blending/blending", // name of shaders
+        [this](Shader shader)->void // on shader init
+        {
+            shader.SetMat4("projection", glm::perspective(glm::radians(45.0f), SCREEN_RESOLUTION[0] / SCREEN_RESOLUTION[1], 0.1f, 100.0f));
+            glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 3.0f));
+            shader.SetMat4("model", model);
+        },
+        [this](Shader shader, Mesh mesh)->void // on shader draw
+        {
+            shader.SetInt("ambient", 0);
+            shader.SetMat4("view", camera_.GetViewMatrix());
+        }
+        );
+    crate_.Init
+    (
+        "crate", // name of obj's dir
+        "textured", // name of shaders
+        [this](Shader shader)->void // on shader init
+        {
+            shader.SetMat4("projection", glm::perspective(glm::radians(45.0f), SCREEN_RESOLUTION[0] / SCREEN_RESOLUTION[1], 0.1f, 100.0f));
+            shader.SetMat4("model", glm::mat4(1.0f));
+        },
+        [this](Shader shader, Mesh mesh)->void // on shader draw
+        {
+            shader.SetInt("ambient", 0);
+            shader.SetMat4("view", camera_.GetViewMatrix());
+        }
+        );
+    framebuffer_.Init("framebuffer_unchanged", (int)SCREEN_RESOLUTION[0], (int)SCREEN_RESOLUTION[1]);
 }
 
 void HelloTriangle::Update(seconds dt)
 {
     framebuffer_.Bind();
-    crate_.Draw(camera_); // Draw to framebuffer.
+    crate_.Draw(camera_);
+    for (size_t i = 0; i < 3; i++)
+    {
+        stainedGlass_[i].Draw(camera_); // Draw to framebuffer.
+    }
     framebuffer_.UnBind();
 
     framebuffer_.Draw(); // Render result to default framebuffer.
@@ -74,6 +129,10 @@ void HelloTriangle::Update(seconds dt)
 
 void HelloTriangle::Destroy()
 {
+    for (size_t i = 0; i < 3; i++)
+    {
+        stainedGlass_[i].Destroy();
+    }
     crate_.Destroy();
     framebuffer_.Destroy();
 }
