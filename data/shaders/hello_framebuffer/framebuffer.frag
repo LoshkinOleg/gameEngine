@@ -1,7 +1,7 @@
 #version 440 core
 out vec4 FragColor;
 
-in vec2 Pos;
+in vec3 Pos;
 in vec2 TexCoord;
 
 uniform sampler2D screenTex;

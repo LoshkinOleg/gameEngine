@@ -17,28 +17,38 @@ namespace gl {
 			UP,
 			DOWN
 		};
+        struct CameraState
+        {
+            glm::vec3 position_ = glm::vec3(0.0f, 0.0f, 10.0f);
+            glm::vec3 front_ = glm::vec3(0.0f, 0.0f, -1.0f);
+            glm::vec3 right_ = glm::vec3(1.0f, 0.0f, 0.0f);
+            glm::vec3 up_ = glm::vec3(0.0f, 1.0f, 0.0f);
+            float pitch_ = 0.0f;
+            float yaw_ = glm::radians(-90.0f);
+            float zoom_ = glm::radians(85.0f);
+        };
 
         void ProcessKeyboard(Camera_Movement direction)
         {
             switch (direction)
             {
             case Camera_Movement::FORWARD:
-                position_ += front_ * MovSpeed;
+                state_.position_ += state_.front_ * MovSpeed;
                 break;
             case Camera_Movement::BACKWARD:
-                position_ -= front_ * MovSpeed;
+                state_.position_ -= state_.front_ * MovSpeed;
                 break;
             case Camera_Movement::LEFT:
-                position_ -= right_ * MovSpeed;
+                state_.position_ -= state_.right_ * MovSpeed;
                 break;
             case Camera_Movement::RIGHT:
-                position_ += right_ * MovSpeed;
+                state_.position_ += state_.right_ * MovSpeed;
                 break;
             case Camera_Movement::UP:
-                position_ += up_ * MovSpeed;
+                state_.position_ += state_.up_ * MovSpeed;
                 break;
             case Camera_Movement::DOWN:
-                position_ -= up_ * MovSpeed;
+                state_.position_ -= state_.up_ * MovSpeed;
                 break;
             default:
                 break;
@@ -46,49 +56,65 @@ namespace gl {
         }
         void ProcessMouseMovement(int x, int y)
         {
-            yaw_ += (float)x * MouseSensitivity;
-            pitch_ -= (float)y * MouseSensitivity;
-            if (pitch_ > glm::radians(89.0f)) pitch_ = glm::radians(89.0f);
-            if (pitch_ < glm::radians(-89.0f)) pitch_ = glm::radians(-89.0f);
+            state_.yaw_ += (float)x * MouseSensitivity;
+            state_.pitch_ -= (float)y * MouseSensitivity;
+            if (state_.pitch_ > glm::radians(89.0f)) state_.pitch_ = glm::radians(89.0f);
+            if (state_.pitch_ < glm::radians(-89.0f)) state_.pitch_ = glm::radians(-89.0f);
             UpdateCameraVectors_();
         }
         void ProcessMouseWheel(int y)
         {
-            zoom_ -= (float)y * ZoomingSpeed;
-            if (zoom_ < glm::radians(85.0f)) zoom_ = glm::radians(85.0f);
-            if (zoom_ > glm::radians(120.0f)) zoom_ = glm::radians(120.0f);
+            state_.zoom_ -= (float)y * ZoomingSpeed;
+            if (state_.zoom_ < glm::radians(85.0f)) state_.zoom_ = glm::radians(85.0f);
+            if (state_.zoom_ > glm::radians(120.0f)) state_.zoom_ = glm::radians(120.0f);
+        }
+        void SetPosition(glm::vec3 pos)
+        {
+
+        }
+        void SetFront(glm::vec3 frnt)
+        {
+            
         }
         glm::vec3 GetPosition() const
         {
-            return position_;
+            return state_.position_;
         }
         glm::vec3 GetFront() const
         {
-            return front_;
+            return state_.front_;
         }
         glm::vec3 GetRight() const
         {
-            return right_;
+            return state_.right_;
         }
         glm::vec3 GetUp() const
         {
-            return up_;
+            return state_.up_;
         }
         float GetRadianPitch()
         {
-            return pitch_;
+            return state_.pitch_;
         }
         float GetRadianYaw()
         {
-            return yaw_;
+            return state_.yaw_;
         }
         float GetZoom()
         {
-            return zoom_;
+            return state_.zoom_;
         }
         glm::mat4 GetViewMatrix() const
         {
-            return glm::lookAt(position_, position_ + front_, up_); // pos + front as 2nd arg to have camera always face something right in front of it.
+            return glm::lookAt(state_.position_, state_.position_ + state_.front_, state_.up_); // pos + front as 2nd arg to have camera always face something right in front of it.
+        }
+        const CameraState GetCameraState()
+        {
+            return state_;
+        }
+        void SetCameraState(const CameraState state)
+        {
+            state_ = state;
         }
 
 		float MovSpeed = 0.1f;
@@ -100,21 +126,15 @@ namespace gl {
         {
             // calculate the new Front vector in relation to world axis using yaw and pitch.
             glm::vec3 front;
-            front.x = cos(yaw_) * cos(pitch_);
-            front.y = sin(pitch_);
-            front.z = sin(yaw_) * cos(pitch_);
-            front_ = glm::normalize(front);
+            front.x = cos(state_.yaw_) * cos(state_.pitch_);
+            front.y = sin(state_.pitch_);
+            front.z = sin(state_.yaw_) * cos(state_.pitch_);
+            state_.front_ = glm::normalize(front);
             // Update right and up.
-            right_ = glm::normalize(glm::cross(front_, glm::vec3(0.0f, 1.0f, 0.0f))); // 0.0,1.0,0.0 is world UP.
-            up_ = glm::normalize(glm::cross(right_, front_));
+            state_.right_ = glm::normalize(glm::cross(state_.front_, glm::vec3(0.0f, 1.0f, 0.0f))); // 0.0,1.0,0.0 is world UP.
+            state_.up_ = glm::normalize(glm::cross(state_.right_, state_.front_));
         }
 
-		glm::vec3 position_ = glm::vec3(0.0f, 0.0f, 10.0f);
-		glm::vec3 front_ = glm::vec3(0.0f, 0.0f, -1.0f);
-		glm::vec3 right_ = glm::vec3(1.0f, 0.0f, 0.0f);
-		glm::vec3 up_ = glm::vec3(0.0f, 1.0f, 0.0f);
-		float pitch_ = 0.0f;
-		float yaw_ = glm::radians(-90.0f);
-		float zoom_ = glm::radians(85.0f);
+        CameraState state_ = {};
 	};
 }//!gl.

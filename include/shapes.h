@@ -1,6 +1,7 @@
 #pragma once
 
 // TODO: Refactor this shit
+// TODO: Separate different classes into their own headers, namely the transforms!
 
 #include <array>
 #include <functional>
@@ -42,24 +43,28 @@ class Arrow
 {
 public:
     Arrow() {};
-    void Init(glm::vec2 pos, glm::vec2 direction, float length, glm::vec3 color)
+    void Init(glm::vec3 pos, glm::vec3 direction, float length, glm::vec3 color)
     {
         direction = glm::normalize(direction) * length;
 
         shader_ = Shader("../data/shaders/plain.vert", "../data/shaders/plain.frag");
 
-        const glm::vec2 crossLineHorizontalStart = pos - glm::vec2(0.1f, 0.0f);
-        const glm::vec2 crossLineHorizontalEnd = pos + glm::vec2(0.1f, 0.0f);
-        const glm::vec2 crossLineVerticalStart = pos - glm::vec2(0.0f, 0.1f);
-        const glm::vec2 crossLineVerticalEnd = pos + glm::vec2(0.0f, 0.1f);
+        const glm::vec3 crossLineHorizontalStart = pos - glm::vec3(0.1f, 0.0f, 0.0f);
+        const glm::vec3 crossLineHorizontalEnd = pos + glm::vec3(0.1f, 0.0f, 0.0f);
+        const glm::vec3 crossLineVerticalStart = pos - glm::vec3(0.0f, 0.1f, 0.0f);
+        const glm::vec3 crossLineVerticalEnd = pos + glm::vec3(0.0f, 0.1f, 0.0f);
+        const glm::vec3 crossLineDepthStart = pos - glm::vec3(0.0f, 0.0f, 0.1f);
+        const glm::vec3 crossLineDepthEnd = pos + glm::vec3(0.0f, 0.0f, 0.1f);
 
-        float points[18] = {
-             pos.x,                          pos.y,                         0.0f,
-            (pos + direction).x,            (pos + direction).y,            0.0f,
-            crossLineHorizontalStart.x,     crossLineHorizontalStart.y,     0.0f,
-            crossLineHorizontalEnd.x,       crossLineHorizontalEnd.y,       0.0f,
-            crossLineVerticalStart.x,       crossLineVerticalStart.y,       0.0f,
-            crossLineVerticalEnd.x,         crossLineVerticalEnd.y,         0.0f
+        float points[24] = {
+             pos.x,                          pos.y,                         pos.z,
+            (pos + direction).x,            (pos + direction).y,            (pos + direction).z,
+            crossLineHorizontalStart.x,     crossLineHorizontalStart.y,     crossLineHorizontalStart.z,
+            crossLineHorizontalEnd.x,       crossLineHorizontalEnd.y,       crossLineHorizontalEnd.z,
+            crossLineVerticalStart.x,       crossLineVerticalStart.y,       crossLineVerticalStart.z,
+            crossLineVerticalEnd.x,         crossLineVerticalEnd.y,         crossLineVerticalEnd.z,
+            crossLineDepthStart.x,          crossLineDepthStart.y,          crossLineDepthStart.z,
+            crossLineDepthEnd.x,            crossLineDepthEnd.y,            crossLineDepthEnd.z
         };
 
         glGenVertexArrays(1, &VAO_);
@@ -85,7 +90,7 @@ public:
         glBindBuffer(GL_ARRAY_BUFFER, VBO_);
 
         shader_.SetMat4("view", camera.GetViewMatrix());
-        glDrawArrays(GL_LINES, 0, 6);
+        glDrawArrays(GL_LINES, 0, 8);
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);

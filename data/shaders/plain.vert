@@ -1,6 +1,6 @@
 #version 440 core
 
-in vec3 aPos;
+layout (location = 0) in vec3 aPos; // Note: Be careful with the number of attribs you declare in the shader vs. enable in the code! It must be the same!
 
 uniform mat4 projection;
 uniform mat4 view;

@@ -18,23 +18,23 @@ public:
         shader_ = Shader("../data/shaders/" + shader + ".vert", "../data/shaders/" + shader + ".frag");
 
         // Quad's data.
-        float quad[24] =
+        float quad[30] =
         {
-            -1.0f, -1.0f, 0.0f, 0.0f,
-             1.0f, -1.0f, 1.0f, 0.0f,
-             1.0f,  1.0f, 1.0f, 1.0f,
+            -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+             1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+             1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
 
-            -1.0f, -1.0f, 0.0f, 0.0f,
-             1.0f,  1.0f, 1.0f, 1.0f,
-            -1.0f,  1.0f, 0.0f, 1.0f
+            -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+             1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
+            -1.0f,  1.0f, 0.0f, 0.0f, 1.0f
         };
         glGenVertexArrays(1, &VAO_);
         glBindVertexArray(VAO_);
         glGenBuffers(1, &VBO_);
         glBindBuffer(GL_ARRAY_BUFFER, VBO_);
         glBufferData(GL_ARRAY_BUFFER, sizeof(quad), quad, GL_STATIC_DRAW);
-        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)0);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)(sizeof(float) * 2));
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 5, (void*)0);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 5, (void*)(sizeof(float) * 3));
         glEnableVertexAttribArray(0);
         glEnableVertexAttribArray(1);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -53,7 +53,7 @@ public:
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, TEX_, 0);
 
         glGenRenderbuffers(1, &RBO_);
-        glBindRenderbuffer(GL_RENDERBUFFER, RBO_);
+        glBindRenderbuffer(GL_RENDERBUFFER, RBO_); // Only viable target is GL_RENDERBUFFER, making this type of argument completely redundant... thanks gl.
         glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, RBO_);
 
@@ -69,6 +69,7 @@ public:
         glBindBuffer(GL_ARRAY_BUFFER, VBO_);
         glBindTexture(GL_TEXTURE_2D, TEX_);
         glDrawArrays(GL_TRIANGLES, 0, 6);
+        shader_.UnBind();
     }
     void Destroy()
     {
