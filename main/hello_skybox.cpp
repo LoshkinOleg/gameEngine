@@ -1,7 +1,4 @@
 #include <iostream>
-#include <array>
-
-#include "stb_image.h"
 
 #include "engine.h"
 #include "mesh.h"

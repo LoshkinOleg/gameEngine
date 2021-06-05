@@ -55,7 +55,7 @@ void HelloTriangle::Init()
     };
     skybox_.Init("hello_skybox/skybox", textures_faces);
 
-    environmentShader_ = Shader("../data/shaders/hello_cubemap/cubemap.vert", "../data/shaders/hello_cubemap/cubemap.frag");
+    environmentShader_ = Shader("../data/shaders/hello_environmentmap/environmentmap.vert", "../data/shaders/hello_environmentmap/environmentmap.frag");
     environmentShader_.Bind();
     environmentShader_.SetMat4("projection", glm::perspective(glm::radians(45.0f), SCREEN_RESOLUTION[0] / SCREEN_RESOLUTION[1], 0.1f, 100.0f));
     environmentShader_.SetMat4("model", glm::mat4(1.0f));
