@@ -10,5 +10,5 @@ uniform mat4 view;
 void main()
 {
 	TexCoord = aPos;
-	gl_Position = projection * view * vec4(aPos, 1.0);
+	gl_Position = (projection * view * vec4(aPos, 1.0)).xyww; // w = 1.0, therefore during the perspective division, z will always be set to w / w = 1.0.
 }

@@ -161,17 +161,17 @@ void HelloTriangle::Update(seconds dt)
     glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    crate_.Draw(camera_);
+
     skyboxShader_.Bind();
     skyboxShader_.SetMat4("view", glm::mat4(glm::mat3(camera_.GetViewMatrix())));
-    glDepthMask(GL_FALSE);
+    glDepthFunc(GL_LEQUAL);
     glBindVertexArray(VAO_);
     glBindBuffer(GL_ARRAY_BUFFER, VBO_);
     glBindTexture(GL_TEXTURE_CUBE_MAP, skybox_);
     glDrawArrays(GL_TRIANGLES, 0, 36);
-    glDepthMask(GL_TRUE);
+    // glDepthFunc(GL_LESS);
     skyboxShader_.UnBind();
-
-    crate_.Draw(camera_);
 }
 
 void HelloTriangle::Destroy()
