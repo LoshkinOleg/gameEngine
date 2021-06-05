@@ -74,6 +74,7 @@ namespace gl {
 			IsError(__FILE__, __LINE__);
 			glBindTexture(GL_TEXTURE_2D, 0);
 			IsError(__FILE__, __LINE__);
+			// TODO: Are we not freeing the image data?
 		}
 		void Bind(unsigned int i = 0)
 		{
