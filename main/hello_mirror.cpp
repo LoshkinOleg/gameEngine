@@ -5,6 +5,8 @@
 #include "framebuffer.h"
 #include "shapes.h"
 
+// TODO: Not exactly a mirror... it's just a second rendering from another pov instead.
+
 namespace gl {
 
 
