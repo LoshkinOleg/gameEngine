@@ -13,7 +13,7 @@ class Framebuffer
 {
 public:
     Framebuffer() = default;
-    void Init(const std::string& shader, int width, int height)
+    void Init(const std::string& shader, int width, int height, bool useHdr = false)
     {
         shader_ = Shader("../data/shaders/" + shader + ".vert", "../data/shaders/" + shader + ".frag");
 
@@ -47,7 +47,14 @@ public:
         glGenTextures(1, &TEX_);
         glBindTexture(GL_TEXTURE_2D, TEX_);
         // Note that we're using the texture the size of our screen, although it is not mandatory.
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+        if (useHdr)
+        {
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
+        }
+        else
+        {
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+        }
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, TEX_, 0);

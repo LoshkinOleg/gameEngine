@@ -34,11 +34,11 @@ vec4 ComputeDirLightWithInputCorrection();
 void main()
 {   
     const float GAMMA = 2.2;
-    if (FragPos.y > 0.3) // Non corrected.
+    if (FragPos.x > 0.3) // Non corrected.
     {
         FragColor = ComputeDirLight();
     }
-    else if(FragPos.y <= 0.3 && FragPos.y > -0.3) // Gamma corrected without correcting input textures.
+    else if(FragPos.x <= 0.3 && FragPos.x > -0.3) // Gamma corrected without correcting input textures.
     {
         FragColor = vec4(pow(ComputeDirLight().rgb, vec3(1.0/GAMMA)).rgb, 1.0); // Remove the monitor's gamma.
     }
@@ -86,8 +86,7 @@ vec4 ComputeDirLightWithInputCorrection()
     vec3 reflectDir = normalize(reflect(dirLight.dir, Normal));
     vec3 viewDir = normalize(viewPos - FragPos);
     float specularIntensity = pow(max(dot(viewDir, reflectDir), 0.0), mat.shininess);
-    vec3 specular = texture(mat.specularMap, TexCoord).rgb;
-    specular = pow(specular, vec3(GAMMA));
+    vec3 specular = texture(mat.specularMap, TexCoord).rgb; // Don't color correct the specular, it's in linear space already.
     specular *= mat.specularColor * dirLight.specular * specularIntensity;
 
     // result
