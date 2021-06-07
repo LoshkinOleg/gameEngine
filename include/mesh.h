@@ -25,7 +25,7 @@ class Mesh
 {
 public:
     Mesh() {};
-    void Init(const std::string& modelDir, tinyobj::ObjReader reader, unsigned int shapeIndex, const std::string& shaderName, std::function<void(Shader)> shaderOnInit, std::function<void(Shader, Mesh)> shaderOnDraw)
+    void Init(const std::string& modelDir, tinyobj::ObjReader reader, unsigned int shapeIndex, const std::string& shaderName, std::function<void(Shader, Mesh)> shaderOnInit, std::function<void(Shader, Mesh)> shaderOnDraw)
     {
         // Init shader.
         shader_ = Shader("../data/shaders/" + shaderName + ".vert", "../data/shaders/" + shaderName + ".frag");
@@ -136,7 +136,7 @@ public:
         shader_.Bind();
         try
         {
-            shaderOnInit(shader_);
+            shaderOnInit(shader_, *this);
         }
         catch (const std::exception& e)
         {
@@ -222,7 +222,7 @@ public:
     @shaderDir: Must end with a '/'
     @shaderName: Don't include the extension.
     */
-    void Init(const std::string& modelName, const std::string& shaderName, std::function<void(Shader)> shaderOnInit, std::function<void(Shader, Mesh)> shaderOnDraw)
+    void Init(const std::string& modelName, const std::string& shaderName, std::function<void(Shader, Mesh)> shaderOnInit, std::function<void(Shader, Mesh)> shaderOnDraw)
     {
         // Init meshes.
         tinyobj::ObjReader reader;

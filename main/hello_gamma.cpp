@@ -1,6 +1,6 @@
+#include <iostream>
+
 #include "engine.h"
-#include "shader.h"
-#include "camera.h"
 #include "mesh.h"
 
 namespace gl {
@@ -15,8 +15,8 @@ public:
     void DrawImGui() override;
 
 protected:
-    Model model_;
     Camera camera_;
+    Model crate_;
 
     const float SCREEN_RESOLUTION[2] = { 1024.0f, 720.0f };
 
@@ -38,36 +38,32 @@ void HelloTriangle::IsError(const std::string& file, int line)
 
 void HelloTriangle::Init()
 {
-    // GL testings.
     glEnable(GL_DEPTH_TEST);
 
-    IsError(__FILE__, __LINE__);
-
-    // Internal variables.
-    model_.Init
+    crate_.Init
     (
-        "crate", // model's folder name
-        "hello_model/model", // shader's name
-        [](Shader shader, Mesh mesh)->void // shader on init
+        "crate",
+        "hello_gamma/gamma",
+        [this](Shader shader, Mesh mesh)->void
         {
-            shader.SetMat4("perspective", glm::perspective(glm::radians(45.0f), 1024.0f / 720.0f, 0.1f, 100.0f));
-            shader.SetMat4("model", glm::mat4(1.0f));
-            shader.SetVec3("dirLight.dir", glm::normalize(glm::vec3(-1.0f, -1.0f, -1.0f)));
-            shader.SetVec3("dirLight.ambient", glm::vec3(0.1f, 0.1f, 0.1f));
-            shader.SetVec3("dirLight.diffuse", glm::vec3(0.9f, 0.9f, 0.9f));
-            shader.SetVec3("dirLight.specular", glm::vec3(1.0f, 1.0f, 1.0f));
-        },
-        [this](Shader shader, Mesh mesh)->void // shader on draw
-        {
-            shader.SetMat4("view", camera_.GetViewMatrix());
-            shader.SetVec3("viewPos", camera_.GetPosition());
-            shader.SetInt("mat.ambientMap", 0);
-            shader.SetInt("mat.diffuseMap", 1);
-            shader.SetInt("mat.specularMap", 2);
             shader.SetVec3("mat.ambientColor", mesh.GetAmbientColor());
             shader.SetVec3("mat.diffuseColor", mesh.GetDiffuseColor());
             shader.SetVec3("mat.specularColor", mesh.GetSpecularColor());
             shader.SetFloat("mat.shininess", mesh.GetShininess());
+            shader.SetVec3("dirLight.dir", glm::normalize(glm::vec3(-1.0f, -1.0f, -1.0f)));
+            shader.SetVec3("dirLight.ambient", glm::vec3(0.1f, 0.1f, 0.1f));
+            shader.SetVec3("dirLight.diffuse", glm::vec3(0.9f, 0.9f, 0.9f));
+            shader.SetVec3("dirLight.specular", glm::vec3(1.0f, 1.0f, 1.0f));
+            shader.SetMat4("projection", glm::perspective(glm::radians(45.0f), SCREEN_RESOLUTION[0] / SCREEN_RESOLUTION[1], 0.1f, 100.0f));
+            shader.SetMat4("model", glm::mat4(1.0f));
+        },
+        [this](Shader shader, Mesh mesh)->void
+        {
+            shader.SetInt("mat.ambientMap", 0);
+            shader.SetInt("mat.diffuseMap", 1);
+            shader.SetInt("mat.specularMap", 2);
+            shader.SetVec3("viewPos", camera_.GetPosition());
+            shader.SetMat4("view", camera_.GetViewMatrix());
         }
     );
 }
@@ -75,17 +71,14 @@ void HelloTriangle::Init()
 void HelloTriangle::Update(seconds dt)
 {
     glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
-    IsError(__FILE__, __LINE__);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    IsError(__FILE__, __LINE__);
 
-    model_.Draw(camera_);
-    IsError(__FILE__, __LINE__);
+    crate_.Draw(camera_);
 }
 
 void HelloTriangle::Destroy()
 {
-    model_.Destroy();
+    crate_.Destroy();
 }
 
 void HelloTriangle::OnEvent(SDL_Event& event)
