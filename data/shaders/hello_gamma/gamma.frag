@@ -29,17 +29,22 @@ uniform DirectionalLight dirLight;
 uniform vec3 viewPos;
 
 vec4 ComputeDirLight();
+vec4 ComputeDirLightWithInputCorrection();
 
 void main()
 {   
     const float GAMMA = 2.2;
-    if (FragPos.x > 0.0) // Non corrected.
+    if (FragPos.y > 0.3) // Non corrected.
     {
         FragColor = ComputeDirLight();
     }
-    else // Gamma corrected.
+    else if(FragPos.y <= 0.3 && FragPos.y > -0.3) // Gamma corrected without correcting input textures.
     {
-        FragColor = vec4(pow(ComputeDirLight().rgb, vec3(1.0/GAMMA)).rgb, 1.0);
+        FragColor = vec4(pow(ComputeDirLight().rgb, vec3(1.0/GAMMA)).rgb, 1.0); // Remove the monitor's gamma.
+    }
+    else // Gamma corrected and input textures corrected.
+    {
+        FragColor = vec4(pow(ComputeDirLightWithInputCorrection().rgb, vec3(1.0/GAMMA)).rgb, 1.0); // Convert texture color back into sRGB color space.
     }
 }
 
@@ -57,6 +62,33 @@ vec4 ComputeDirLight()
     vec3 viewDir = normalize(viewPos - FragPos);
     float specularIntensity = pow(max(dot(viewDir, reflectDir), 0.0), mat.shininess);
     vec3 specular = texture(mat.specularMap, TexCoord).rgb * mat.specularColor * dirLight.specular * specularIntensity;
+
+    // result
+    return vec4((ambient + diffuse + specular).rgb, 1.0);
+}
+
+vec4 ComputeDirLightWithInputCorrection()
+{
+    const float GAMMA = 2.2;
+
+    // ambient
+    vec3 ambient = mat.ambientColor;
+    ambient = pow(ambient, vec3(GAMMA));
+    ambient *= dirLight.ambient;
+
+    // diffuse
+    float diffuseIntensity = max(dot(-dirLight.dir, Normal), 0.0);
+    vec3 diffuse = texture(mat.diffuseMap, TexCoord).rgb;
+    diffuse = pow(diffuse, vec3(GAMMA)); // Convert the input texture from sRGB color space into linear color space for calculations.
+    diffuse *= mat.diffuseColor * dirLight.diffuse * diffuseIntensity;
+
+    // specular
+    vec3 reflectDir = normalize(reflect(dirLight.dir, Normal));
+    vec3 viewDir = normalize(viewPos - FragPos);
+    float specularIntensity = pow(max(dot(viewDir, reflectDir), 0.0), mat.shininess);
+    vec3 specular = texture(mat.specularMap, TexCoord).rgb;
+    specular = pow(specular, vec3(GAMMA));
+    specular *= mat.specularColor * dirLight.specular * specularIntensity;
 
     // result
     return vec4((ambient + diffuse + specular).rgb, 1.0);
