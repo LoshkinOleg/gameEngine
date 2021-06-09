@@ -16,6 +16,9 @@ public:
     void Init(const std::string& shader, int width, int height, bool useHdr = false)
     {
         shader_ = Shader("../data/shaders/" + shader + ".vert", "../data/shaders/" + shader + ".frag");
+        shader_.Bind();
+        shader_.SetInt("screenTex", 0);
+        shader_.UnBind();
 
         // Quad's data.
         float quad[30] =
@@ -72,10 +75,12 @@ public:
     void Draw()
     {
         shader_.Bind();
+        glDisable(GL_DEPTH_TEST);
         glBindVertexArray(VAO_);
         glBindBuffer(GL_ARRAY_BUFFER, VBO_);
         glBindTexture(GL_TEXTURE_2D, TEX_);
         glDrawArrays(GL_TRIANGLES, 0, 6);
+        glEnable(GL_DEPTH_TEST);
         shader_.UnBind();
     }
     void Destroy()
@@ -90,16 +95,12 @@ public:
     void Bind() const
     {
         glBindFramebuffer(GL_FRAMEBUFFER, FBO_);
-        glEnable(GL_DEPTH_TEST);
         glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
     void UnBind() const
     {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glDisable(GL_DEPTH_TEST);
-        glClearColor(0.6f, 0.6f, 0.6f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
     }
 private:
     unsigned int VAO_ = 0, VBO_ = 0, FBO_ = 0, RBO_ = 0, TEX_ = 0;

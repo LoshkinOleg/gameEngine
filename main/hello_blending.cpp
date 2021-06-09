@@ -52,7 +52,7 @@ void HelloTriangle::Init()
     (
         "stainedGlass", // name of obj's dir
         "hello_blending/blending", // name of shaders
-        [this](Shader shader)->void // on shader init
+        [this](Shader shader, Mesh mesh)->void // on shader init
         {
             shader.SetMat4("projection", glm::perspective(glm::radians(45.0f), SCREEN_RESOLUTION[0] / SCREEN_RESOLUTION[1], 0.1f, 100.0f));
             glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 0.0f, 2.0f));
@@ -68,7 +68,7 @@ void HelloTriangle::Init()
     (
         "stainedGlass", // name of obj's dir
         "hello_blending/blending", // name of shaders
-        [this](Shader shader)->void // on shader init
+        [this](Shader shader, Mesh mesh)->void // on shader init
         {
             shader.SetMat4("projection", glm::perspective(glm::radians(45.0f), SCREEN_RESOLUTION[0] / SCREEN_RESOLUTION[1], 0.1f, 100.0f));
             glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 0.0f, -2.0f));
@@ -84,7 +84,7 @@ void HelloTriangle::Init()
     (
         "stainedGlass", // name of obj's dir
         "hello_blending/blending", // name of shaders
-        [this](Shader shader)->void // on shader init
+        [this](Shader shader, Mesh mesh)->void // on shader init
         {
             shader.SetMat4("projection", glm::perspective(glm::radians(45.0f), SCREEN_RESOLUTION[0] / SCREEN_RESOLUTION[1], 0.1f, 100.0f));
             glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 3.0f));
@@ -100,7 +100,7 @@ void HelloTriangle::Init()
     (
         "crate", // name of obj's dir
         "textured", // name of shaders
-        [this](Shader shader)->void // on shader init
+        [this](Shader shader, Mesh mesh)->void // on shader init
         {
             shader.SetMat4("projection", glm::perspective(glm::radians(45.0f), SCREEN_RESOLUTION[0] / SCREEN_RESOLUTION[1], 0.1f, 100.0f));
             shader.SetMat4("model", glm::mat4(1.0f));

@@ -118,7 +118,7 @@ namespace gl {
         }
 
 		float MovSpeed = 0.1f;
-		float MouseSensitivity = 0.01f;
+		float MouseSensitivity = 0.001f;
 		float ZoomingSpeed = 0.1f;
 
 	private:
