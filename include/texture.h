@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <array>
 #include <fstream>
 #include <glad/glad.h>
 #define STB_IMAGE_IMPLEMENTATION
@@ -8,6 +9,65 @@
 
 namespace gl {
 
+class Cubemap
+{
+public:
+	Cubemap() = default;
+	Cubemap(std::array<const char*, 6> textures_faces)
+	{
+		glGenTextures(1, &TEX_);
+		IsError(__FILE__, __LINE__);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, TEX_);
+		IsError(__FILE__, __LINE__);
+
+		int width, height, nrChannels;
+		unsigned char* data;
+		for (unsigned int i = 0; i < 6; i++)
+		{
+			data = stbi_load(textures_faces[i], &width, &height, &nrChannels, 0);
+			assert(data);
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+			stbi_image_free(data);
+			assert(nrChannels == 3);
+		}
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+	}
+	void Bind(unsigned int i = 0)
+	{
+		glActiveTexture(GL_TEXTURE0 + i);
+		IsError(__FILE__, __LINE__);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, TEX_);
+		IsError(__FILE__, __LINE__);
+	}
+	static void UnBind()
+	{
+		glBindTexture(GL_TEXTURE_2D, 0);
+		glActiveTexture(GL_TEXTURE0);
+	}
+	void Destroy()
+	{
+		glDeleteTextures(1, &TEX_);
+	}
+private:
+	void IsError(const char* file, int line)
+	{
+		auto error_code = glGetError();
+		if (error_code != GL_NO_ERROR)
+		{
+			throw std::runtime_error(
+				std::to_string(error_code) +
+				" in file: " + file +
+				" at line: " + std::to_string(line));
+		}
+	}
+
+	unsigned int TEX_ = 0;
+};
 	class Texture {
 	public:
 		unsigned int id = 0;
@@ -74,7 +134,7 @@ namespace gl {
 			IsError(__FILE__, __LINE__);
 			glBindTexture(GL_TEXTURE_2D, 0);
 			IsError(__FILE__, __LINE__);
-			// TODO: Are we not freeing the image data?
+			stbi_image_free(dataDiffuse);
 		}
 		void Bind(unsigned int i = 0)
 		{

@@ -200,6 +200,10 @@ public:
     {
         return shininess_;
     }
+    Shader& GetShader()
+    {
+        return shader_;
+    }
 private:
     unsigned int VAO_ = 0, VBO_ = 0;
     unsigned int verticesCount_ = 0;
@@ -267,6 +271,10 @@ public:
             meshes_[i].Destroy();
             
         }
+    }
+    Shader& GetShader(int meshIndex)
+    {
+        return meshes_[meshIndex].GetShader();
     }
 private:
     std::vector<Mesh> meshes_ = {};
