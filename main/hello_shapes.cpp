@@ -1,18 +1,4 @@
-#include <iostream>
-#include <limits>
-
-// #define IDENTITY glm::mat4(1.0f)
-// #define RIGHT glm::vec3(1.0f, 0.0f, 0.0f)
-// #define UP glm::vec3(0.0f, 1.0f, 0.0f)
-// #define FORWARD glm::vec3(0.0f, 0.0f, 1.0f)
-// #define ZERO glm::vec3(0.0f, 0.0f, 0.0f)
-// #define ONE glm::vec3(1.0f, 1.0f, 1.0f)
-
-// TODO: Refactor this shit
-
 #include "engine.h"
-#include "camera.h"
-#include "shapes.h"
 
 namespace gl {
 

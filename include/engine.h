@@ -3,8 +3,9 @@
 #include <chrono>
 
 #include "SDL.h"
-
 #include "glm/vec2.hpp"
+
+#include "defines.h"
 
 namespace gl
 {
@@ -34,7 +35,7 @@ namespace gl
         Program& program_;
         SDL_Window* window_ = nullptr;
         SDL_GLContext glRenderContext_ = nullptr;
-        glm::vec2 windowSize_{1024,720};
+        glm::vec2 windowSize_{SCREEN_RESOLUTION[0], SCREEN_RESOLUTION[1]};
         float deltaTime_ = 0.0f;
     };
 } // namespace gl

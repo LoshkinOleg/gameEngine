@@ -6,6 +6,7 @@
         "glm",
         "sdl2",
 		"tinyobjloader",
+		"xxhash",
       {
         "name": "glad",
         "features": [ "extensions", "gles2-api-latest" ]

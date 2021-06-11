@@ -8,8 +8,10 @@ in vec2 TexCoord;
 
 struct Material
 {
+    sampler2D ambientMap;
     sampler2D diffuseMap;
     sampler2D specularMap;
+    vec3 ambientColor;
     vec3 diffuseColor;
     vec3 specularColor;
     float shininess;
@@ -18,11 +20,12 @@ struct Material
 struct DirectionalLight
 {
     vec3 dir;
+	vec3 ambientColor;
     vec3 diffuseColor;
     vec3 specularColor;
 };
 
-uniform Material mat;
+uniform Material material;
 uniform DirectionalLight dirLight;
 uniform vec3 viewPos;
 
