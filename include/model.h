@@ -13,7 +13,7 @@ namespace gl
     using Transform3dId = unsigned int;
     using MeshId = unsigned int;
 
-    class Model
+    class Model // Note: current limitation is of 1 material/shader per model.
     {
     public:
         void Draw(const Camera& camera) const;
@@ -23,7 +23,7 @@ namespace gl
 
         ModelId id_ = DEFAULT_ID;
         std::vector<MeshId> meshes_ = {};
-        ShaderId shader_ = DEFAULT_ID;
+        ShaderId shader_ = DEFAULT_ID; // TODO: make a model be able to handle multiple shaders since different meshes might have different materials, therefore needing different shaders!
         Transform3dId transform_ = DEFAULT_ID;
     };
 }//!gl

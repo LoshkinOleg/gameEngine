@@ -16,6 +16,6 @@ namespace gl
 
         VertexBufferId id_ = DEFAULT_ID;
         unsigned int VAO_ = 0, VBO_ = 0;
-        size_t verticesCount_ = 0;
+        int verticesCount_ = 0;
     };
 }//!gl

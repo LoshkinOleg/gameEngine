@@ -9,6 +9,8 @@
 #include "xxhash.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+#define TINYOBJLOADER_IMPLEMENTATION
+#include "tiny_obj_loader.h"
 
 #include "utility.h"
 
@@ -107,6 +109,19 @@ std::vector<gl::Mesh> gl::ResourceManager::GetMeshes(const std::vector<gl::MeshI
         }
     }
     return returnVal;
+}
+gl::Mesh gl::ResourceManager::GetMesh(gl::MeshId id) const
+{
+    const auto match = meshes_.find(id);
+    if (match != meshes_.end())
+    {
+        return match->second;
+    }
+    else
+    {
+        std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": Trying to access a non existent Mesh!" << std::endl;
+        abort();
+    }
 }
 gl::ModelId gl::ResourceManager::CreateResource(const gl::ResourceManager::ModelDefinition def)
 {
@@ -324,7 +339,7 @@ gl::Transform3dId gl::ResourceManager::CreateResource(const gl::ResourceManager:
     transform.scale_ = def.scale;
     transform.quaternion_ = glm::quat(def.cardinalsRotation);
     transform.model_ = glm::scale(IDENTITY_MAT4, def.scale) * glm::toMat4(transform.quaternion_) * glm::translate(IDENTITY_MAT4, def.position);
-    transform.id_ = transforms_.size();
+    transform.id_ = (unsigned int)transforms_.size();
     transforms_.insert({ transform.id_, transform });
 
     return transform.id_;
@@ -490,7 +505,7 @@ gl::VertexBufferId gl::ResourceManager::CreateResource(const gl::ResourceManager
                 abort();
         }
     }
-    buffer.verticesCount_ = def.data.size() / stride;
+    buffer.verticesCount_ = (int)(def.data.size() / stride);
 
     // Generate vao/vbo and transfer data to it.
     glGenVertexArrays(1, &buffer.VAO_);
@@ -509,14 +524,14 @@ gl::VertexBufferId gl::ResourceManager::CreateResource(const gl::ResourceManager
         if (def.dataLayout[i] == VertexDataTypes::POSITIONS_3D ||
             def.dataLayout[i] == VertexDataTypes::TEXCOORDS_3D ||
             def.dataLayout[i] == VertexDataTypes::NORMALS)
-        {
-            glVertexAttribPointer(i, 3, GL_FLOAT, GL_FALSE, stride * sizeof(float), +(void*)accumulatedOffset);
+        { 
+            glVertexAttribPointer((GLuint)i, 3, GL_FLOAT, GL_FALSE, (GLsizei)(stride * sizeof(float)), (void*)accumulatedOffset);
             accumulatedOffset += 3 * sizeof(float);
         }
         else if (def.dataLayout[i] == VertexDataTypes::POSITIONS_2D ||
                 def.dataLayout[i] == VertexDataTypes::TEXCOORDS_2D)
         {
-            glVertexAttribPointer(i, 2, GL_FLOAT, GL_FALSE, stride * sizeof(float), +(void*)accumulatedOffset);
+            glVertexAttribPointer((GLuint)i, 2, GL_FLOAT, GL_FALSE, (GLsizei)(stride * sizeof(float)), (void*)accumulatedOffset);
             accumulatedOffset += 2 * sizeof(float);
         }
         else
@@ -524,7 +539,7 @@ gl::VertexBufferId gl::ResourceManager::CreateResource(const gl::ResourceManager
             std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": invalid VertexDataType!" << std::endl;
             abort();
         }
-        glEnableVertexAttribArray(i);
+        glEnableVertexAttribArray((GLuint)i);
         CheckGlError(__FILE__, __LINE__);
     }
 
@@ -592,4 +607,264 @@ void gl::ResourceManager::Shutdown()
     {
         pair.second.Destroy();
     }
+}
+
+std::vector<gl::MeshId> gl::ResourceManager::LoadObj(const std::string_view path, bool flipTextures, bool correctGamma)
+{
+    const std::string dir = std::string(path.begin(), path.begin() + path.find_last_of("/") + 1); // TODO: make sure this shit works!
+
+    std::vector<gl::MeshId> returnVal;
+
+    tinyobj::ObjReader reader;
+    tinyobj::ObjReaderConfig config;
+    config.mtl_search_path = dir;
+    config.triangulate = true;
+
+    if (!reader.ParseFromFile(path.data(), config))
+    {
+        std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": could not open obj file at path:\n" << path << "\nAt directory: " << dir << std::endl;
+        abort();
+    }
+    if (!reader.Warning().empty())
+    {
+        std::cout << "WARNING at file: " << __FILE__ << ", line: " << __LINE__ << "tinyobjloader has raised a warning: " << reader.Warning() << std::endl;
+    }
+
+    const auto& attrib = reader.GetAttrib();
+    const auto& shapes = reader.GetShapes();
+    const auto& materials = reader.GetMaterials();
+    returnVal.resize(shapes.size());
+
+    for (size_t i = 0; i < shapes.size(); i++)
+    {
+        const int matId = shapes[i].mesh.material_ids[0]; // An obj should have 1 material per mesh. Therefore shapes[shapeIndex].mesh.material_ids values should all be the same.
+
+        TextureId ambientId = DEFAULT_ID;
+        if (!materials[matId].ambient_texname.empty())
+        {
+            TextureDefinition def;
+            def.paths = std::vector<std::string>{ dir + materials[matId].ambient_texname };
+            def.correctGamma = correctGamma;
+            def.flipImage = flipTextures;
+            def.textureType = GL_TEXTURE_2D;
+            def.samplerTextureUnitPair = std::pair<std::string, int>{AMBIENT_MAP_SAMPLER_NAME, AMBIENT_SAMPLER_TEXTURE_UNIT};
+            ambientId = CreateResource(def);
+        }
+        else // If no texture is found, load a small blank texture for the shader to use.
+        {
+            std::cout << "WARNING: loaded obj has no ambient map!" << std::endl;
+        }
+
+        TextureId diffuseId = DEFAULT_ID;
+        if (!materials[matId].diffuse_texname.empty())
+        {
+            TextureDefinition def;
+            def.paths = std::vector<std::string>{ dir + "/" + materials[matId].diffuse_texname };
+            def.correctGamma = correctGamma;
+            def.flipImage = flipTextures;
+            def.textureType = GL_TEXTURE_2D;
+            def.samplerTextureUnitPair = std::pair<std::string, int>{ DIFFUSE_MAP_SAMPLER_NAME, DIFFUSE_SAMPLER_TEXTURE_UNIT };
+            diffuseId = CreateResource(def);
+        }
+        else
+        {
+            std::cout << "WARNING: loaded obj has no diffuse map!" << std::endl;
+        }
+
+        TextureId specularId = DEFAULT_ID;
+        if (!materials[matId].specular_texname.empty())
+        {
+            TextureDefinition def;
+            def.paths = std::vector<std::string>{ dir + "/" + materials[matId].specular_texname };
+            def.correctGamma = false;
+            def.flipImage = flipTextures;
+            def.textureType = GL_TEXTURE_2D;
+            def.samplerTextureUnitPair = std::pair<std::string, int>{ SPECULAR_MAP_SAMPLER_NAME, SPECULAR_SAMPLER_TEXTURE_UNIT };
+            specularId = CreateResource(def);
+        }
+        else
+        {
+            std::cout << "WARNING: loaded obj has no specular map!" << std::endl;
+        }
+
+        TextureId normalId = DEFAULT_ID;
+        bool usingNormalMap = false;
+        if (!materials[matId].normal_texname.empty())
+        {
+            usingNormalMap = true;
+            TextureDefinition def;
+            def.paths = std::vector<std::string>{ dir + "/" + materials[matId].normal_texname };
+            def.correctGamma = false;
+            def.flipImage = flipTextures;
+            def.textureType = GL_TEXTURE_2D;
+            def.samplerTextureUnitPair = std::pair<std::string, int>{ NORMAL_MAP_SAMPLER_NAME, NORMAL_SAMPLER_TEXTURE_UNIT };
+            normalId = CreateResource(def);
+        }
+        else
+        {
+            std::cout << "WARNING: loaded obj has no normal map!" << std::endl;
+        }
+
+        MaterialId materialId = DEFAULT_ID;
+        {
+            MaterialDefinition def;
+            def.ambientMap = ambientId;
+            def.diffuseMap = diffuseId;
+            def.specularMap = specularId;
+            def.normalMap = normalId;
+            def.ambientColor = glm::vec3(materials[matId].ambient[0], materials[matId].ambient[1], materials[matId].ambient[2]);
+            def.diffuseColor = glm::vec3(materials[matId].diffuse[0], materials[matId].diffuse[1], materials[matId].diffuse[2]);
+            def.specularColor = glm::vec3(materials[matId].specular[0], materials[matId].specular[1], materials[matId].specular[2]);
+            def.shininess = (materials[matId].shininess >= 1.0f) ? materials[matId].shininess : 1.0f;
+            materialId = CreateResource(def);
+        }
+
+        VertexBufferId vertexBufferId = DEFAULT_ID;
+        {
+            VertexBufferDefinition def;
+            std::vector<ResourceManager::VertexDataTypes> layout;
+
+            bool pos2d, hasNormals = false, hasTexCoords = false;
+
+            // NOTE: Warning: there's no check that every vertex in the file has the same layout!
+            tinyobj::index_t meshIndices = shapes[i].mesh.indices[0];
+            if (meshIndices.vertex_index > -1)
+            {
+                if (attrib.vertices.size() % 3 == 0)
+                {
+                    layout.push_back(ResourceManager::VertexDataTypes::POSITIONS_3D);
+                    pos2d = false;
+                }
+                else if (attrib.vertices.size() % 2 == 0)
+                {
+                    layout.push_back(ResourceManager::VertexDataTypes::POSITIONS_2D);
+                    pos2d = true;
+                }
+                else
+                {
+                    std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": obj's position data has an unexpected number of components: " << attrib.vertices.size() << std::endl;
+                    abort();
+                }
+            }
+            else
+            {
+                std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": obj file doesn't contain any position data!" << std::endl;
+                abort();
+            }
+            if (meshIndices.normal_index > -1)
+            {
+                if (usingNormalMap)
+                {
+                    std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": obj has both vertex normals and a normal map! " << std::endl;
+                    abort();
+                }
+                else
+                {
+                    if (attrib.normals.size() % 3 == 0)
+                    {
+                        layout.push_back(ResourceManager::VertexDataTypes::NORMALS);
+                        hasNormals = true;
+                    }
+                    else
+                    {
+                        std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": obj's normals data has an unexpected number of components: " << attrib.vertices.size() << std::endl;
+                        abort();
+                    }
+                }
+            }
+            else if(!usingNormalMap)
+            {
+                std::cout << "WARNING at file: " << __FILE__ << ", line: " << __LINE__ << ": obj file doesn't contain any normals data of any kind!" << std::endl;
+            }
+            if (meshIndices.texcoord_index > -1)
+            {
+                if (attrib.texcoords.size() % 3 == 0)
+                {
+                    std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": tinyobjloader doesn't support loading of 3 component texCoord data!" << std::endl;
+                    abort();
+                }
+                else if (attrib.vertices.size() % 2 == 0)
+                {
+                    layout.push_back(ResourceManager::VertexDataTypes::TEXCOORDS_2D);
+                    hasTexCoords = true;
+                }
+                else
+                {
+                    std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": obj's texCoord data has an unexpected number of components: " << attrib.vertices.size() << std::endl;
+                    abort();
+                }
+            }
+            else
+            {
+                std::cout << "WARNING at file: " << __FILE__ << ", line: " << __LINE__ << ": obj file doesn't contain any texCoord data!" << std::endl;
+            }
+            def.dataLayout = layout;
+            size_t stride = 0; // Compute stride.
+            for (size_t i = 0; i < layout.size(); i++)
+            {
+                switch (def.dataLayout[i])
+                {
+                    case gl::ResourceManager::VertexDataTypes::POSITIONS_3D: stride += 3;
+                        break;
+                    case gl::ResourceManager::VertexDataTypes::POSITIONS_2D: stride += 2;
+                        break;
+                    case gl::ResourceManager::VertexDataTypes::TEXCOORDS_2D: stride += 2;
+                        break;
+                    case gl::ResourceManager::VertexDataTypes::TEXCOORDS_3D: stride += 3;
+                        break;
+                    case gl::ResourceManager::VertexDataTypes::NORMALS: stride += 3;
+                        break;
+                    default:
+                        std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": invalid VertexDataType!" << std::endl;
+                        abort();
+                }
+            }
+
+            const size_t numOfFaces = shapes[i].mesh.num_face_vertices.size();
+            std::vector<float> vertexData = std::vector<float>(numOfFaces * 3 * stride);
+            const size_t numOfVerticesPerFace = 3;
+            size_t indexOffset = 0;
+            for (size_t f = 0; f < numOfFaces; f++)
+            {
+                tinyobj::index_t vert0OfTri = shapes[i].mesh.indices[3 * f + 0]; // 3 because there's 3 vertices in a triangle
+                tinyobj::index_t vert1OfTri = shapes[i].mesh.indices[3 * f + 1];
+                tinyobj::index_t vert2OfTri = shapes[i].mesh.indices[3 * f + 2];
+
+                for (size_t k = 0; k < 3; k++) // 3 bc there's 3 vertices in a triangle
+                {
+                    if (!pos2d)
+                    {
+                        vertexData.push_back(attrib.vertices[3 * (size_t)vert0OfTri.vertex_index + k]);
+                        vertexData.push_back(attrib.vertices[3 * (size_t)vert1OfTri.vertex_index + k]);
+                        vertexData.push_back(attrib.vertices[3 * (size_t)vert2OfTri.vertex_index + k]);
+                    }
+                    else
+                    {
+                        vertexData.push_back(attrib.vertices[2 * (size_t)vert0OfTri.vertex_index + k]);
+                        vertexData.push_back(attrib.vertices[2 * (size_t)vert1OfTri.vertex_index + k]);
+                    }
+                    if (hasNormals)
+                    {
+                        vertexData.push_back(attrib.normals[3 * (size_t)vert0OfTri.normal_index + k]);
+                        vertexData.push_back(attrib.normals[3 * (size_t)vert1OfTri.normal_index + k]);
+                        vertexData.push_back(attrib.normals[3 * (size_t)vert2OfTri.normal_index + k]);
+                    }
+                    if (hasTexCoords)
+                    {
+                        vertexData.push_back(attrib.texcoords[2 * (size_t)vert0OfTri.texcoord_index + k]);
+                        vertexData.push_back(attrib.texcoords[2 * (size_t)vert1OfTri.texcoord_index + k]);
+                    }
+                }
+            }
+            def.data = vertexData;
+            vertexBufferId = CreateResource(def);
+        }
+
+        MeshDefinition def;
+        def.material = materialId;
+        def.vertexBuffer = vertexBufferId;
+        returnVal[i] = CreateResource(def);
+    }
+    
+    return returnVal;
 }

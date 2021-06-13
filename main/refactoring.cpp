@@ -3,10 +3,7 @@
 // make sure we unbind everything once we're done using it, see where the code could fail for every function
 // on creation of a resource, check the validity of ids, check on draw that the asset is valid
 // move common strings of shader variables to #defines
-
-// std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": Trying to access a non existent Transform3d!" << std::endl;
-
-// for all shaders: location = 0 for pos, location = 1 for normals, location = 2 for texCoords
+// Refactor shaders.
 
 #include <glad/glad.h>
 
@@ -26,95 +23,8 @@ public:
 
         camera_.Translate(glm::vec3(0.0f, 0.0f, 10.0f)); // Move camera away from origin.
 
-        // Make a model that uses vertex normals as source for light computations.
-        VertexBufferId vertexBufferId = DEFAULT_ID;
-        {
-            ResourceManager::VertexBufferDefinition def;
-            def.data =
-            {   // Positions            // Normals          // TexCoords
-                -1.0f, -1.0f, 0.0f,     0.0f, 0.0f, 1.0f,   0.0f, 0.0f,
-                 1.0f, -1.0f, 0.0f,     0.0f, 0.0f, 1.0f,   1.0f, 0.0f,
-                 1.0f,  1.0f, 0.0f,     0.0f, 0.0f, 1.0f,   1.0f, 1.0f,
-
-                -1.0f, -1.0f, 0.0f,     0.0f, 0.0f, 1.0f,   0.0f, 0.0f,
-                 1.0f,  1.0f, 0.0f,     0.0f, 0.0f, 1.0f,   1.0f, 1.0f,
-                -1.0f,  1.0f, 0.0f,     0.0f, 0.0f, 1.0f,   0.0f, 1.0f
-            };
-            def.dataLayout = // Mirrors the layout of the data above.
-            {
-                ResourceManager::VertexDataTypes::POSITIONS_3D,
-                ResourceManager::VertexDataTypes::NORMALS,
-                ResourceManager::VertexDataTypes::TEXCOORDS_2D
-            };
-            vertexBufferId = resourceManager_.CreateResource(def); // Resource is now loaded in the gpu.
-            assert(vertexBufferId != DEFAULT_ID); // Make sure the id is valid.
-
-            // Make a model that uses the exact same values for it's vertex data to make sure the resource manager doesn't allocate new ones but directs the user to the existing buffer.
-            VertexBufferId duplicate = resourceManager_.CreateResource(def);
-            assert(vertexBufferId == duplicate);
-        }
-
-        TextureId ambientTexId = DEFAULT_ID;
-        {
-            ResourceManager::TextureDefinition def;
-            def.paths = std::vector<std::string>{ "../data/textures/crate_diffuse.png" }; // No difference between diffuse and ambient in most cases.
-            def.textureType = GL_TEXTURE_2D;
-            def.samplerTextureUnitPair = {"material.ambientMap", 0};
-            def.flipImage = true;
-            def.correctGamma = true;
-
-            ambientTexId = resourceManager_.CreateResource(def);
-            assert(ambientTexId != DEFAULT_ID);
-
-            TextureId duplicate = resourceManager_.CreateResource(def);
-            assert(ambientTexId == duplicate);
-        }
-        TextureId diffuseTexId = DEFAULT_ID;
-        {
-            ResourceManager::TextureDefinition def;
-            def.paths = std::vector<std::string>{ "../data/textures/crate_diffuse.png" }; // No difference between diffuse and ambient in most cases.
-            def.textureType = GL_TEXTURE_2D;
-            def.samplerTextureUnitPair = { "material.diffuseMap", 1 };
-            def.flipImage = true;
-            def.correctGamma = true;
-
-            diffuseTexId = resourceManager_.CreateResource(def);
-            assert(diffuseTexId != DEFAULT_ID);
-
-            TextureId duplicate = resourceManager_.CreateResource(def);
-            assert(diffuseTexId == duplicate);
-        }
-        TextureId specularCrateTexId = DEFAULT_ID;
-        {
-            ResourceManager::TextureDefinition def;
-            def.paths = std::vector<std::string>{ "../data/textures/crate_specular.png" };
-            def.textureType = GL_TEXTURE_2D;
-            def.samplerTextureUnitPair = { std::pair<std::string, int>{"material.specularMap", 2} };
-            def.flipImage = false;
-            def.correctGamma = true; // speculars are in linear space already.
-
-            specularCrateTexId = resourceManager_.CreateResource(def);
-            assert(specularCrateTexId != DEFAULT_ID);
-        }
-
-        MaterialId materialId = DEFAULT_ID;
-        {
-            ResourceManager::MaterialDefinition def;
-            def.ambientMap = ambientTexId;
-            def.diffuseMap = diffuseTexId;
-            def.specularMap = specularCrateTexId;
-            def.normalMap = DEFAULT_ID;
-            def.ambientColor = glm::vec3(0.1f);
-            def.diffuseColor = glm::vec3(0.9f);
-            def.specularColor = glm::vec3(1.0f);
-            def.shininess = 64.0f;
-
-            materialId = resourceManager_.CreateResource(def);
-            assert(materialId != DEFAULT_ID);
-
-            MaterialId duplicate = resourceManager_.CreateResource(def);
-            assert(materialId == duplicate);
-        }
+        const auto meshes = resourceManager_.LoadObj("../data/models/crate/crate.obj");
+        const MaterialId materialId = resourceManager_.GetMesh(meshes[0]).GetMaterialId();
 
         ShaderId shaderId = DEFAULT_ID;
         {
@@ -123,66 +33,29 @@ public:
             def.fragmentPath = "../data/shaders/demo/dirLight.frag";
             def.onInit = [materialId](Shader& shader, const Model& model)->void
             {
-                shader.SetProjectionMatrix(PERSPECTIVE);
                 shader.SetMaterial(materialId);
+                shader.SetProjectionMatrix(PERSPECTIVE);
                 shader.SetVec3("dirLight.dir", glm::normalize(-ONE_VEC3));
-                shader.SetVec3("dirLight.ambientColor", ONE_VEC3 * 0.1f);
-                shader.SetVec3("dirLight.diffuseColor", ONE_VEC3 * 0.9f);
+                shader.SetVec3("dirLight.ambientColor", ONE_VEC3);
+                shader.SetVec3("dirLight.diffuseColor", ONE_VEC3);
                 shader.SetVec3("dirLight.specularColor", ONE_VEC3);
             };
             def.onDraw = [](Shader& shader, const Model& model, const Camera& camera)->void
             {
                 shader.SetViewMatrix(camera.GetViewMatrix());
-                shader.SetModelMatrix(model.GetModelMatrix());
                 shader.SetVec3("viewPos", camera.GetPosition());
+                shader.SetModelMatrix(model.GetModelMatrix());
             };
-
             shaderId = resourceManager_.CreateResource(def);
-            assert(shaderId != DEFAULT_ID);
-
-            ShaderId duplicate = resourceManager_.CreateResource(def);
-            assert(shaderId == duplicate);
         }
 
-        MeshId meshId = DEFAULT_ID;
-        {
-            ResourceManager::MeshDefinition def;
-            def.vertexBuffer = vertexBufferId;
-            def.material = materialId;
-
-            meshId = resourceManager_.CreateResource(def);
-            assert(meshId != DEFAULT_ID);
-
-            MeshId duplicate = resourceManager_.CreateResource(def);
-            assert(meshId == duplicate);
-        }
-
-        Transform3dId transformId = DEFAULT_ID;
-        {
-            ResourceManager::Transform3dDefinition def;
-            // def.cardinalsRotation = glm::vec3(glm::radians(25.0f), glm::radians(25.0f), glm::radians(0.0f));
-            // def.position = glm::vec3(1.5f, 1.5f, -3.0f);
-            // def.scale = glm::vec3(2.0f, 2.0f, 2.0f);
-
-            transformId = resourceManager_.CreateResource(def);
-            assert(transformId != DEFAULT_ID);
-
-            Transform3dId duplicate = resourceManager_.CreateResource(def);
-            assert(transformId != duplicate); // For transforms, we want to have different transforms even if they have the same data.
-        }
-
-        ModelId modelId = UINT_MAX;
+        ModelId modelId = DEFAULT_ID;
         {
             ResourceManager::ModelDefinition def;
-            def.meshes = std::vector<MeshId>{meshId};
+            def.meshes = meshes;
             def.shader = shaderId;
-            def.transform = transformId;
-
+            def.transform = resourceManager_.CreateResource(ResourceManager::Transform3dDefinition{});
             modelId = resourceManager_.CreateResource(def);
-            assert(modelId != DEFAULT_ID);
-
-            ModelId duplicate = resourceManager_.CreateResource(def);
-            assert(modelId == duplicate);
         }
 
         model_ = resourceManager_.GetModel(modelId);

@@ -98,6 +98,7 @@ namespace gl
         Shader& GetShader(ShaderId id);
         const VertexBuffer& GetVertexBuffer(VertexBufferId id) const;
         std::vector<Mesh> GetMeshes(const std::vector<MeshId>& ids) const;
+        Mesh GetMesh(MeshId id) const;
         ModelId CreateResource(const ModelDefinition def);
         MeshId CreateResource(const MeshDefinition def);
         ShaderId CreateResource(const ShaderDefinition def);
@@ -105,6 +106,7 @@ namespace gl
         Transform3dId CreateResource(const Transform3dDefinition def);
         TextureId CreateResource(const TextureDefinition def);
         VertexBufferId CreateResource(const VertexBufferDefinition def);
+        std::vector<MeshId> LoadObj(const std::string_view path, bool flipTextures = true, bool correctGamma = true);
         bool IsModelIdValid(ModelId id) const;
         bool IsMeshIdValid(MeshId id) const;
         bool IsShaderIdValid(ShaderId id) const;

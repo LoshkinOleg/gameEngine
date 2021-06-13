@@ -12,3 +12,7 @@ void gl::Mesh::Draw() const
     vertexBuffer.Draw();
     material.Unbind();
 }
+gl::MaterialId gl::Mesh::GetMaterialId() const
+{
+    return material_;
+}
