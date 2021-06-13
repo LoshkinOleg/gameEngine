@@ -86,12 +86,9 @@ void gl::Shader::SetInt(const std::string& name, const int value)
 void gl::Shader::SetTexture(TextureId textureId)
 {
 	const Texture& tex = ResourceManager::Get().GetTexture(textureId);
-	const auto& samplerTextureUnitPairs = tex.GetSamplerTextureUnitPairs();
+	const auto& samplerTextureUnitPair = tex.GetSamplerTextureUnitPair();
 
-	for (const auto& pair : samplerTextureUnitPairs)
-	{
-		SetInt(pair.first, pair.second);
-	}
+	SetInt(samplerTextureUnitPair.first, samplerTextureUnitPair.second);
 }
 void gl::Shader::SetProjectionMatrix(const glm::mat4& mat)
 {

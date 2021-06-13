@@ -54,27 +54,42 @@ public:
             assert(vertexBufferId == duplicate);
         }
 
-        TextureId ambientAndDiffuseTexId = DEFAULT_ID;
+        TextureId ambientTexId = DEFAULT_ID;
         {
             ResourceManager::TextureDefinition def;
             def.paths = std::vector<std::string>{ "../data/textures/crate_diffuse.png" }; // No difference between diffuse and ambient in most cases.
             def.textureType = GL_TEXTURE_2D;
-            def.samplerTextureUnitPairs = { std::pair<std::string, int>{"material.ambientMap", 0}, std::pair<std::string, int>{"material.diffuseMap", 1} };
+            def.samplerTextureUnitPair = {"material.ambientMap", 0};
             def.flipImage = true;
             def.correctGamma = true;
 
-            ambientAndDiffuseTexId = resourceManager_.CreateResource(def);
-            assert(ambientAndDiffuseTexId != DEFAULT_ID);
+            ambientTexId = resourceManager_.CreateResource(def);
+            assert(ambientTexId != DEFAULT_ID);
 
             TextureId duplicate = resourceManager_.CreateResource(def);
-            assert(ambientAndDiffuseTexId == duplicate);
+            assert(ambientTexId == duplicate);
+        }
+        TextureId diffuseTexId = DEFAULT_ID;
+        {
+            ResourceManager::TextureDefinition def;
+            def.paths = std::vector<std::string>{ "../data/textures/crate_diffuse.png" }; // No difference between diffuse and ambient in most cases.
+            def.textureType = GL_TEXTURE_2D;
+            def.samplerTextureUnitPair = { "material.diffuseMap", 1 };
+            def.flipImage = true;
+            def.correctGamma = true;
+
+            diffuseTexId = resourceManager_.CreateResource(def);
+            assert(diffuseTexId != DEFAULT_ID);
+
+            TextureId duplicate = resourceManager_.CreateResource(def);
+            assert(diffuseTexId == duplicate);
         }
         TextureId specularCrateTexId = DEFAULT_ID;
         {
             ResourceManager::TextureDefinition def;
             def.paths = std::vector<std::string>{ "../data/textures/crate_specular.png" };
             def.textureType = GL_TEXTURE_2D;
-            def.samplerTextureUnitPairs = { std::pair<std::string, int>{"material.specularMap", 2} };
+            def.samplerTextureUnitPair = { std::pair<std::string, int>{"material.specularMap", 2} };
             def.flipImage = false;
             def.correctGamma = true; // speculars are in linear space already.
 
@@ -85,8 +100,8 @@ public:
         MaterialId materialId = DEFAULT_ID;
         {
             ResourceManager::MaterialDefinition def;
-            def.ambientMap = ambientAndDiffuseTexId;
-            def.diffuseMap = ambientAndDiffuseTexId;
+            def.ambientMap = ambientTexId;
+            def.diffuseMap = diffuseTexId;
             def.specularMap = specularCrateTexId;
             def.normalMap = DEFAULT_ID;
             def.ambientColor = glm::vec3(0.1f);

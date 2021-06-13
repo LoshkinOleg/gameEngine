@@ -57,7 +57,7 @@ namespace gl
         {
             GLenum textureType = DEFAULT_TEX_TYPE;
             std::vector<std::string> paths = {};
-            std::vector<std::pair<std::string, int>> samplerTextureUnitPairs = {};
+            std::pair<std::string, int> samplerTextureUnitPair = {};
             bool flipImage = false;
             bool correctGamma = false;
         };

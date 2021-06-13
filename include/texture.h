@@ -1,5 +1,4 @@
 #pragma once
-#include <vector>
 #include <string>
 
 #include "defines.h"
@@ -13,7 +12,7 @@ namespace gl {
     public:
         void Bind() const;
         void Unbind();
-        const std::vector<std::pair<std::string, int>>& GetSamplerTextureUnitPairs() const;
+        const std::pair<std::string, int>& GetSamplerTextureUnitPair() const;
         void Destroy() const;
     private:
         friend class ResourceManager;
@@ -21,7 +20,7 @@ namespace gl {
         TextureId id_ = DEFAULT_ID;
         unsigned int TEX_ = 0;
         unsigned int textureType_ = DEFAULT_TEX_TYPE;
-        std::vector<std::pair<std::string, int>> samplerTextureUnitPairs_ = {}; // Can use the same texture for multiple samplers. Ex: ambient and diffuse
+        std::pair<std::string, int> samplerTextureUnitPair_ = {}; // Can use the same texture for multiple samplers. Ex: ambient and diffuse
     };
 //
 //class Cubemap

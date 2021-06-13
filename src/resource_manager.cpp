@@ -337,13 +337,11 @@ gl::TextureId gl::ResourceManager::CreateResource(const gl::ResourceManager::Tex
     {
         accumulatedData += path;
     }
-    for (const auto& pair : def.samplerTextureUnitPairs)
-    {
-        accumulatedData += pair.first;
-        accumulatedData += std::to_string(pair.second);
-    }
+    accumulatedData += def.samplerTextureUnitPair.first;
+    accumulatedData += std::to_string(def.samplerTextureUnitPair.second);
+
     accumulatedData += std::to_string(def.textureType); // NOTE: ignoring def.flipImage and def.correctGamma for hashing.
-    const XXH32_hash_t hash = XXH32(accumulatedData.c_str(), sizeof(char) * accumulatedData.size(), HASHING_SEED); // TODO: make sure this works.
+    const XXH32_hash_t hash = XXH32(accumulatedData.c_str(), sizeof(char) * accumulatedData.size(), HASHING_SEED);
     assert(hash != UINT_MAX); // We aren't handling this issue...
 
     if (IsTextureIdValid(hash))
@@ -354,7 +352,7 @@ gl::TextureId gl::ResourceManager::CreateResource(const gl::ResourceManager::Tex
     gl::Texture texture;
     texture.id_ = hash;
     texture.textureType_ = def.textureType;
-    texture.samplerTextureUnitPairs_ = def.samplerTextureUnitPairs;
+    texture.samplerTextureUnitPair_ = def.samplerTextureUnitPair;
 
     stbi_set_flip_vertically_on_load(def.flipImage);
     int width, height, nrChannels;

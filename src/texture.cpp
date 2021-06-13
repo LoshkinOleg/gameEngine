@@ -6,25 +6,19 @@
 
 void gl::Texture::Bind() const
 {
-    for (const auto& pair : samplerTextureUnitPairs_)
-    {
-        glActiveTexture(GL_TEXTURE0 + pair.second);
-        glBindTexture(textureType_, TEX_);
-    }
+    glActiveTexture(GL_TEXTURE0 + samplerTextureUnitPair_.second);
+    glBindTexture(textureType_, TEX_);
     CheckGlError(__FILE__, __LINE__);
 }
 void gl::Texture::Unbind()
 {
-    for (const auto& pair : samplerTextureUnitPairs_)
-    {
-        glActiveTexture(GL_TEXTURE0 + pair.second);
-        glBindTexture(textureType_, 0);
-    }
+    glActiveTexture(GL_TEXTURE0 + samplerTextureUnitPair_.second);
+    glBindTexture(textureType_, 0);
     CheckGlError(__FILE__, __LINE__);
 }
-const std::vector<std::pair<std::string, int>>& gl::Texture::GetSamplerTextureUnitPairs() const
+const std::pair<std::string, int>& gl::Texture::GetSamplerTextureUnitPair() const
 {
-    return samplerTextureUnitPairs_;
+    return samplerTextureUnitPair_;
 }
 void gl::Texture::Destroy() const
 {
