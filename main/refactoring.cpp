@@ -22,6 +22,7 @@ public:
     void Init() override
     {
         glEnable(GL_DEPTH_TEST);
+        glEnable(GL_FRAMEBUFFER_SRGB_EXT);
 
         camera_.Translate(glm::vec3(0.0f, 0.0f, 10.0f)); // Move camera away from origin.
 
@@ -59,7 +60,7 @@ public:
             def.paths = std::vector<std::string>{ "../data/textures/crate_diffuse.png" }; // No difference between diffuse and ambient in most cases.
             def.textureType = GL_TEXTURE_2D;
             def.samplerTextureUnitPairs = { std::pair<std::string, int>{"material.ambientMap", 0}, std::pair<std::string, int>{"material.diffuseMap", 1} };
-            def.flipImage = false;
+            def.flipImage = true;
             def.correctGamma = true;
 
             ambientAndDiffuseTexId = resourceManager_.CreateResource(def);
@@ -75,7 +76,7 @@ public:
             def.textureType = GL_TEXTURE_2D;
             def.samplerTextureUnitPairs = { std::pair<std::string, int>{"material.specularMap", 2} };
             def.flipImage = false;
-            def.correctGamma = false; // speculars are in linear space already.
+            def.correctGamma = true; // speculars are in linear space already.
 
             specularCrateTexId = resourceManager_.CreateResource(def);
             assert(specularCrateTexId != DEFAULT_ID);
@@ -105,7 +106,7 @@ public:
             ResourceManager::ShaderDefinition def;
             def.vertexPath = "../data/shaders/demo/dirLight.vert";
             def.fragmentPath = "../data/shaders/demo/dirLight.frag";
-            def.onInit = [materialId](Shader& shader, const Model& model, const Camera& camera)->void
+            def.onInit = [materialId](Shader& shader, const Model& model)->void
             {
                 shader.SetProjectionMatrix(PERSPECTIVE);
                 shader.SetMaterial(materialId);
@@ -144,9 +145,9 @@ public:
         Transform3dId transformId = DEFAULT_ID;
         {
             ResourceManager::Transform3dDefinition def;
-            def.cardinalsRotation = glm::vec3(glm::radians(25.0f), glm::radians(25.0f), glm::radians(0.0f));
-            def.position = glm::vec3(1.5f, 1.5f, -3.0f);
-            def.scale = glm::vec3(2.0f, 2.0f, 2.0f);
+            // def.cardinalsRotation = glm::vec3(glm::radians(25.0f), glm::radians(25.0f), glm::radians(0.0f));
+            // def.position = glm::vec3(1.5f, 1.5f, -3.0f);
+            // def.scale = glm::vec3(2.0f, 2.0f, 2.0f);
 
             transformId = resourceManager_.CreateResource(def);
             assert(transformId != DEFAULT_ID);
@@ -169,7 +170,7 @@ public:
             assert(modelId == duplicate);
         }
 
-        model_ = resourceManager_.GetModel(modelId); // TODO: this get deallocated, duh
+        model_ = resourceManager_.GetModel(modelId);
     }
     void Update(seconds dt) override
     {
@@ -177,7 +178,7 @@ public:
         glClearColor(0.0f, 0.0f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        model_.Draw();
+        model_.Draw(camera_);
     }
     void Destroy() override
     {

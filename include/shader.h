@@ -25,7 +25,7 @@ namespace gl {
 		void OnDraw(const Model& model, const Camera& camera);
 		void SetMaterial(MaterialId materialId);
 		void SetFloat(const std::string& name, const float value);
-		void SetVec3(const std::string& name, const glm::vec3& value);
+		void SetVec3(const std::string& name, const glm::vec3 value);
 		void SetInt(const std::string& name, const int value);
 		void SetTexture(TextureId textureId);
 		void SetProjectionMatrix(const glm::mat4& mat);

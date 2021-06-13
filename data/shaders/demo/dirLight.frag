@@ -31,6 +31,9 @@ uniform vec3 viewPos;
 
 void main()
 {
+    // ambient
+    vec3 ambient = texture(material.ambientMap, TexCoord).rgb * material.ambientColor * dirLight.ambientColor;
+
     // diffuse
     float diffuseIntensity = max(dot(-dirLight.dir, Normal), 0.0);
     vec3 diffuse = texture(material.diffuseMap, TexCoord).rgb * material.diffuseColor * dirLight.diffuseColor * diffuseIntensity;
@@ -42,5 +45,5 @@ void main()
     vec3 specular = texture(material.specularMap, TexCoord).rgb * material.specularColor * dirLight.specularColor * specularIntensity;
 
     // result
-    FragColor = vec4((diffuse + specular), 1.0);
+    FragColor = vec4((ambient + diffuse + specular), 1.0);
 }

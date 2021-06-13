@@ -2,14 +2,14 @@
 
 #include "resource_manager.h"
 
-void gl::Model::Draw() const
+void gl::Model::Draw(const Camera& camera) const
 {
     ResourceManager& resourceManager = ResourceManager::Get();
     Shader& shader = resourceManager.GetShader(shader_);
     const std::vector<Mesh> meshes = resourceManager.GetMeshes(meshes_);
 
     shader.Bind();
-    shader.OnDraw(); // TODO: Fix this shit, make on draw of shader happen!
+    shader.OnDraw(*this, camera);
     for (const auto& mesh : meshes)
     {
         mesh.Draw();

@@ -7,6 +7,7 @@
 
 namespace gl
 {
+    class Camera;
     using ModelId = unsigned int;
     using ShaderId = unsigned int;
     using Transform3dId = unsigned int;
@@ -15,7 +16,7 @@ namespace gl
     class Model
     {
     public:
-        void Draw() const;
+        void Draw(const Camera& camera) const;
         const glm::mat4& GetModelMatrix() const;
     private:
         friend class ResourceManager;

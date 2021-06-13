@@ -65,9 +65,7 @@ void gl::Camera::SetCameraState(const CameraState& state)
 }
 void gl::Camera::Translate(glm::vec3 dir)
 {
-    state_.position_.x = dir.x;
-    state_.position_.y = dir.y;
-    state_.position_.z = -dir.z; // Z coordinate is reversed for the camera since it's facing -Z by default.
+    state_.position_ = dir;
 }
 
 void gl::Camera::UpdateCameraVectors_()

@@ -16,13 +16,13 @@ namespace gl
         void Bind() const;
         static void Unbind();
         std::array<TextureId, 4> GetTextures() const;
-        const std::array<glm::vec3, 3>& GetColors() const;
+        const std::array<glm::vec3, 3> GetColors() const;
         float GetShininess() const;
     private:
         friend class ResourceManager;
 
         MaterialId id_ = DEFAULT_ID;
-        TextureId ambientMap_ = DEFAULT_ID;
+        TextureId ambientMap_ = DEFAULT_ID; // TODO: issue: a texture can set up multiple texture units, making calls redundant: bind tex for ambient and then re-bind it again for the diffuse...
         TextureId diffuseMap_ = DEFAULT_ID;
         TextureId specularMap_ = DEFAULT_ID;
         TextureId normalMap_ = DEFAULT_ID;

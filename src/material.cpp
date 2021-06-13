@@ -1,5 +1,7 @@
 #include "material.h"
 
+#include <glad/glad.h>
+
 #include "resource_manager.h"
 
 void gl::Material::Bind() const
@@ -31,13 +33,17 @@ void gl::Material::Bind() const
 }
 void gl::Material::Unbind()
 {
-    gl::Texture::Unbind();
+    for (size_t i = 0; i < 4; i++)
+    {
+        glActiveTexture(GL_TEXTURE0 + i);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
 }
 std::array<gl::TextureId, 4> gl::Material::GetTextures() const
 {
     return std::array<gl::TextureId, 4>{ambientMap_, diffuseMap_, specularMap_, normalMap_};
 }
-const std::array<glm::vec3, 3>& gl::Material::GetColors() const
+const std::array<glm::vec3, 3> gl::Material::GetColors() const
 {
     return std::array<glm::vec3, 3>{ambientColor_, diffuseColor_, specularColor_};
 }

@@ -379,12 +379,12 @@ gl::TextureId gl::ResourceManager::CreateResource(const gl::ResourceManager::Tex
         }
         else if (nrChannels == 3)
         {
-            imageColorFormat = def.correctGamma ? GL_SRGB : GL_RGB;
+            imageColorFormat = def.correctGamma ? GL_SRGB8 : GL_RGB8;
             gpuColorFormat = GL_RGB;
         }
         else if (nrChannels == 4)
         {
-            imageColorFormat = def.correctGamma ? GL_SRGB8_ALPHA8 : GL_RGBA;
+            imageColorFormat = def.correctGamma ? GL_SRGB8_ALPHA8 : GL_RGBA8;
             gpuColorFormat = GL_RGBA;
         }
         else

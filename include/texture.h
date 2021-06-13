@@ -12,7 +12,7 @@ namespace gl {
     {
     public:
         void Bind() const;
-        static void Unbind();
+        void Unbind();
         const std::vector<std::pair<std::string, int>>& GetSamplerTextureUnitPairs() const;
         void Destroy() const;
     private:

@@ -53,7 +53,7 @@ void gl::Shader::SetFloat(const std::string& name, const float value)
 	}
 	CheckGlError(__FILE__, __LINE__);
 }
-void gl::Shader::SetVec3(const std::string& name, const glm::vec3& value)
+void gl::Shader::SetVec3(const std::string& name, const glm::vec3 value)
 {
 	const auto match = uniformNames_.find(name);
 	if (match != uniformNames_.end()) // Name of uniform already known, use it.
