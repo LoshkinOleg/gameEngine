@@ -10,7 +10,7 @@ void gl::Texture::Bind() const
     glBindTexture(textureType_, TEX_);
     CheckGlError(__FILE__, __LINE__);
 }
-void gl::Texture::Unbind()
+void gl::Texture::Unbind() const
 {
     glActiveTexture(GL_TEXTURE0 + samplerTextureUnitPair_.second);
     glBindTexture(textureType_, 0);
@@ -19,8 +19,4 @@ void gl::Texture::Unbind()
 const std::pair<std::string, int>& gl::Texture::GetSamplerTextureUnitPair() const
 {
     return samplerTextureUnitPair_;
-}
-void gl::Texture::Destroy() const
-{
-    glDeleteTextures(1, &TEX_);
 }

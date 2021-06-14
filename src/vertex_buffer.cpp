@@ -11,8 +11,3 @@ void gl::VertexBuffer::Draw() const
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 }
-void gl::VertexBuffer::Destroy() const
-{
-    glDeleteBuffers(1, &VBO_);
-    glDeleteVertexArrays(1, &VAO_);
-}

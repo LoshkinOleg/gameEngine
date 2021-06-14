@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <algorithm>
 
 #include <glad/glad.h>
 #define XXH_INLINE_ALL
@@ -100,6 +101,13 @@ std::vector<gl::Shader> gl::ResourceManager::GetShaders(const std::vector<gl::Sh
 }
 const gl::VertexBuffer& gl::ResourceManager::GetVertexBuffer(gl::VertexBufferId id) const
 {
+    // TODO: do this shit for every Get function!
+    if (id == DEFAULT_ID)
+    {
+        std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": Trying to access a null VertexBuffer!" << std::endl;
+        abort();
+    }
+
     const auto match = vertexBuffers_.find(id);
     if (match != vertexBuffers_.end())
     {
@@ -108,6 +116,19 @@ const gl::VertexBuffer& gl::ResourceManager::GetVertexBuffer(gl::VertexBufferId 
     else
     {
         std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": Trying to access a non existent VertexBuffer!" << std::endl;
+        abort();
+    }
+}
+const gl::Framebuffer& gl::ResourceManager::GetFramebuffer(gl::FramebufferId id) const
+{
+    const auto match = framebuffers_.find(id);
+    if (match != framebuffers_.end())
+    {
+        return match->second;
+    }
+    else
+    {
+        std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": Trying to access a non existent Framebuffer!" << std::endl;
         abort();
     }
 }
@@ -366,6 +387,103 @@ gl::Transform3dId gl::ResourceManager::CreateResource(const gl::ResourceManager:
 
     return transform.id_;
 }
+gl::FramebufferId gl::ResourceManager::CreateResource(const gl::ResourceManager::FramebufferDefinition def)
+{
+    // TODO: this function doesn't allow for creation of any framebuffers that don't use the default shaders.
+
+    std::string accumulatedData = "";
+    accumulatedData += std::to_string(def.hdr);
+    for (const auto& attachment : def.attachments)
+    {
+        accumulatedData += std::to_string((int)attachment);
+    }
+
+    const XXH32_hash_t hash = XXH32(accumulatedData.c_str(), sizeof(char) * accumulatedData.size(), HASHING_SEED);
+    assert(hash != UINT_MAX); // We aren't handling this issue...
+
+    if (IsFramebufferValid(hash))
+    {
+        std::cout << "WARNING: attempting to create a new Framebuffer with data identical to an existing one. Returning the id of the existing one instead." << std::endl;
+        return hash;
+    }
+
+    VertexBufferId vertexBufferId = DEFAULT_ID;
+    {
+        VertexBufferDefinition def;
+        def.data =
+        {   // Positions   // TexCoords
+            -1.0f, -1.0f,   0.0f, 0.0f,
+             1.0f, -1.0f,   1.0f, 0.0f,
+             1.0f,  1.0f,   1.0f, 1.0f,
+
+            -1.0f, -1.0f,   0.0f, 0.0f,
+             1.0f,  1.0f,   1.0f, 1.0f,
+            -1.0f,  1.0f,   0.0f, 1.0f
+        };
+        def.dataLayout =
+        {
+            VertexDataTypes::POSITIONS_2D,
+            VertexDataTypes::TEXCOORDS_2D,
+        };
+        vertexBufferId = CreateResource(def);
+    }
+
+    ShaderId shaderId = DEFAULT_ID;
+    {
+        ShaderDefinition sdef;
+        sdef.vertexPath = def.hdr ? FRAMEBUFFER_HDR_REINHARD_SHADER[0].data() : FRAMEBUFFER_RGB_SHADER[0].data();
+        sdef.fragmentPath = def.hdr ? FRAMEBUFFER_HDR_REINHARD_SHADER[1].data() : FRAMEBUFFER_RGB_SHADER[1].data();
+        sdef.onInit = [](Shader& shader, const Model& model)->void
+        {
+            shader.SetInt(FRAMEBUFFER_TEXTURE_NAME.data(), FRAMEBUFFER_SAMPLER_TEXTURE_UNIT);
+        };
+        shaderId = CreateResource(sdef);
+
+        // Init shader here since it's not linked to any material.
+        const Shader& shader = shaders_[shaderId];
+        shader.Bind();
+        shader.OnInit(); // Fix this shit. A framebuffer isn't linked to a model...
+    }
+
+    Framebuffer framebuffer;
+    framebuffer.vertexBuffer_ = vertexBufferId;
+    framebuffer.shader_ = shaderId;
+    framebuffer.attachments_ = def.attachments;
+    glGenFramebuffers(1, &framebuffer.FBO_);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.FBO_);
+
+    // If using a color attachment for the framebuffer, create a texture.
+    TextureId textureId = DEFAULT_ID;
+    if (std::find(def.attachments.begin(), def.attachments.end(), Framebuffer::Attachments::COLOR) != def.attachments.end())
+    {
+        // Important that this creation is right after the binding of the framebuffer!
+        {
+            TextureDefinition tdef;
+            tdef.samplerTextureUnitPair = { FRAMEBUFFER_TEXTURE_NAME.data(), FRAMEBUFFER_SAMPLER_TEXTURE_UNIT };
+            tdef.hdr = def.hdr;
+            tdef.usedByFramebuffer = true;
+            textureId = CreateResource(tdef);
+        }
+    }
+    framebuffer.texture_ = textureId;
+
+    glGenRenderbuffers(1, &framebuffer.RBO_);
+    glBindRenderbuffer(GL_RENDERBUFFER, framebuffer.RBO_); // Only viable target is GL_RENDERBUFFER, making this type of argument completely redundant... thanks gl.
+    if (std::find(def.attachments.begin(), def.attachments.end(), Framebuffer::Attachments::DEPTH24_STENCIL8) != def.attachments.end())
+    {
+        // Note: using a render buffer with dimensions identical to our screen.
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, (GLsizei)SCREEN_RESOLUTION[0], (GLsizei)SCREEN_RESOLUTION[1]);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, framebuffer.RBO_);
+    }
+    assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    framebuffers_.insert({hash, framebuffer});
+    CheckGlError(__FILE__, __LINE__);
+
+    return hash;
+}
 gl::TextureId gl::ResourceManager::CreateResource(const gl::ResourceManager::TextureDefinition def)
 {
     // TODO: Currently, if the textures differ only in texture units / sampler names, the image is still loaded, resulting in duplicated data on the gpu. Ex: diffuse and ambient
@@ -378,8 +496,11 @@ gl::TextureId gl::ResourceManager::CreateResource(const gl::ResourceManager::Tex
     }
     accumulatedData += def.samplerTextureUnitPair.first;
     accumulatedData += std::to_string(def.samplerTextureUnitPair.second);
+    accumulatedData += std::to_string(def.usedByFramebuffer);
+    accumulatedData += std::to_string(def.flipImage);
+    accumulatedData += std::to_string(def.correctGamma);
+    accumulatedData += std::to_string(def.textureType);
 
-    accumulatedData += std::to_string(def.textureType); // NOTE: ignoring def.flipImage and def.correctGamma for hashing.
     const XXH32_hash_t hash = XXH32(accumulatedData.c_str(), sizeof(char) * accumulatedData.size(), HASHING_SEED);
     assert(hash != UINT_MAX); // We aren't handling this issue...
 
@@ -395,7 +516,7 @@ gl::TextureId gl::ResourceManager::CreateResource(const gl::ResourceManager::Tex
 
     stbi_set_flip_vertically_on_load(def.flipImage);
     int width, height, nrChannels;
-    unsigned char* data;
+    unsigned char* data = nullptr;
 
     glGenTextures(1, &texture.TEX_);
     CheckGlError(__FILE__, __LINE__);
@@ -403,42 +524,63 @@ gl::TextureId gl::ResourceManager::CreateResource(const gl::ResourceManager::Tex
 
     if (def.textureType == GL_TEXTURE_2D)
     {
-        assert(def.paths.size() == 1);
+        if (!def.usedByFramebuffer)
+        {
+            if (def.paths.size() < 1)
+            {
+                std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": trying to create a GL_TEXTURE_2D not linked to a framebuffer but the path is empty!" << std::endl;
+                abort();
+            }
 
-        data = stbi_load(def.paths[0].c_str(), &width, &height, &nrChannels, 0);
-        assert(data);
+            data = stbi_load(def.paths[0].c_str(), &width, &height, &nrChannels, 0);
+            assert(data);
 
-        int imageColorFormat, gpuColorFormat = 0;
-        if (nrChannels == 1)
-        {
-            imageColorFormat = GL_RED;
-            gpuColorFormat = GL_RED;
-        }
-        else if (nrChannels == 3)
-        {
-            imageColorFormat = def.correctGamma ? GL_SRGB8 : GL_RGB8;
-            gpuColorFormat = GL_RGB;
-        }
-        else if (nrChannels == 4)
-        {
-            imageColorFormat = def.correctGamma ? GL_SRGB8_ALPHA8 : GL_RGBA8;
-            gpuColorFormat = GL_RGBA;
+            int imageColorFormat, gpuColorFormat = 0;
+            if (nrChannels == 1)
+            {
+                imageColorFormat = GL_RED;
+                gpuColorFormat = GL_RED;
+            }
+            else if (nrChannels == 3)
+            {
+                imageColorFormat = def.correctGamma ? GL_SRGB8 : GL_RGB8;
+                gpuColorFormat = GL_RGB;
+            }
+            else if (nrChannels == 4)
+            {
+                imageColorFormat = def.correctGamma ? GL_SRGB8_ALPHA8 : GL_RGBA8;
+                gpuColorFormat = GL_RGBA;
+            }
+            else
+            {
+                std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": nrChannels retrieved from " << def.paths[0] << " is not valid: " << nrChannels << std::endl;
+                abort();
+            }
+
+            glTexImage2D(GL_TEXTURE_2D, 0, imageColorFormat, width, height, 0, gpuColorFormat, GL_UNSIGNED_BYTE, data);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glGenerateMipmap(GL_TEXTURE_2D);
         }
         else
         {
-            std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": nrChannels retrieved from " << def.paths[0] << " is not valid: " << nrChannels << std::endl;
-            abort();
+            // NOTE: texture used is of same size as our screen.
+            if (def.hdr)
+            {
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, (GLsizei)SCREEN_RESOLUTION[0], (GLsizei)SCREEN_RESOLUTION[1], 0, GL_RGB, GL_FLOAT, nullptr);
+            }
+            else
+            {
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, (GLsizei)SCREEN_RESOLUTION[0], (GLsizei)SCREEN_RESOLUTION[1], 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+            }
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture.TEX_, 0);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         }
 
-        glTexImage2D(GL_TEXTURE_2D, 0, imageColorFormat, width, height, 0, gpuColorFormat, GL_UNSIGNED_BYTE, data);
-        CheckGlError(__FILE__, __LINE__);
         stbi_image_free(data);
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glGenerateMipmap(GL_TEXTURE_2D);
         CheckGlError(__FILE__, __LINE__);
     }
     else if (def.textureType == GL_TEXTURE_CUBE_MAP)
@@ -617,19 +759,31 @@ bool gl::ResourceManager::IsVertexBufferIdValid(VertexBufferId id) const
     return (vertexBuffers_.find(id) != vertexBuffers_.end()) ? true : false;
 }
 
+bool gl::ResourceManager::IsFramebufferValid(FramebufferId id) const
+{
+    if (id == UINT_MAX) return false;
+    return (framebuffers_.find(id) != framebuffers_.end()) ? true : false;
+}
+
 void gl::ResourceManager::Shutdown()
 {
     for (const auto& pair : vertexBuffers_)
     {
-        pair.second.Destroy();
+        glDeleteBuffers(1, &pair.second.VBO_);
+        glDeleteVertexArrays(1, &pair.second.VAO_);
     }
     for (const auto& pair : textures_)
     {
-        pair.second.Destroy();
+        glDeleteTextures(1, &pair.second.TEX_);
     }
     for (const auto& pair : shaders_)
     {
-        pair.second.Destroy();
+        glDeleteShader(pair.second.PROGRAM_);
+    }
+    for (const auto& pair : framebuffers_)
+    {
+        glDeleteRenderbuffers(1, &pair.second.RBO_);
+        glDeleteFramebuffers(1, &pair.second.FBO_);
     }
 }
 
@@ -659,6 +813,11 @@ std::vector<gl::MeshId> gl::ResourceManager::LoadObj(const std::string_view path
     const auto& attrib = reader.GetAttrib();
     const auto& shapes = reader.GetShapes();
     const auto& materials = reader.GetMaterials();
+    if (materials.size() < 1)
+    {
+        std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": loaded obj has no material!" << std::endl;
+        abort();
+    }
     returnVal.resize(shapes.size());
 
     for (size_t i = 0; i < shapes.size(); i++)
@@ -835,16 +994,8 @@ std::vector<gl::MeshId> gl::ResourceManager::LoadObj(const std::string_view path
             }
             if (meshIndices.normal_index > -1)
             {
-                if (!hasNormalMap)
-                {
-                    layout.push_back(ResourceManager::VertexDataTypes::NORMALS);
-                    hasNormalVertexData = true;
-                }
-                else
-                {
-                    std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": obj has both vertex normals and a normal map! " << std::endl;
-                    abort();
-                }
+                layout.push_back(ResourceManager::VertexDataTypes::NORMALS);
+                hasNormalVertexData = true;
             }
             else if(!hasNormalMap)
             {

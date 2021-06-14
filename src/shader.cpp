@@ -128,10 +128,6 @@ void gl::Shader::SetMat4(const std::string& name, const glm::mat4& mat)
 	}
 	CheckGlError(__FILE__, __LINE__);
 }
-void gl::Shader::Destroy() const
-{
-	glDeleteShader(PROGRAM_);
-}
 
 void gl::Shader::OnInit(const Model& model)
 {

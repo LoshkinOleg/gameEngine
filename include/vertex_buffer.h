@@ -10,7 +10,6 @@ namespace gl
     {
     public:
         void Draw() const;
-        void Destroy() const;
     private:
         friend class ResourceManager;
 

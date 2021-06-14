@@ -32,7 +32,6 @@ namespace gl {
 		void SetViewMatrix(const glm::mat4& mat);
 		void SetModelMatrix(const glm::mat4& mat);
 		void SetMat4(const std::string& name, const glm::mat4& mat);
-		void Destroy() const;
 	private:
 		friend class ResourceManager;
 

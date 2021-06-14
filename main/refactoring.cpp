@@ -28,7 +28,7 @@ public:
 
         camera_.Translate(glm::vec3(0.0f, 0.0f, 10.0f)); // Move camera away from origin.
 
-        const auto meshes = resourceManager_.LoadObj("../data/models/crate/crate.obj", false);
+        const auto meshes = resourceManager_.LoadObj("../data/models/crate/crate.obj");
 
         ModelId modelId = DEFAULT_ID;
         {
@@ -39,14 +39,20 @@ public:
         }
 
         model_ = resourceManager_.GetModel(modelId);
+
+        {
+            ResourceManager::FramebufferDefinition def;
+            def.hdr = true;
+            fb_ = resourceManager_.CreateResource(def);
+        }
     }
     void Update(seconds dt) override
     {
         timer_ += dt.count();
-        glClearColor(0.0f, 0.0f, 0.3f, 1.0f);
+        glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        model_.Draw(camera_);
+        model_.Draw(camera_, fb_);
     }
     void Destroy() override
     {
@@ -110,6 +116,7 @@ private:
     float timer_ = 0.0f;
     bool mouseButtonDown_ = false;
     Model model_;
+    FramebufferId fb_ = DEFAULT_ID;
     ResourceManager& resourceManager_ = ResourceManager::Get();
 };
 

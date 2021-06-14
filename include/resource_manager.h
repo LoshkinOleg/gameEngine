@@ -14,6 +14,7 @@
 #include "material.h"
 #include "mesh.h"
 #include "model.h"
+#include "framebuffer.h"
 
 namespace gl
 {
@@ -25,6 +26,7 @@ namespace gl
     using ModelId = unsigned int;
     using Transform3dId = unsigned int;
     using GLenum = int;
+    using FramebufferId = unsigned int;
 
     class ResourceManager
     {
@@ -60,13 +62,15 @@ namespace gl
             std::pair<std::string, int> samplerTextureUnitPair = {};
             bool flipImage = false;
             bool correctGamma = false;
+            bool hdr = false;
+            bool usedByFramebuffer = false;
         };
         struct ShaderDefinition
         {
             std::string vertexPath = "";
             std::string fragmentPath = "";
-            std::function<void(Shader&, const Model&)> onInit = nullptr;
-            std::function<void(Shader&, const Model&, const Camera&)> onDraw = nullptr;
+            std::function<void(Shader&, const Model&)> onInit = [](Shader&, const Model&)->void {};
+            std::function<void(Shader&, const Model&, const Camera&)> onDraw = [](Shader&, const Model&, const Camera&)->void {};
         };
         struct ModelDefinition
         {
@@ -85,6 +89,11 @@ namespace gl
             glm::vec3 specularColor = ONE_VEC3;
             float shininess = 1.0f;
         };
+        struct FramebufferDefinition
+        {
+            std::vector<Framebuffer::Attachments> attachments = { Framebuffer::Attachments::COLOR, Framebuffer::Attachments::DEPTH24_STENCIL8 };
+            bool hdr = false;
+        };
 
         static ResourceManager& Get()
         {
@@ -96,6 +105,7 @@ namespace gl
         const Material& GetMaterial(MaterialId id) const;
         Model& GetModel(ModelId id);
         Shader& GetShader(ShaderId id);
+        const Framebuffer& GetFramebuffer(FramebufferId id) const;
         std::vector<Shader> GetShaders(const std::vector<ShaderId>& ids) const;
         const VertexBuffer& GetVertexBuffer(VertexBufferId id) const;
         Mesh GetMesh(MeshId id) const;
@@ -107,6 +117,7 @@ namespace gl
         Transform3dId CreateResource(const Transform3dDefinition def);
         TextureId CreateResource(const TextureDefinition def);
         VertexBufferId CreateResource(const VertexBufferDefinition def);
+        FramebufferId CreateResource(const FramebufferDefinition def);
         std::vector<MeshId> LoadObj(const std::string_view path, bool flipTextures = true, bool correctGamma = true);
         bool IsModelIdValid(ModelId id) const;
         bool IsMeshIdValid(MeshId id) const;
@@ -115,6 +126,7 @@ namespace gl
         bool IsTransform3dIdValid(Transform3dId id) const;
         bool IsTextureIdValid(TextureId id) const;
         bool IsVertexBufferIdValid(VertexBufferId id) const;
+        bool IsFramebufferValid(FramebufferId id) const;
         void Shutdown();
     private:
         std::map<ModelId, Model> models_ = {};
@@ -124,6 +136,7 @@ namespace gl
         std::map<Transform3dId, Transform3d> transforms_ = {};
         std::map<TextureId, Texture> textures_ = {};
         std::map<VertexBufferId, VertexBuffer> vertexBuffers_ = {};
+        std::map<FramebufferId, Framebuffer> framebuffers_ = {};
     };
 
 }//!gl

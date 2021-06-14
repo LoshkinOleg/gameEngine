@@ -11,9 +11,8 @@ namespace gl {
     {
     public:
         void Bind() const;
-        void Unbind();
+        void Unbind() const;
         const std::pair<std::string, int>& GetSamplerTextureUnitPair() const;
-        void Destroy() const;
     private:
         friend class ResourceManager;
 
