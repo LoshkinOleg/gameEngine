@@ -627,7 +627,7 @@ std::vector<gl::MeshId> gl::ResourceManager::LoadObj(const std::string_view path
     }
     if (!reader.Warning().empty())
     {
-        std::cout << "WARNING at file: " << __FILE__ << ", line: " << __LINE__ << "tinyobjloader has raised a warning: " << reader.Warning() << std::endl;
+        std::cout << "WARNING at file: " << __FILE__ << ", line: " << __LINE__ << " : tinyobjloader has raised a warning: " << reader.Warning() << std::endl;
     }
 
     const auto& attrib = reader.GetAttrib();
@@ -688,12 +688,10 @@ std::vector<gl::MeshId> gl::ResourceManager::LoadObj(const std::string_view path
         }
 
         TextureId normalId = DEFAULT_ID;
-        bool usingNormalMap = false;
-        if (!materials[matId].normal_texname.empty())
+        if (!materials[matId].bump_texname.empty())
         {
-            usingNormalMap = true;
             TextureDefinition def;
-            def.paths = std::vector<std::string>{ dir + "/" + materials[matId].normal_texname };
+            def.paths = std::vector<std::string>{ dir + "/" + materials[matId].bump_texname };
             def.correctGamma = false;
             def.flipImage = flipTextures;
             def.textureType = GL_TEXTURE_2D;
@@ -705,6 +703,7 @@ std::vector<gl::MeshId> gl::ResourceManager::LoadObj(const std::string_view path
             std::cout << "WARNING: loaded obj has no normal map!" << std::endl;
         }
 
+        bool hasNormalMap = false;
         MaterialId materialId = DEFAULT_ID;
         {
             MaterialDefinition def;
@@ -712,6 +711,7 @@ std::vector<gl::MeshId> gl::ResourceManager::LoadObj(const std::string_view path
             def.diffuseMap = diffuseId;
             def.specularMap = specularId;
             def.normalMap = normalId;
+            hasNormalMap = normalId == DEFAULT_ID ? false : true;
             def.ambientColor = glm::vec3(materials[matId].ambient[0], materials[matId].ambient[1], materials[matId].ambient[2]);
             def.diffuseColor = glm::vec3(materials[matId].diffuse[0], materials[matId].diffuse[1], materials[matId].diffuse[2]);
             def.specularColor = glm::vec3(materials[matId].specular[0], materials[matId].specular[1], materials[matId].specular[2]);
@@ -724,7 +724,6 @@ std::vector<gl::MeshId> gl::ResourceManager::LoadObj(const std::string_view path
             VertexBufferDefinition def;
             std::vector<ResourceManager::VertexDataTypes> layout;
 
-            ResourceManager::VertexDataTypes posDataFormat;
             bool hasNormalVertexData = false;
             bool hasTexCoordVertexData = false;
 
@@ -732,21 +731,7 @@ std::vector<gl::MeshId> gl::ResourceManager::LoadObj(const std::string_view path
             tinyobj::index_t meshIndices = shapes[i].mesh.indices[0];
             if (meshIndices.vertex_index > -1)
             {
-                if (attrib.vertices.size() % 3 == 0)
-                {
-                    layout.push_back(ResourceManager::VertexDataTypes::POSITIONS_3D);
-                    posDataFormat = ResourceManager::VertexDataTypes::POSITIONS_3D;
-                }
-                else if (attrib.vertices.size() % 2 == 0)
-                {
-                    layout.push_back(ResourceManager::VertexDataTypes::POSITIONS_2D);
-                    posDataFormat = ResourceManager::VertexDataTypes::POSITIONS_2D;
-                }
-                else
-                {
-                    std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": obj's position data has an unexpected number of components: " << attrib.vertices.size() << std::endl;
-                    abort();
-                }
+                layout.push_back(ResourceManager::VertexDataTypes::POSITIONS_3D);
             }
             else
             {
@@ -755,41 +740,25 @@ std::vector<gl::MeshId> gl::ResourceManager::LoadObj(const std::string_view path
             }
             if (meshIndices.normal_index > -1)
             {
-                if (usingNormalMap)
+                if (!hasNormalMap)
+                {
+                    layout.push_back(ResourceManager::VertexDataTypes::NORMALS);
+                    hasNormalVertexData = true;
+                }
+                else
                 {
                     std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": obj has both vertex normals and a normal map! " << std::endl;
                     abort();
                 }
-                else
-                {
-                    if (attrib.normals.size() % 3 == 0)
-                    {
-                        layout.push_back(ResourceManager::VertexDataTypes::NORMALS);
-                        hasNormalVertexData = true;
-                    }
-                    else
-                    {
-                        std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": obj's normals data has an unexpected number of components: " << attrib.vertices.size() << std::endl;
-                        abort();
-                    }
-                }
             }
-            else if(!usingNormalMap)
+            else if(!hasNormalMap)
             {
                 std::cout << "WARNING at file: " << __FILE__ << ", line: " << __LINE__ << ": obj file doesn't contain any normals data of any kind!" << std::endl;
             }
             if (meshIndices.texcoord_index > -1)
             {
-                if (attrib.vertices.size() % 2 == 0)
-                {
-                    layout.push_back(ResourceManager::VertexDataTypes::TEXCOORDS_2D);
-                    hasTexCoordVertexData = true;
-                }
-                else
-                {
-                    std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": obj's texCoord data has an unexpected number of components: " << attrib.vertices.size() << std::endl;
-                    abort();
-                }
+                layout.push_back(ResourceManager::VertexDataTypes::TEXCOORDS_2D);
+                hasTexCoordVertexData = true;
             }
             else
             {
@@ -826,83 +795,52 @@ std::vector<gl::MeshId> gl::ResourceManager::LoadObj(const std::string_view path
                 tinyobj::index_t idx1 = shapes[i].mesh.indices[f + 1];
                 tinyobj::index_t idx2 = shapes[i].mesh.indices[f + 2];
 
-                if (posDataFormat == ResourceManager::VertexDataTypes::POSITIONS_3D)
+                // Retrieve pos.
+                vertexData[stride * f + 0] = attrib.vertices[3 * (size_t)idx0.vertex_index + 0];
+                vertexData[stride * f + 1] = attrib.vertices[3 * (size_t)idx0.vertex_index + 1];
+                vertexData[stride * f + 2] = attrib.vertices[3 * (size_t)idx0.vertex_index + 2];
+
+                vertexData[stride * f + stride * 1 + 0] = attrib.vertices[3 * (size_t)idx1.vertex_index + 0];
+                vertexData[stride * f + stride * 1 + 1] = attrib.vertices[3 * (size_t)idx1.vertex_index + 1];
+                vertexData[stride * f + stride * 1 + 2] = attrib.vertices[3 * (size_t)idx1.vertex_index + 2];
+
+                vertexData[stride * f + stride * 2 + 0] = attrib.vertices[3 * (size_t)idx2.vertex_index + 0];
+                vertexData[stride * f + stride * 2 + 1] = attrib.vertices[3 * (size_t)idx2.vertex_index + 1];
+                vertexData[stride * f + stride * 2 + 2] = attrib.vertices[3 * (size_t)idx2.vertex_index + 2];
+
+                // TODO: try loading an obj without normals
+                if (hasNormalVertexData) // Retrieve normals.
                 {
-                        // Retrieve pos.
-                        vertexData[stride * f + 0] = attrib.vertices[3 * (size_t)idx0.vertex_index + 0];
-                        vertexData[stride * f + 1] = attrib.vertices[3 * (size_t)idx0.vertex_index + 1];
-                        vertexData[stride * f + 2] = attrib.vertices[3 * (size_t)idx0.vertex_index + 2];
+                    vertexData[stride * f + 3] = attrib.normals[3 * (size_t)idx0.normal_index + 0];
+                    vertexData[stride * f + 4] = attrib.normals[3 * (size_t)idx0.normal_index + 1];
+                    vertexData[stride * f + 5] = attrib.normals[3 * (size_t)idx0.normal_index + 2];
 
-                        vertexData[stride * f + stride * 1 + 0] = attrib.vertices[3 * (size_t)idx1.vertex_index + 0];
-                        vertexData[stride * f + stride * 1 + 1] = attrib.vertices[3 * (size_t)idx1.vertex_index + 1];
-                        vertexData[stride * f + stride * 1 + 2] = attrib.vertices[3 * (size_t)idx1.vertex_index + 2];
+                    vertexData[stride * f + stride * 1 + 3] = attrib.normals[3 * (size_t)idx1.normal_index + 0];
+                    vertexData[stride * f + stride * 1 + 4] = attrib.normals[3 * (size_t)idx1.normal_index + 1];
+                    vertexData[stride * f + stride * 1 + 5] = attrib.normals[3 * (size_t)idx1.normal_index + 2];
 
-                        vertexData[stride * f + stride * 2 + 0] = attrib.vertices[3 * (size_t)idx2.vertex_index + 0];
-                        vertexData[stride * f + stride * 2 + 1] = attrib.vertices[3 * (size_t)idx2.vertex_index + 1];
-                        vertexData[stride * f + stride * 2 + 2] = attrib.vertices[3 * (size_t)idx2.vertex_index + 2];
-
-                        // TODO: try loading an obj without normals
-                        if (hasNormalVertexData) // Retrieve normals.
-                        {
-                            vertexData[stride * f + 3] = attrib.normals[3 * (size_t)idx0.normal_index + 0];
-                            vertexData[stride * f + 4] = attrib.normals[3 * (size_t)idx0.normal_index + 1];
-                            vertexData[stride * f + 5] = attrib.normals[3 * (size_t)idx0.normal_index + 2];
-
-                            vertexData[stride * f + stride * 1 + 3] = attrib.normals[3 * (size_t)idx1.normal_index + 0];
-                            vertexData[stride * f + stride * 1 + 4] = attrib.normals[3 * (size_t)idx1.normal_index + 1];
-                            vertexData[stride * f + stride * 1 + 5] = attrib.normals[3 * (size_t)idx1.normal_index + 2];
-
-                            vertexData[stride * f + stride * 2 + 3] = attrib.normals[3 * (size_t)idx2.normal_index + 0];
-                            vertexData[stride * f + stride * 2 + 4] = attrib.normals[3 * (size_t)idx2.normal_index + 1];
-                            vertexData[stride * f + stride * 2 + 5] = attrib.normals[3 * (size_t)idx2.normal_index + 2];
-                        }
-                        // TODO: try loading an obj without texcoords
-                        if (hasTexCoordVertexData)
-                        {
-                            if (hasNormalVertexData)
-                            {
-                                vertexData[stride * f + 6] = attrib.texcoords[2 * (size_t)idx0.texcoord_index + 0];
-                                vertexData[stride * f + 7] = attrib.texcoords[2 * (size_t)idx0.texcoord_index + 1];
-
-                                vertexData[stride * f + stride * 1 + 6] = attrib.texcoords[2 * (size_t)idx1.texcoord_index + 0];
-                                vertexData[stride * f + stride * 1 + 7] = attrib.texcoords[2 * (size_t)idx1.texcoord_index + 1];
-
-                                vertexData[stride * f + stride * 2 + 6] = attrib.texcoords[2 * (size_t)idx2.texcoord_index + 0];
-                                vertexData[stride * f + stride * 2 + 7] = attrib.texcoords[2 * (size_t)idx2.texcoord_index + 1];
-                            }
-                            else // TODO: try lodaing an obj with texcoords and without normals
-                            {
-                                vertexData[stride * f + 3] = attrib.texcoords[2 * (size_t)idx0.texcoord_index + 0];
-                                vertexData[stride * f + 4] = attrib.texcoords[2 * (size_t)idx0.texcoord_index + 1];
-
-                                vertexData[stride * f + stride * 1 + 3] = attrib.texcoords[2 * (size_t)idx1.texcoord_index + 0];
-                                vertexData[stride * f + stride * 1 + 4] = attrib.texcoords[2 * (size_t)idx1.texcoord_index + 1];
-
-                                vertexData[stride * f + stride * 2 + 3] = attrib.texcoords[2 * (size_t)idx2.texcoord_index + 0];
-                                vertexData[stride * f + stride * 2 + 4] = attrib.texcoords[2 * (size_t)idx2.texcoord_index + 1];
-                            }
-                        }
+                    vertexData[stride * f + stride * 2 + 3] = attrib.normals[3 * (size_t)idx2.normal_index + 0];
+                    vertexData[stride * f + stride * 2 + 4] = attrib.normals[3 * (size_t)idx2.normal_index + 1];
+                    vertexData[stride * f + stride * 2 + 5] = attrib.normals[3 * (size_t)idx2.normal_index + 2];
                 }
-                else // Position data is in 2D.
-                // TODO: try loading an obj with 2d coords
+                // TODO: try loading an obj without texcoords
+                if (hasTexCoordVertexData)
                 {
-                    // Retrieve pos.
-                    vertexData[stride * f + 0] = attrib.vertices[2 * (size_t)idx0.vertex_index + 0];
-                    vertexData[stride * f + 1] = attrib.vertices[2 * (size_t)idx0.vertex_index + 1];
-
-                    vertexData[stride * f + stride * 1 + 0] = attrib.vertices[2 * (size_t)idx1.vertex_index + 0];
-                    vertexData[stride * f + stride * 1 + 1] = attrib.vertices[2 * (size_t)idx1.vertex_index + 1];
-
-                    vertexData[stride * f + stride * 2 + 0] = attrib.vertices[2 * (size_t)idx2.vertex_index + 0];
-                    vertexData[stride * f + stride * 2 + 1] = attrib.vertices[2 * (size_t)idx2.vertex_index + 1];
-
                     if (hasNormalVertexData)
                     {
-                        std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": obj has 2d pos coordinates and 3d normals!" << std::endl;
-                        abort();
+                        vertexData[stride * f + 6] = attrib.texcoords[2 * (size_t)idx0.texcoord_index + 0];
+                        vertexData[stride * f + 7] = attrib.texcoords[2 * (size_t)idx0.texcoord_index + 1];
+
+                        vertexData[stride * f + stride * 1 + 6] = attrib.texcoords[2 * (size_t)idx1.texcoord_index + 0];
+                        vertexData[stride * f + stride * 1 + 7] = attrib.texcoords[2 * (size_t)idx1.texcoord_index + 1];
+
+                        vertexData[stride * f + stride * 2 + 6] = attrib.texcoords[2 * (size_t)idx2.texcoord_index + 0];
+                        vertexData[stride * f + stride * 2 + 7] = attrib.texcoords[2 * (size_t)idx2.texcoord_index + 1];
                     }
-                    if (hasTexCoordVertexData)
+                    else // TODO: try lodaing an obj with texcoords and without normals
                     {
+                        // NOTE: if code gets out of bounds here, it's possibly because obj has normal data but no texcoord data. This case is bugged in tinyobjloader, making it think there's texcoord data and no normal data instead!
+
                         vertexData[stride * f + 3] = attrib.texcoords[2 * (size_t)idx0.texcoord_index + 0];
                         vertexData[stride * f + 4] = attrib.texcoords[2 * (size_t)idx0.texcoord_index + 1];
 

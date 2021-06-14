@@ -27,7 +27,7 @@ public:
 
         camera_.Translate(glm::vec3(0.0f, 0.0f, 10.0f)); // Move camera away from origin.
 
-        const auto meshes = resourceManager_.LoadObj("../data/models/spaceship/spaceship.obj", false);
+        const auto meshes = resourceManager_.LoadObj("../data/models/primesCrate/crate.obj", false);
         const MaterialId materialId = resourceManager_.GetMesh(meshes[0]).GetMaterialId();
 
         ShaderId shaderId = DEFAULT_ID;
