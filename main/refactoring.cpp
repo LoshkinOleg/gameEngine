@@ -4,6 +4,9 @@
 // on creation of a resource, check the validity of ids, check on draw that the asset is valid
 // move common strings of shader variables to #defines
 // Refactor shaders.
+// TODO: add framebuffers
+// TODO: add skybox
+// TODO: add support for cubemaps
 
 #include <glad/glad.h>
 
@@ -19,11 +22,12 @@ public:
     void Init() override
     {
         glEnable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
         glEnable(GL_FRAMEBUFFER_SRGB_EXT);
 
         camera_.Translate(glm::vec3(0.0f, 0.0f, 10.0f)); // Move camera away from origin.
 
-        const auto meshes = resourceManager_.LoadObj("../data/models/crate/crate.obj");
+        const auto meshes = resourceManager_.LoadObj("../data/models/spaceship/spaceship.obj", false);
         const MaterialId materialId = resourceManager_.GetMesh(meshes[0]).GetMaterialId();
 
         ShaderId shaderId = DEFAULT_ID;

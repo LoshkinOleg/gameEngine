@@ -724,7 +724,9 @@ std::vector<gl::MeshId> gl::ResourceManager::LoadObj(const std::string_view path
             VertexBufferDefinition def;
             std::vector<ResourceManager::VertexDataTypes> layout;
 
-            bool pos2d, hasNormals = false, hasTexCoords = false;
+            ResourceManager::VertexDataTypes posDataFormat;
+            bool hasNormalVertexData = false;
+            bool hasTexCoordVertexData = false;
 
             // NOTE: Warning: there's no check that every vertex in the file has the same layout!
             tinyobj::index_t meshIndices = shapes[i].mesh.indices[0];
@@ -733,12 +735,12 @@ std::vector<gl::MeshId> gl::ResourceManager::LoadObj(const std::string_view path
                 if (attrib.vertices.size() % 3 == 0)
                 {
                     layout.push_back(ResourceManager::VertexDataTypes::POSITIONS_3D);
-                    pos2d = false;
+                    posDataFormat = ResourceManager::VertexDataTypes::POSITIONS_3D;
                 }
                 else if (attrib.vertices.size() % 2 == 0)
                 {
                     layout.push_back(ResourceManager::VertexDataTypes::POSITIONS_2D);
-                    pos2d = true;
+                    posDataFormat = ResourceManager::VertexDataTypes::POSITIONS_2D;
                 }
                 else
                 {
@@ -763,7 +765,7 @@ std::vector<gl::MeshId> gl::ResourceManager::LoadObj(const std::string_view path
                     if (attrib.normals.size() % 3 == 0)
                     {
                         layout.push_back(ResourceManager::VertexDataTypes::NORMALS);
-                        hasNormals = true;
+                        hasNormalVertexData = true;
                     }
                     else
                     {
@@ -778,15 +780,10 @@ std::vector<gl::MeshId> gl::ResourceManager::LoadObj(const std::string_view path
             }
             if (meshIndices.texcoord_index > -1)
             {
-                if (attrib.texcoords.size() % 3 == 0)
-                {
-                    std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": tinyobjloader doesn't support loading of 3 component texCoord data!" << std::endl;
-                    abort();
-                }
-                else if (attrib.vertices.size() % 2 == 0)
+                if (attrib.vertices.size() % 2 == 0)
                 {
                     layout.push_back(ResourceManager::VertexDataTypes::TEXCOORDS_2D);
-                    hasTexCoords = true;
+                    hasTexCoordVertexData = true;
                 }
                 else
                 {
@@ -799,6 +796,7 @@ std::vector<gl::MeshId> gl::ResourceManager::LoadObj(const std::string_view path
                 std::cout << "WARNING at file: " << __FILE__ << ", line: " << __LINE__ << ": obj file doesn't contain any texCoord data!" << std::endl;
             }
             def.dataLayout = layout;
+
             size_t stride = 0; // Compute stride.
             for (size_t i = 0; i < layout.size(); i++)
             {
@@ -822,39 +820,100 @@ std::vector<gl::MeshId> gl::ResourceManager::LoadObj(const std::string_view path
 
             const size_t numOfFaces = shapes[i].mesh.num_face_vertices.size();
             std::vector<float> vertexData = std::vector<float>(numOfFaces * 3 * stride);
-            const size_t numOfVerticesPerFace = 3;
-            size_t indexOffset = 0;
-            for (size_t f = 0; f < numOfFaces; f++)
+            for (size_t f = 0; f < (numOfFaces * 3) - 2; f++)
             {
-                tinyobj::index_t vert0OfTri = shapes[i].mesh.indices[3 * f + 0]; // 3 because there's 3 vertices in a triangle
-                tinyobj::index_t vert1OfTri = shapes[i].mesh.indices[3 * f + 1];
-                tinyobj::index_t vert2OfTri = shapes[i].mesh.indices[3 * f + 2];
+                tinyobj::index_t idx0 = shapes[i].mesh.indices[f + 0];
+                tinyobj::index_t idx1 = shapes[i].mesh.indices[f + 1];
+                tinyobj::index_t idx2 = shapes[i].mesh.indices[f + 2];
 
-                for (size_t k = 0; k < 3; k++) // 3 bc there's 3 vertices in a triangle
+                if (posDataFormat == ResourceManager::VertexDataTypes::POSITIONS_3D)
                 {
-                    if (!pos2d)
+                        // Retrieve pos.
+                        vertexData[stride * f + 0] = attrib.vertices[3 * (size_t)idx0.vertex_index + 0];
+                        vertexData[stride * f + 1] = attrib.vertices[3 * (size_t)idx0.vertex_index + 1];
+                        vertexData[stride * f + 2] = attrib.vertices[3 * (size_t)idx0.vertex_index + 2];
+
+                        vertexData[stride * f + stride * 1 + 0] = attrib.vertices[3 * (size_t)idx1.vertex_index + 0];
+                        vertexData[stride * f + stride * 1 + 1] = attrib.vertices[3 * (size_t)idx1.vertex_index + 1];
+                        vertexData[stride * f + stride * 1 + 2] = attrib.vertices[3 * (size_t)idx1.vertex_index + 2];
+
+                        vertexData[stride * f + stride * 2 + 0] = attrib.vertices[3 * (size_t)idx2.vertex_index + 0];
+                        vertexData[stride * f + stride * 2 + 1] = attrib.vertices[3 * (size_t)idx2.vertex_index + 1];
+                        vertexData[stride * f + stride * 2 + 2] = attrib.vertices[3 * (size_t)idx2.vertex_index + 2];
+
+                        // TODO: try loading an obj without normals
+                        if (hasNormalVertexData) // Retrieve normals.
+                        {
+                            vertexData[stride * f + 3] = attrib.normals[3 * (size_t)idx0.normal_index + 0];
+                            vertexData[stride * f + 4] = attrib.normals[3 * (size_t)idx0.normal_index + 1];
+                            vertexData[stride * f + 5] = attrib.normals[3 * (size_t)idx0.normal_index + 2];
+
+                            vertexData[stride * f + stride * 1 + 3] = attrib.normals[3 * (size_t)idx1.normal_index + 0];
+                            vertexData[stride * f + stride * 1 + 4] = attrib.normals[3 * (size_t)idx1.normal_index + 1];
+                            vertexData[stride * f + stride * 1 + 5] = attrib.normals[3 * (size_t)idx1.normal_index + 2];
+
+                            vertexData[stride * f + stride * 2 + 3] = attrib.normals[3 * (size_t)idx2.normal_index + 0];
+                            vertexData[stride * f + stride * 2 + 4] = attrib.normals[3 * (size_t)idx2.normal_index + 1];
+                            vertexData[stride * f + stride * 2 + 5] = attrib.normals[3 * (size_t)idx2.normal_index + 2];
+                        }
+                        // TODO: try loading an obj without texcoords
+                        if (hasTexCoordVertexData)
+                        {
+                            if (hasNormalVertexData)
+                            {
+                                vertexData[stride * f + 6] = attrib.texcoords[2 * (size_t)idx0.texcoord_index + 0];
+                                vertexData[stride * f + 7] = attrib.texcoords[2 * (size_t)idx0.texcoord_index + 1];
+
+                                vertexData[stride * f + stride * 1 + 6] = attrib.texcoords[2 * (size_t)idx1.texcoord_index + 0];
+                                vertexData[stride * f + stride * 1 + 7] = attrib.texcoords[2 * (size_t)idx1.texcoord_index + 1];
+
+                                vertexData[stride * f + stride * 2 + 6] = attrib.texcoords[2 * (size_t)idx2.texcoord_index + 0];
+                                vertexData[stride * f + stride * 2 + 7] = attrib.texcoords[2 * (size_t)idx2.texcoord_index + 1];
+                            }
+                            else // TODO: try lodaing an obj with texcoords and without normals
+                            {
+                                vertexData[stride * f + 3] = attrib.texcoords[2 * (size_t)idx0.texcoord_index + 0];
+                                vertexData[stride * f + 4] = attrib.texcoords[2 * (size_t)idx0.texcoord_index + 1];
+
+                                vertexData[stride * f + stride * 1 + 3] = attrib.texcoords[2 * (size_t)idx1.texcoord_index + 0];
+                                vertexData[stride * f + stride * 1 + 4] = attrib.texcoords[2 * (size_t)idx1.texcoord_index + 1];
+
+                                vertexData[stride * f + stride * 2 + 3] = attrib.texcoords[2 * (size_t)idx2.texcoord_index + 0];
+                                vertexData[stride * f + stride * 2 + 4] = attrib.texcoords[2 * (size_t)idx2.texcoord_index + 1];
+                            }
+                        }
+                }
+                else // Position data is in 2D.
+                // TODO: try loading an obj with 2d coords
+                {
+                    // Retrieve pos.
+                    vertexData[stride * f + 0] = attrib.vertices[2 * (size_t)idx0.vertex_index + 0];
+                    vertexData[stride * f + 1] = attrib.vertices[2 * (size_t)idx0.vertex_index + 1];
+
+                    vertexData[stride * f + stride * 1 + 0] = attrib.vertices[2 * (size_t)idx1.vertex_index + 0];
+                    vertexData[stride * f + stride * 1 + 1] = attrib.vertices[2 * (size_t)idx1.vertex_index + 1];
+
+                    vertexData[stride * f + stride * 2 + 0] = attrib.vertices[2 * (size_t)idx2.vertex_index + 0];
+                    vertexData[stride * f + stride * 2 + 1] = attrib.vertices[2 * (size_t)idx2.vertex_index + 1];
+
+                    if (hasNormalVertexData)
                     {
-                        vertexData.push_back(attrib.vertices[3 * (size_t)vert0OfTri.vertex_index + k]);
-                        vertexData.push_back(attrib.vertices[3 * (size_t)vert1OfTri.vertex_index + k]);
-                        vertexData.push_back(attrib.vertices[3 * (size_t)vert2OfTri.vertex_index + k]);
+                        std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": obj has 2d pos coordinates and 3d normals!" << std::endl;
+                        abort();
                     }
-                    else
+                    if (hasTexCoordVertexData)
                     {
-                        vertexData.push_back(attrib.vertices[2 * (size_t)vert0OfTri.vertex_index + k]);
-                        vertexData.push_back(attrib.vertices[2 * (size_t)vert1OfTri.vertex_index + k]);
-                    }
-                    if (hasNormals)
-                    {
-                        vertexData.push_back(attrib.normals[3 * (size_t)vert0OfTri.normal_index + k]);
-                        vertexData.push_back(attrib.normals[3 * (size_t)vert1OfTri.normal_index + k]);
-                        vertexData.push_back(attrib.normals[3 * (size_t)vert2OfTri.normal_index + k]);
-                    }
-                    if (hasTexCoords)
-                    {
-                        vertexData.push_back(attrib.texcoords[2 * (size_t)vert0OfTri.texcoord_index + k]);
-                        vertexData.push_back(attrib.texcoords[2 * (size_t)vert1OfTri.texcoord_index + k]);
+                        vertexData[stride * f + 3] = attrib.texcoords[2 * (size_t)idx0.texcoord_index + 0];
+                        vertexData[stride * f + 4] = attrib.texcoords[2 * (size_t)idx0.texcoord_index + 1];
+
+                        vertexData[stride * f + stride * 1 + 3] = attrib.texcoords[2 * (size_t)idx1.texcoord_index + 0];
+                        vertexData[stride * f + stride * 1 + 4] = attrib.texcoords[2 * (size_t)idx1.texcoord_index + 1];
+
+                        vertexData[stride * f + stride * 2 + 3] = attrib.texcoords[2 * (size_t)idx2.texcoord_index + 0];
+                        vertexData[stride * f + stride * 2 + 4] = attrib.texcoords[2 * (size_t)idx2.texcoord_index + 1];
                     }
                 }
+                
             }
             def.data = vertexData;
             vertexBufferId = CreateResource(def);
