@@ -39,7 +39,7 @@ void gl::Material::Unbind()
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 }
-std::array<gl::TextureId, 4> gl::Material::GetTextures() const
+std::array<gl::TextureId, 4> gl::Material::GetTextureIds() const
 {
     return std::array<gl::TextureId, 4>{ambientMap_, diffuseMap_, specularMap_, normalMap_};
 }
@@ -50,4 +50,8 @@ const std::array<glm::vec3, 3> gl::Material::GetColors() const
 float gl::Material::GetShininess() const
 {
     return shininess_;
+}
+gl::ShaderId gl::Material::GetShaderId() const
+{
+    return shader_;
 }

@@ -5,19 +5,36 @@
 void gl::Model::Draw(const Camera& camera) const
 {
     ResourceManager& resourceManager = ResourceManager::Get();
-    Shader& shader = resourceManager.GetShader(shader_);
     const std::vector<Mesh> meshes = resourceManager.GetMeshes(meshes_);
-
-    shader.Bind();
-    shader.OnDraw(*this, camera);
-    for (const auto& mesh : meshes)
+    
+    // TODO: make sure there's no problems with using copies of Shader instead of ref
+    std::vector<Shader> shaders = std::vector<Shader>(meshes.size());
+    for (size_t i = 0; i < shaders.size(); i++)
     {
-        mesh.Draw();
+        shaders[i] = resourceManager.GetShader(resourceManager.GetMaterial(meshes[i].GetMaterialId()).GetShaderId());
+        shaders[i].Bind();
+        shaders[i].OnDraw(*this, camera);
     }
-    shader.Unbind();
-}
 
+    for (size_t i = 0; i < meshes.size(); i++)
+    {
+        shaders[i].Bind();
+        meshes[i].Draw();
+    }
+    Shader::Unbind();
+}
 const glm::mat4& gl::Model::GetModelMatrix() const
 {
     return gl::ResourceManager::Get().GetTransform(transform_).GetModelMatrix();
+}
+std::vector<gl::ShaderId> gl::Model::GetShaderIds() const
+{
+    const gl::ResourceManager resourceManager = gl::ResourceManager::Get();
+    const std::vector<Mesh> meshes = resourceManager.GetMeshes(meshes_);
+    auto returnVal = std::vector<ShaderId>(meshes.size());
+    for (size_t i = 0; i < meshes.size(); i++)
+    {
+        returnVal[i] = resourceManager.GetMaterial(meshes[i].GetMaterialId()).GetShaderId();
+    }
+    return returnVal;
 }

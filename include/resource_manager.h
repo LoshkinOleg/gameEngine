@@ -71,7 +71,6 @@ namespace gl
         struct ModelDefinition
         {
             std::vector<MeshId> meshes = {};
-            ShaderId shader = DEFAULT_ID;
             Transform3dId transform = DEFAULT_ID;
         };
         struct MaterialDefinition
@@ -80,6 +79,7 @@ namespace gl
             TextureId diffuseMap = DEFAULT_ID;
             TextureId specularMap = DEFAULT_ID;
             TextureId normalMap = DEFAULT_ID;
+            ShaderId shader = DEFAULT_ID;
             glm::vec3 ambientColor = ONE_VEC3;
             glm::vec3 diffuseColor = ONE_VEC3;
             glm::vec3 specularColor = ONE_VEC3;
@@ -96,9 +96,10 @@ namespace gl
         const Material& GetMaterial(MaterialId id) const;
         Model& GetModel(ModelId id);
         Shader& GetShader(ShaderId id);
+        std::vector<Shader> GetShaders(const std::vector<ShaderId>& ids) const;
         const VertexBuffer& GetVertexBuffer(VertexBufferId id) const;
-        std::vector<Mesh> GetMeshes(const std::vector<MeshId>& ids) const;
         Mesh GetMesh(MeshId id) const;
+        std::vector<Mesh> GetMeshes(const std::vector<MeshId>& ids) const;
         ModelId CreateResource(const ModelDefinition def);
         MeshId CreateResource(const MeshDefinition def);
         ShaderId CreateResource(const ShaderDefinition def);

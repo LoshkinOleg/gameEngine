@@ -21,7 +21,7 @@ void gl::Shader::SetMaterial(MaterialId materialId)
 {
 	const Material& material = ResourceManager::Get().GetMaterial(materialId);
 
-	const std::array<TextureId, 4> textureIds = material.GetTextures();
+	const std::array<TextureId, 4> textureIds = material.GetTextureIds();
 	for (const TextureId id : textureIds)
 	{
 		if (id != UINT_MAX) // Don't try setting textures that aren't used.
@@ -31,12 +31,12 @@ void gl::Shader::SetMaterial(MaterialId materialId)
 	}
 
 	const auto& colors = material.GetColors();
-	SetVec3("material.ambientColor", colors[0]); // TODO: make defines for default shader names and use them here
-	SetVec3("material.diffuseColor", colors[1]);
-	SetVec3("material.specularColor", colors[2]);
+	SetVec3(AMBIENT_COLOR_NAME.data(), colors[0]);
+	SetVec3(DIFFUSE_COLOR_NAME.data(), colors[1]);
+	SetVec3(SPECULAR_COLOR_NAME.data(), colors[2]);
 
 	const float shininess = material.GetShininess();
-	SetFloat("material.shininess", shininess);
+	SetFloat(SHININESS_NAME.data(), shininess);
 }
 void gl::Shader::SetFloat(const std::string& name, const float value)
 {
@@ -85,6 +85,8 @@ void gl::Shader::SetInt(const std::string& name, const int value)
 }
 void gl::Shader::SetTexture(TextureId textureId)
 {
+	if (textureId == DEFAULT_ID) return;
+
 	const Texture& tex = ResourceManager::Get().GetTexture(textureId);
 	const auto& samplerTextureUnitPair = tex.GetSamplerTextureUnitPair();
 

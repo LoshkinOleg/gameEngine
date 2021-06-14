@@ -26,4 +26,14 @@ namespace gl
 	const int SPECULAR_SAMPLER_TEXTURE_UNIT = 2;
 	const std::string_view NORMAL_MAP_SAMPLER_NAME = "material.normalMap";
 	const int NORMAL_SAMPLER_TEXTURE_UNIT = 3;
+	const std::string_view AMBIENT_COLOR_NAME = "material.ambientColor";
+	const std::string_view DIFFUSE_COLOR_NAME = "material.diffuseColor";
+	const std::string_view SPECULAR_COLOR_NAME = "material.specularColor";
+	const std::string_view SHININESS_NAME = "material.shininess";
+	const std::string_view VIEW_POSITION_NAME = "viewPos";
+
+	// Default obj shaders.
+	const std::string_view ILLUM0_SHADER[2] = {"../data/shaders/illum0.vert", "../data/shaders/illum0.frag" };
+	const std::string_view ILLUM1_SHADER[2] = {"../data/shaders/illum1.vert", "../data/shaders/illum1.frag" };
+	const std::string_view ILLUM2_SHADER[2] = {"../data/shaders/illum2.vert", "../data/shaders/illum2.frag" };
 }//!gl

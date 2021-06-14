@@ -7,6 +7,7 @@
 // TODO: add framebuffers
 // TODO: add skybox
 // TODO: add support for cubemaps
+// TODO: rename any <baseClass> variables into <baseClassId> variables where appropriate to better reflect the type of the variable.
 
 #include <glad/glad.h>
 
@@ -27,37 +28,12 @@ public:
 
         camera_.Translate(glm::vec3(0.0f, 0.0f, 10.0f)); // Move camera away from origin.
 
-        const auto meshes = resourceManager_.LoadObj("../data/models/primesCrate/crate.obj", false);
-        const MaterialId materialId = resourceManager_.GetMesh(meshes[0]).GetMaterialId();
-
-        ShaderId shaderId = DEFAULT_ID;
-        {
-            ResourceManager::ShaderDefinition def;
-            def.vertexPath = "../data/shaders/demo/dirLight.vert";
-            def.fragmentPath = "../data/shaders/demo/dirLight.frag";
-            def.onInit = [materialId](Shader& shader, const Model& model)->void
-            {
-                shader.SetMaterial(materialId);
-                shader.SetProjectionMatrix(PERSPECTIVE);
-                shader.SetVec3("dirLight.dir", glm::normalize(-ONE_VEC3));
-                shader.SetVec3("dirLight.ambientColor", ONE_VEC3);
-                shader.SetVec3("dirLight.diffuseColor", ONE_VEC3);
-                shader.SetVec3("dirLight.specularColor", ONE_VEC3);
-            };
-            def.onDraw = [](Shader& shader, const Model& model, const Camera& camera)->void
-            {
-                shader.SetViewMatrix(camera.GetViewMatrix());
-                shader.SetVec3("viewPos", camera.GetPosition());
-                shader.SetModelMatrix(model.GetModelMatrix());
-            };
-            shaderId = resourceManager_.CreateResource(def);
-        }
+        const auto meshes = resourceManager_.LoadObj("../data/models/crate/crate.obj", false);
 
         ModelId modelId = DEFAULT_ID;
         {
             ResourceManager::ModelDefinition def;
             def.meshes = meshes;
-            def.shader = shaderId;
             def.transform = resourceManager_.CreateResource(ResourceManager::Transform3dDefinition{});
             modelId = resourceManager_.CreateResource(def);
         }

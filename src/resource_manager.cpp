@@ -12,6 +12,7 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 
+#include "camera.h"
 #include "utility.h"
 
 const gl::Transform3d& gl::ResourceManager::GetTransform(gl::Transform3dId id) const
@@ -79,6 +80,24 @@ gl::Shader& gl::ResourceManager::GetShader(gl::ShaderId id)
         abort();
     }
 }
+std::vector<gl::Shader> gl::ResourceManager::GetShaders(const std::vector<gl::ShaderId>& ids) const
+{
+    std::vector<Shader> returnVal;
+    for (const auto& id : ids)
+    {
+        const auto match = shaders_.find(id);
+        if (match != shaders_.end())
+        {
+            returnVal.push_back(match->second);
+        }
+        else
+        {
+            std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": Trying to access a non existent Shader!" << std::endl;
+            abort();
+        }
+    }
+    return returnVal;
+}
 const gl::VertexBuffer& gl::ResourceManager::GetVertexBuffer(gl::VertexBufferId id) const
 {
     const auto match = vertexBuffers_.find(id);
@@ -131,7 +150,6 @@ gl::ModelId gl::ResourceManager::CreateResource(const gl::ResourceManager::Model
     {
         accumulatedData += std::to_string(id);
     }
-    accumulatedData += std::to_string(def.shader);
     accumulatedData += std::to_string(def.transform);
 
     const XXH32_hash_t hash = XXH32(accumulatedData.c_str(), sizeof(char) * accumulatedData.size(), HASHING_SEED);
@@ -146,14 +164,16 @@ gl::ModelId gl::ResourceManager::CreateResource(const gl::ResourceManager::Model
     gl::Model model;
     model.id_ = hash;
     model.meshes_ = def.meshes;
-    model.shader_ = def.shader;
     model.transform_ = def.transform;
 
-    // Call shader's init function now that the model is set up.
-    Shader& shader = shaders_[model.shader_];
-    shader.Bind();
-    shader.OnInit(model);
-    shader.Unbind();
+    // Call onInit of all shaders.
+    auto shaders = gl::ResourceManager::Get().GetShaders(model.GetShaderIds());
+    for (auto& shader : shaders)
+    {
+        shader.Bind();
+        shader.OnInit(model);
+    }
+    gl::Shader::Unbind();
 
     models_.insert({ hash, model });
 
@@ -306,6 +326,7 @@ gl::MaterialId gl::ResourceManager::CreateResource(const gl::ResourceManager::Ma
     accumulatedData += std::to_string(def.specularColor[1]);
     accumulatedData += std::to_string(def.specularColor[2]);
     accumulatedData += std::to_string(def.shininess);
+    accumulatedData += std::to_string(def.shader);
 
     const XXH32_hash_t hash = XXH32(accumulatedData.c_str(), sizeof(char) * accumulatedData.size(), HASHING_SEED);
     assert(hash != UINT_MAX); // We aren't handling this issue...
@@ -322,6 +343,7 @@ gl::MaterialId gl::ResourceManager::CreateResource(const gl::ResourceManager::Ma
     material.diffuseMap_ = def.diffuseMap;
     material.specularMap_ = def.specularMap;
     material.normalMap_ = def.normalMap;
+    material.shader_ = def.shader;
     material.ambientColor_ = def.ambientColor;
     material.diffuseColor_ = def.diffuseColor;
     material.specularColor_ = def.specularColor;
@@ -346,6 +368,8 @@ gl::Transform3dId gl::ResourceManager::CreateResource(const gl::ResourceManager:
 }
 gl::TextureId gl::ResourceManager::CreateResource(const gl::ResourceManager::TextureDefinition def)
 {
+    // TODO: Currently, if the textures differ only in texture units / sampler names, the image is still loaded, resulting in duplicated data on the gpu. Ex: diffuse and ambient
+
     // Accumulate all the relevant data in a single string for hashing.
     std::string accumulatedData = "";
     for (const auto& path : def.paths)
@@ -611,7 +635,9 @@ void gl::ResourceManager::Shutdown()
 
 std::vector<gl::MeshId> gl::ResourceManager::LoadObj(const std::string_view path, bool flipTextures, bool correctGamma)
 {
-    const std::string dir = std::string(path.begin(), path.begin() + path.find_last_of("/") + 1); // TODO: make sure this shit works!
+    // TODO: currently shaders don't handle normal mapping.
+
+    const std::string dir = std::string(path.begin(), path.begin() + path.find_last_of("/") + 1);
 
     std::vector<gl::MeshId> returnVal;
 
@@ -637,7 +663,7 @@ std::vector<gl::MeshId> gl::ResourceManager::LoadObj(const std::string_view path
 
     for (size_t i = 0; i < shapes.size(); i++)
     {
-        const int matId = shapes[i].mesh.material_ids[0]; // An obj should have 1 material per mesh. Therefore shapes[shapeIndex].mesh.material_ids values should all be the same.
+        const int matId = shapes[i].mesh.material_ids[0]; // 1 mesh = 1 material
 
         TextureId ambientId = DEFAULT_ID;
         if (!materials[matId].ambient_texname.empty())
@@ -650,7 +676,7 @@ std::vector<gl::MeshId> gl::ResourceManager::LoadObj(const std::string_view path
             def.samplerTextureUnitPair = std::pair<std::string, int>{AMBIENT_MAP_SAMPLER_NAME, AMBIENT_SAMPLER_TEXTURE_UNIT};
             ambientId = CreateResource(def);
         }
-        else // If no texture is found, load a small blank texture for the shader to use.
+        else
         {
             std::cout << "WARNING: loaded obj has no ambient map!" << std::endl;
         }
@@ -703,6 +729,74 @@ std::vector<gl::MeshId> gl::ResourceManager::LoadObj(const std::string_view path
             std::cout << "WARNING: loaded obj has no normal map!" << std::endl;
         }
 
+        ShaderId shaderId = DEFAULT_ID;
+        {
+            ShaderDefinition def;
+            const auto& mat = materials[matId];
+            switch (mat.illum)
+            {
+                case 0:
+                    {
+                        def.vertexPath = ILLUM0_SHADER[0];
+                        def.fragmentPath = ILLUM0_SHADER[1];
+                        def.onInit = [mat](Shader& shader, const Model& model)->void
+                        {
+                            shader.SetProjectionMatrix(PERSPECTIVE);
+                            shader.SetVec3(AMBIENT_COLOR_NAME.data(), glm::vec3(mat.ambient[0], mat.ambient[1], mat.ambient[2]));
+                        };
+                        def.onDraw = [](Shader& shader, const Model& model, const Camera& camera)->void
+                        {
+                            shader.SetViewMatrix(camera.GetViewMatrix());
+                            shader.SetModelMatrix(model.GetModelMatrix());
+                        };
+                    }break;
+                case 1:
+                    {
+                        def.vertexPath = ILLUM1_SHADER[0];
+                        def.fragmentPath = ILLUM1_SHADER[1];
+                        def.onInit = [mat](Shader& shader, const Model& model)->void
+                        {
+                            shader.SetProjectionMatrix(PERSPECTIVE);
+                            shader.SetInt(AMBIENT_MAP_SAMPLER_NAME.data(), AMBIENT_SAMPLER_TEXTURE_UNIT);
+                            shader.SetVec3(AMBIENT_COLOR_NAME.data(), glm::vec3(mat.ambient[0], mat.ambient[1], mat.ambient[2]));
+                        };
+                        def.onDraw = [](Shader& shader, const Model& model, const Camera& camera)->void
+                        {
+                            shader.SetViewMatrix(camera.GetViewMatrix());
+                            shader.SetModelMatrix(model.GetModelMatrix());
+                        };
+                    }break;
+                case 2:
+                    {
+                        def.vertexPath = ILLUM2_SHADER[0];
+                        def.fragmentPath = ILLUM2_SHADER[1];
+                        def.onInit = [mat](Shader& shader, const Model& model)->void
+                        {
+                            shader.SetProjectionMatrix(PERSPECTIVE);
+                            shader.SetInt(AMBIENT_MAP_SAMPLER_NAME.data(), AMBIENT_SAMPLER_TEXTURE_UNIT);
+                            shader.SetInt(DIFFUSE_MAP_SAMPLER_NAME.data(), DIFFUSE_SAMPLER_TEXTURE_UNIT);
+                            shader.SetInt(SPECULAR_MAP_SAMPLER_NAME.data(), SPECULAR_SAMPLER_TEXTURE_UNIT);
+                            shader.SetVec3(AMBIENT_COLOR_NAME.data(), glm::vec3(mat.ambient[0], mat.ambient[1], mat.ambient[2]));
+                            shader.SetVec3(DIFFUSE_COLOR_NAME.data(), glm::vec3(mat.diffuse[0], mat.diffuse[1], mat.diffuse[2]));
+                            shader.SetVec3(SPECULAR_COLOR_NAME.data(), glm::vec3(mat.specular[0], mat.specular[1], mat.specular[2]));
+                            shader.SetFloat(SHININESS_NAME.data(), mat.shininess);
+                        };
+                        def.onDraw = [](Shader& shader, const Model& model, const Camera& camera)->void
+                        {
+                            shader.SetViewMatrix(camera.GetViewMatrix());
+                            shader.SetModelMatrix(model.GetModelMatrix());
+                            shader.SetVec3(VIEW_POSITION_NAME.data(), camera.GetPosition());
+                        };
+                    }break;
+                default:
+                {
+                    std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": obj's material has an invalid illumination mode: " << materials[matId].illum << std::endl;
+                    abort();
+                }
+            }
+            shaderId = CreateResource(def);
+        }
+
         bool hasNormalMap = false;
         MaterialId materialId = DEFAULT_ID;
         {
@@ -711,6 +805,7 @@ std::vector<gl::MeshId> gl::ResourceManager::LoadObj(const std::string_view path
             def.diffuseMap = diffuseId;
             def.specularMap = specularId;
             def.normalMap = normalId;
+            def.shader = shaderId;
             hasNormalMap = normalId == DEFAULT_ID ? false : true;
             def.ambientColor = glm::vec3(materials[matId].ambient[0], materials[matId].ambient[1], materials[matId].ambient[2]);
             def.diffuseColor = glm::vec3(materials[matId].diffuse[0], materials[matId].diffuse[1], materials[matId].diffuse[2]);
@@ -727,7 +822,7 @@ std::vector<gl::MeshId> gl::ResourceManager::LoadObj(const std::string_view path
             bool hasNormalVertexData = false;
             bool hasTexCoordVertexData = false;
 
-            // NOTE: Warning: there's no check that every vertex in the file has the same layout!
+            // NOTE: Warning: there's no check that every mesh'es vertices in the file have the same layout!
             tinyobj::index_t meshIndices = shapes[i].mesh.indices[0];
             if (meshIndices.vertex_index > -1)
             {
@@ -808,7 +903,6 @@ std::vector<gl::MeshId> gl::ResourceManager::LoadObj(const std::string_view path
                 vertexData[stride * f + stride * 2 + 1] = attrib.vertices[3 * (size_t)idx2.vertex_index + 1];
                 vertexData[stride * f + stride * 2 + 2] = attrib.vertices[3 * (size_t)idx2.vertex_index + 2];
 
-                // TODO: try loading an obj without normals
                 if (hasNormalVertexData) // Retrieve normals.
                 {
                     vertexData[stride * f + 3] = attrib.normals[3 * (size_t)idx0.normal_index + 0];
@@ -823,7 +917,6 @@ std::vector<gl::MeshId> gl::ResourceManager::LoadObj(const std::string_view path
                     vertexData[stride * f + stride * 2 + 4] = attrib.normals[3 * (size_t)idx2.normal_index + 1];
                     vertexData[stride * f + stride * 2 + 5] = attrib.normals[3 * (size_t)idx2.normal_index + 2];
                 }
-                // TODO: try loading an obj without texcoords
                 if (hasTexCoordVertexData)
                 {
                     if (hasNormalVertexData)
@@ -837,10 +930,9 @@ std::vector<gl::MeshId> gl::ResourceManager::LoadObj(const std::string_view path
                         vertexData[stride * f + stride * 2 + 6] = attrib.texcoords[2 * (size_t)idx2.texcoord_index + 0];
                         vertexData[stride * f + stride * 2 + 7] = attrib.texcoords[2 * (size_t)idx2.texcoord_index + 1];
                     }
-                    else // TODO: try lodaing an obj with texcoords and without normals
+                    else
                     {
-                        // NOTE: if code gets out of bounds here, it's possibly because obj has normal data but no texcoord data. This case is bugged in tinyobjloader, making it think there's texcoord data and no normal data instead!
-
+                        // NOTE: if code gets out of bounds here, check your faces data in the obj. If you don't have texcoords in your file, the faces should look something like "v//vn", not "v/vn".
                         vertexData[stride * f + 3] = attrib.texcoords[2 * (size_t)idx0.texcoord_index + 0];
                         vertexData[stride * f + 4] = attrib.texcoords[2 * (size_t)idx0.texcoord_index + 1];
 
