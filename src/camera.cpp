@@ -1,4 +1,5 @@
 #include "camera.h"
+
 #include "defines.h"
 
 void gl::Camera::ProcessKeyboard(Camera_Movement direction)
@@ -55,11 +56,11 @@ glm::mat4 gl::Camera::GetViewMatrix() const
 {
     return glm::lookAt(state_.position_, state_.position_ + state_.front_, state_.up_); // pos + front as 2nd arg to have camera always face something right in front of it.
 }
-gl::Camera::CameraState gl::Camera::GetCameraState() const
+gl::Camera::State gl::Camera::GetCameraState() const
 {
     return state_;
 }
-void gl::Camera::SetCameraState(const CameraState& state)
+void gl::Camera::SetCameraState(const State& state)
 {
     state_ = state;
 }

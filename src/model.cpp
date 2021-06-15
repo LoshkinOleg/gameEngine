@@ -2,7 +2,7 @@
 
 #include "resource_manager.h"
 
-void gl::Model::Draw(const Camera& camera, FramebufferId fb) const
+void gl::Model::Draw(CameraId id) const
 {
     ResourceManager& resourceManager = ResourceManager::Get();
     const std::vector<Mesh> meshes = resourceManager.GetMeshes(meshes_);
@@ -12,28 +12,13 @@ void gl::Model::Draw(const Camera& camera, FramebufferId fb) const
     {
         shaders[i] = resourceManager.GetShader(resourceManager.GetMaterial(meshes[i].GetMaterialId()).GetShaderId());
         shaders[i].Bind();
-        shaders[i].OnDraw(*this, camera);
+        shaders[i].OnDraw(*this, resourceManager.GetCamera(id));
     }
 
-    if (fb != DEFAULT_ID)
+    for (size_t i = 0; i < meshes.size(); i++)
     {
-        const Framebuffer& framebuffer = resourceManager.GetFramebuffer(fb);
-        framebuffer.Bind();
-        for (size_t i = 0; i < meshes.size(); i++)
-        {
-            shaders[i].Bind();
-            meshes[i].Draw();
-        }
-        framebuffer.UnBind();
-        framebuffer.Draw();
-    }
-    else
-    {
-        for (size_t i = 0; i < meshes.size(); i++)
-        {
-            shaders[i].Bind();
-            meshes[i].Draw();
-        }
+        shaders[i].Bind();
+        meshes[i].Draw();
     }
     Shader::Unbind();
 }

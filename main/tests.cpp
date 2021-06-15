@@ -5,7 +5,7 @@
 // Mesh: ???
 // Model: basic, normalMapped, transparent, objBasic, objNormalMapped, objTransparent, change shaders on the fly?, obj with multiple materials, ???
 // Shader: ???
-// Skybox: jpg, png, ???
+// Skybox: jpg, png, make sure loading a custom skybox works, flip textures around, mess up the order of textures, ???
 // Texture: jpg, png, cubemaps, ???
 // Transform: move, rotate, scale, ???
 // Utility: errors get caught, ???

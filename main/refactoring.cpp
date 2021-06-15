@@ -1,19 +1,22 @@
-// Checklist: handle UINT_MAX where necessary, use textureType where appropriate, make a separate cubemap class?, check existing code to make sure we didn't miss anything, make sure there CheckGlError() at key points
+// Checklist: use textureType where appropriate, make a separate cubemap class?, make sure there CheckGlError() at key points
 // make sure we're using "const auto match" everywhere, not a & version, make sure we're not fucking up where we're passing & in arguments, replace all generic errors with descriptive ones: throw() assert()
 // make sure we unbind everything once we're done using it, see where the code could fail for every function
 // on creation of a resource, check the validity of ids, check on draw that the asset is valid
-// move common strings of shader variables to #defines
 // Refactor shaders.
-// TODO: add framebuffers
 // TODO: add skybox
 // TODO: add support for cubemaps
 // TODO: rename any <baseClass> variables into <baseClassId> variables where appropriate to better reflect the type of the variable.
-// TODO: make a tests makes sure every class works, and tests every failure mode
+// TODO: remove all the old commented code.
+// TODO: rename files names to use CamelCase
+// TODO: remove id_ from classes, it's useless
+// TODO: make a define for lambda with value of <Shader& shader, const Model& model> and <Shader& shader, const Model& model, const Camera& camera>
+// TODO: replace usages of setInts with SetTexture
+// TODO: make sure whenever we bind shit, we unbind it afterwards
+// TODO: move framebuffer draw calls to it's own function to avoid having every Model and Skybox have to call it...
 
 #include <glad/glad.h>
 
 #include "engine.h"
-#include "camera.h"
 #include "resource_manager.h"
 
 namespace gl {
@@ -27,8 +30,12 @@ public:
         glEnable(GL_CULL_FACE);
         glEnable(GL_FRAMEBUFFER_SRGB_EXT);
 
-        camera_.Translate(glm::vec3(0.0f, 0.0f, 10.0f)); // Move camera away from origin.
+        {
+            ResourceManager::CameraDefinition def;
+            camera_ = resourceManager_.CreateResource(def);
+        }
 
+        // Model creation.
         const auto meshes = resourceManager_.LoadObj("../data/models/crate/crate.obj");
 
         ModelId modelId = DEFAULT_ID;
@@ -41,6 +48,7 @@ public:
 
         model_ = resourceManager_.GetModel(modelId);
 
+        // Framebuffer creation.
         ShaderId fb_shaderId = DEFAULT_ID;
         {
             ResourceManager::ShaderDefinition def;
@@ -53,11 +61,21 @@ public:
             fb_shaderId = resourceManager_.CreateResource(def);
             assert(fb_shaderId != DEFAULT_ID);
         }
-
         {
             ResourceManager::FramebufferDefinition def;
             def.shader = fb_shaderId;
-            fb_ = resourceManager_.CreateResource(def);
+            FramebufferId id = resourceManager_.CreateResource(def);
+            fb_ = resourceManager_.GetFramebuffer(id);
+        }
+
+        // Skybox creation.
+        {
+            ResourceManager::SkyboxDefinition def;
+            def.correctGamma = true;
+            def.paths = Skybox::Paths{};
+            SkyboxId id = resourceManager_.CreateResource(def);
+            assert(id != DEFAULT_ID);
+            skybox_ = resourceManager_.GetSkybox(id);
         }
     }
     void Update(seconds dt) override
@@ -66,7 +84,13 @@ public:
         glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        model_.Draw(camera_, fb_);
+        fb_.Bind();
+        {
+            model_.Draw();
+            skybox_.Draw();
+        }
+        fb_.UnBind();
+        fb_.Draw();
     }
     void Destroy() override
     {
@@ -80,35 +104,37 @@ public:
             exit(0);
         }
 
+        Camera& camera = resourceManager_.GetCamera(camera_);
         switch (event.type)
         {
         case SDL_KEYDOWN:
+
             switch (event.key.keysym.sym)
             {
             case SDLK_w:
-                camera_.ProcessKeyboard(Camera::Camera_Movement::FORWARD);
+                camera.ProcessKeyboard(Camera::Camera_Movement::FORWARD);
                 break;
             case SDLK_s:
-                camera_.ProcessKeyboard(Camera::Camera_Movement::BACKWARD);
+                camera.ProcessKeyboard(Camera::Camera_Movement::BACKWARD);
                 break;
             case SDLK_a:
-                camera_.ProcessKeyboard(Camera::Camera_Movement::LEFT);
+                camera.ProcessKeyboard(Camera::Camera_Movement::LEFT);
                 break;
             case SDLK_d:
-                camera_.ProcessKeyboard(Camera::Camera_Movement::RIGHT);
+                camera.ProcessKeyboard(Camera::Camera_Movement::RIGHT);
                 break;
             case SDLK_SPACE:
-                camera_.ProcessKeyboard(Camera::Camera_Movement::UP);
+                camera.ProcessKeyboard(Camera::Camera_Movement::UP);
                 break;
             case SDLK_LCTRL:
-                camera_.ProcessKeyboard(Camera::Camera_Movement::DOWN);
+                camera.ProcessKeyboard(Camera::Camera_Movement::DOWN);
                 break;
             default:
                 break;
             }
             break;
         case SDL_MOUSEMOTION:
-            if (mouseButtonDown_) camera_.ProcessMouseMovement(event.motion.xrel, event.motion.yrel);
+            if (mouseButtonDown_) camera.ProcessMouseMovement(event.motion.xrel, event.motion.yrel);
             break;
         case SDL_MOUSEBUTTONDOWN:
             mouseButtonDown_ = true;
@@ -126,11 +152,12 @@ public:
     }
 
 private:
-    Camera camera_ = {};
     float timer_ = 0.0f;
     bool mouseButtonDown_ = false;
+    CameraId camera_ = DEFAULT_ID;
     Model model_;
-    FramebufferId fb_ = DEFAULT_ID;
+    Framebuffer fb_;
+    Skybox skybox_;
     ResourceManager& resourceManager_ = ResourceManager::Get();
 };
 

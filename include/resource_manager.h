@@ -15,6 +15,8 @@
 #include "mesh.h"
 #include "model.h"
 #include "framebuffer.h"
+#include "skybox.h"
+#include "camera.h"
 
 namespace gl
 {
@@ -27,6 +29,8 @@ namespace gl
     using Transform3dId = unsigned int;
     using GLenum = int;
     using FramebufferId = unsigned int;
+    using SkyboxId = unsigned int;
+    using CameraId = unsigned int;
 
     class ResourceManager
     {
@@ -60,9 +64,9 @@ namespace gl
             GLenum textureType = DEFAULT_TEX_TYPE;
             std::vector<std::string> paths = {};
             std::pair<std::string, int> samplerTextureUnitPair = {};
-            bool flipImage = false;
-            bool correctGamma = false;
-            bool hdr = false;
+            bool flipImage = false; // TODO: not handling it for Framebuffers, throw a warning in the code for this!
+            bool correctGamma = false; // TODO: not handling it for Framebuffers, throw a warning in the code for this!
+            bool hdr = false; // TODO: not handling it for GL_TEXTURE_2D, throw a warning in the code for this!
         };
         struct ShaderDefinition
         {
@@ -94,6 +98,21 @@ namespace gl
             ShaderId shader = DEFAULT_ID;
             bool hdr = false;
         };
+        struct SkyboxDefinition
+        {
+            Skybox::Paths paths = {};
+            ShaderId shader = DEFAULT_ID;
+            bool flipImages = false;
+            bool correctGamma = false;
+            bool hdr = false;
+        };
+        struct CameraDefinition
+        {
+            glm::vec3 position = glm::vec3(0.0f, 0.0f, 10.0f);
+            glm::vec3 front = glm::vec3(0.0f, 0.0f, -1.0f);
+            glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
+            float pitch = 0.0f;
+        };
 
         static ResourceManager& Get()
         {
@@ -103,7 +122,9 @@ namespace gl
         const Transform3d& GetTransform(Transform3dId id) const;
         const Texture& GetTexture(TextureId id) const;
         const Material& GetMaterial(MaterialId id) const;
+        Camera& GetCamera(CameraId id);
         Model& GetModel(ModelId id);
+        const Skybox& GetSkybox(SkyboxId id) const;
         Shader& GetShader(ShaderId id);
         const Framebuffer& GetFramebuffer(FramebufferId id) const;
         std::vector<Shader> GetShaders(const std::vector<ShaderId>& ids) const;
@@ -116,8 +137,10 @@ namespace gl
         MaterialId CreateResource(const MaterialDefinition def);
         Transform3dId CreateResource(const Transform3dDefinition def);
         TextureId CreateResource(const TextureDefinition def);
+        SkyboxId CreateResource(const SkyboxDefinition def);
         VertexBufferId CreateResource(const VertexBufferDefinition def);
         FramebufferId CreateResource(const FramebufferDefinition def);
+        CameraId CreateResource(const CameraDefinition def);
         std::vector<MeshId> LoadObj(const std::string_view path, bool flipTextures = true, bool correctGamma = true);
         bool IsModelIdValid(ModelId id) const;
         bool IsMeshIdValid(MeshId id) const;
@@ -127,16 +150,20 @@ namespace gl
         bool IsTextureIdValid(TextureId id) const;
         bool IsVertexBufferIdValid(VertexBufferId id) const;
         bool IsFramebufferValid(FramebufferId id) const;
+        bool IsSkyboxValid(SkyboxId id) const;
+        bool IsCameraValid(CameraId id) const;
         void Shutdown();
     private:
         std::map<ModelId, Model> models_ = {};
         std::map<MeshId, Mesh> meshes_ = {};
         std::map<ShaderId, Shader> shaders_ = {};
         std::map<MaterialId, Material> materials_ = {};
-        std::map<Transform3dId, Transform3d> transforms_ = {};
+        std::map<Transform3dId, Transform3d> transforms_ = {}; // Can't use vectors because of some obscure .find() related error.
         std::map<TextureId, Texture> textures_ = {};
         std::map<VertexBufferId, VertexBuffer> vertexBuffers_ = {};
         std::map<FramebufferId, Framebuffer> framebuffers_ = {};
+        std::map<SkyboxId, Skybox> skyboxes_ = {}; // Does it make sense to have multiple skyboxes?... Multi-layered ones maybe?
+        std::map<CameraId, Camera> cameras_ = {}; // Can't use vectors because of some obscure .find() related error.
     };
 
 }//!gl

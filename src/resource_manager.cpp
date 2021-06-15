@@ -18,6 +18,8 @@
 
 const gl::Transform3d& gl::ResourceManager::GetTransform(gl::Transform3dId id) const
 {
+    assert(id != DEFAULT_ID);
+
     const auto match = transforms_.find(id);
     if (match != transforms_.end())
     {
@@ -31,6 +33,8 @@ const gl::Transform3d& gl::ResourceManager::GetTransform(gl::Transform3dId id) c
 }
 const gl::Texture& gl::ResourceManager::GetTexture(gl::TextureId id) const
 {
+    assert(id != DEFAULT_ID);
+
     const auto match = textures_.find(id);
     if (match != textures_.end())
     {
@@ -44,6 +48,8 @@ const gl::Texture& gl::ResourceManager::GetTexture(gl::TextureId id) const
 }
 const gl::Material& gl::ResourceManager::GetMaterial(gl::MaterialId id) const
 {
+    assert(id != DEFAULT_ID);
+
     const auto match = materials_.find(id);
     if (match != materials_.end())
     {
@@ -55,8 +61,25 @@ const gl::Material& gl::ResourceManager::GetMaterial(gl::MaterialId id) const
         abort();
     }
 }
+gl::Camera& gl::ResourceManager::GetCamera(gl::CameraId id)
+{
+    assert(id != DEFAULT_ID);
+
+    const auto match = cameras_.find(id);
+    if (match != cameras_.end())
+    {
+        return match->second;
+    }
+    else
+    {
+        std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": Trying to access a non existent Camera!" << std::endl;
+        abort();
+    }
+}
 gl::Model& gl::ResourceManager::GetModel(gl::ModelId id)
 {
+    assert(id != DEFAULT_ID);
+
     const auto match = models_.find(id);
     if (match != models_.end())
     {
@@ -68,8 +91,25 @@ gl::Model& gl::ResourceManager::GetModel(gl::ModelId id)
         abort();
     }
 }
+const gl::Skybox& gl::ResourceManager::GetSkybox(SkyboxId id) const
+{
+    assert(id != DEFAULT_ID);
+
+    auto match = skyboxes_.find(id);
+    if (match != skyboxes_.end())
+    {
+        return match->second;
+    }
+    else
+    {
+        std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": Trying to access a non existent Skybox!" << std::endl;
+        abort();
+    }
+}
 gl::Shader& gl::ResourceManager::GetShader(gl::ShaderId id)
 {
+    assert(id != DEFAULT_ID);
+
     auto match = shaders_.find(id);
     if (match != shaders_.end())
     {
@@ -86,6 +126,8 @@ std::vector<gl::Shader> gl::ResourceManager::GetShaders(const std::vector<gl::Sh
     std::vector<Shader> returnVal;
     for (const auto& id : ids)
     {
+        assert(id != DEFAULT_ID);
+
         const auto match = shaders_.find(id);
         if (match != shaders_.end())
         {
@@ -101,7 +143,6 @@ std::vector<gl::Shader> gl::ResourceManager::GetShaders(const std::vector<gl::Sh
 }
 const gl::VertexBuffer& gl::ResourceManager::GetVertexBuffer(gl::VertexBufferId id) const
 {
-    // TODO: do this shit for every Get function!
     if (id == DEFAULT_ID)
     {
         std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": Trying to access a null VertexBuffer!" << std::endl;
@@ -121,6 +162,8 @@ const gl::VertexBuffer& gl::ResourceManager::GetVertexBuffer(gl::VertexBufferId 
 }
 const gl::Framebuffer& gl::ResourceManager::GetFramebuffer(gl::FramebufferId id) const
 {
+    assert(id != DEFAULT_ID);
+
     const auto match = framebuffers_.find(id);
     if (match != framebuffers_.end())
     {
@@ -137,6 +180,8 @@ std::vector<gl::Mesh> gl::ResourceManager::GetMeshes(const std::vector<gl::MeshI
     std::vector<Mesh> returnVal;
     for (const auto& id : ids)
     {
+        assert(id != DEFAULT_ID);
+
         const auto match = meshes_.find(id);
         if (match != meshes_.end())
         {
@@ -152,6 +197,8 @@ std::vector<gl::Mesh> gl::ResourceManager::GetMeshes(const std::vector<gl::MeshI
 }
 gl::Mesh gl::ResourceManager::GetMesh(gl::MeshId id) const
 {
+    assert(id != DEFAULT_ID);
+
     const auto match = meshes_.find(id);
     if (match != meshes_.end())
     {
@@ -375,7 +422,7 @@ gl::MaterialId gl::ResourceManager::CreateResource(const gl::ResourceManager::Ma
 }
 gl::Transform3dId gl::ResourceManager::CreateResource(const gl::ResourceManager::Transform3dDefinition def)
 {
-    // Don't bother hashing transforms, we want there to be duplicates if needed.
+    // NOTE: we want transforms to be able to have identical data, so no hashing.
     gl::Transform3d transform;
     transform.position_ = def.position;
     transform.cardinalsRotation_ = def.cardinalsRotation;
@@ -383,7 +430,8 @@ gl::Transform3dId gl::ResourceManager::CreateResource(const gl::ResourceManager:
     transform.quaternion_ = glm::quat(def.cardinalsRotation);
     transform.model_ = glm::scale(IDENTITY_MAT4, def.scale) * glm::toMat4(transform.quaternion_) * glm::translate(IDENTITY_MAT4, def.position);
     transform.id_ = (unsigned int)transforms_.size();
-    transforms_.insert({ transform.id_, transform });
+
+    transforms_.insert({transform.id_, transform});
 
     return transform.id_;
 }
@@ -489,6 +537,22 @@ gl::FramebufferId gl::ResourceManager::CreateResource(const gl::ResourceManager:
     CheckGlError(__FILE__, __LINE__);
 
     return hash;
+}
+gl::CameraId gl::ResourceManager::CreateResource(const CameraDefinition def)
+{
+    // NOTE: no checking for duplicates of cameras, we don't mind them having identical data.
+    Camera camera;
+    camera.state_.position_ = def.position;
+    camera.state_.front_ = def.front;
+    camera.state_.up_ = def.up;
+    camera.state_.yaw_ = glm::radians(-90.0f); // We want the camera facing -Z.
+    camera.state_.pitch_ = def.pitch;
+    camera.UpdateCameraVectors_();
+
+    CameraId id = cameras_.size();
+    cameras_.insert({id, camera});
+
+    return id;
 }
 gl::TextureId gl::ResourceManager::CreateResource(const gl::ResourceManager::TextureDefinition def)
 {
@@ -635,6 +699,129 @@ gl::TextureId gl::ResourceManager::CreateResource(const gl::ResourceManager::Tex
     textures_.insert({ hash, texture });
     return hash;
 }
+gl::SkyboxId gl::ResourceManager::CreateResource(const SkyboxDefinition def)
+{
+    // Accumulate all the relevant data in a single string for hashing.
+    std::string accumulatedData = "";
+    accumulatedData += def.paths.right;
+    accumulatedData += def.paths.left;
+    accumulatedData += def.paths.top;
+    accumulatedData += def.paths.bottom;
+    accumulatedData += def.paths.front;
+    accumulatedData += def.paths.back;
+    accumulatedData += std::to_string(def.shader);
+
+    const XXH32_hash_t hash = XXH32(accumulatedData.c_str(), sizeof(char) * accumulatedData.size(), HASHING_SEED);
+    assert(hash != UINT_MAX); // We aren't handling this issue...
+
+    if (IsFramebufferValid(hash))
+    {
+        std::cout << "WARNING: attempting to create a new Skybox with data identical to an existing one. Returning the id of the existing one instead." << std::endl;
+        return hash;
+    }
+    Skybox skybox;
+
+    {
+        VertexBufferDefinition def;
+        def.data =
+        {
+            -1.0f,  1.0f, -1.0f,
+            -1.0f, -1.0f, -1.0f,
+             1.0f, -1.0f, -1.0f,
+             1.0f, -1.0f, -1.0f,
+             1.0f,  1.0f, -1.0f,
+            -1.0f,  1.0f, -1.0f,
+
+            -1.0f, -1.0f,  1.0f,
+            -1.0f, -1.0f, -1.0f,
+            -1.0f,  1.0f, -1.0f,
+            -1.0f,  1.0f, -1.0f,
+            -1.0f,  1.0f,  1.0f,
+            -1.0f, -1.0f,  1.0f,
+
+             1.0f, -1.0f, -1.0f,
+             1.0f, -1.0f,  1.0f,
+             1.0f,  1.0f,  1.0f,
+             1.0f,  1.0f,  1.0f,
+             1.0f,  1.0f, -1.0f,
+             1.0f, -1.0f, -1.0f,
+
+            -1.0f, -1.0f,  1.0f,
+            -1.0f,  1.0f,  1.0f,
+             1.0f,  1.0f,  1.0f,
+             1.0f,  1.0f,  1.0f,
+             1.0f, -1.0f,  1.0f,
+            -1.0f, -1.0f,  1.0f,
+
+            -1.0f,  1.0f, -1.0f,
+             1.0f,  1.0f, -1.0f,
+             1.0f,  1.0f,  1.0f,
+             1.0f,  1.0f,  1.0f,
+            -1.0f,  1.0f,  1.0f,
+            -1.0f,  1.0f, -1.0f,
+
+            -1.0f, -1.0f, -1.0f,
+            -1.0f, -1.0f,  1.0f,
+             1.0f, -1.0f, -1.0f,
+             1.0f, -1.0f, -1.0f,
+            -1.0f, -1.0f,  1.0f,
+             1.0f, -1.0f,  1.0f
+        };
+        def.dataLayout =
+        {
+            VertexDataTypes::POSITIONS_3D
+        };
+        skybox.vertexBuffer_ = CreateResource(def);
+    }
+
+    {
+        TextureDefinition tdef;
+        tdef.correctGamma = def.correctGamma;
+        tdef.flipImage = def.flipImages;
+        tdef.hdr = def.hdr;
+        tdef.textureType = GL_TEXTURE_CUBE_MAP;
+        tdef.paths =
+        {
+            def.paths.right.data(),
+            def.paths.left.data(),
+            def.paths.top.data(),
+            def.paths.bottom.data(),
+            def.paths.front.data(),
+            def.paths.back.data()
+        };
+        tdef.samplerTextureUnitPair = {CUBEMAP_TEXTURE_NAME.data(), CUBEMAP_SAMPLER_TEXTURE_UNIT};
+        skybox.texture_ = CreateResource(tdef);
+    }
+
+    if (def.shader != DEFAULT_ID)
+    {
+        skybox.shader_ = def.shader;
+    }
+    else // Load default skybox shader.
+    {
+        ShaderDefinition def;
+        def.vertexPath = SKYBOX_SHADER[0];
+        def.fragmentPath = SKYBOX_SHADER[1];
+        def.onInit = [](Shader& shader, const Model& model)->void
+        {
+            shader.SetProjectionMatrix(PERSPECTIVE);
+            shader.SetInt(CUBEMAP_TEXTURE_NAME.data(), CUBEMAP_SAMPLER_TEXTURE_UNIT);
+        };
+        def.onDraw = [](Shader& shader, const Model& model, const Camera& camera)->void
+        {
+            shader.SetViewMatrix(glm::mat4(glm::mat3(camera.GetViewMatrix())));
+        };
+        skybox.shader_ = CreateResource(def);
+    }
+    Shader& shader = shaders_[skybox.shader_];
+    shader.Bind();
+    shader.OnInit(Model{});
+    shader.Unbind();
+
+    skyboxes_.insert({hash, skybox});
+
+    return hash;
+}
 gl::VertexBufferId gl::ResourceManager::CreateResource(const gl::ResourceManager::VertexBufferDefinition def)
 {
     // Hash the data of the buffer and check if it's not loaded already.
@@ -762,6 +949,18 @@ bool gl::ResourceManager::IsFramebufferValid(FramebufferId id) const
 {
     if (id == UINT_MAX) return false;
     return (framebuffers_.find(id) != framebuffers_.end()) ? true : false;
+}
+
+bool gl::ResourceManager::IsSkyboxValid(SkyboxId id) const
+{
+    if (id == UINT_MAX) return false;
+    return (skyboxes_.find(id) != skyboxes_.end()) ? true : false;
+}
+
+bool gl::ResourceManager::IsCameraValid(CameraId id) const
+{
+    if (id == UINT_MAX) return false;
+    return (id >= 0 && id <= cameras_.size()) ? true : false;
 }
 
 void gl::ResourceManager::Shutdown()

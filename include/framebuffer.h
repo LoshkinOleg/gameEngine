@@ -8,6 +8,7 @@ namespace gl
     using VertexBufferId = unsigned int;
     using TextureId = unsigned int;
     using ShaderId = unsigned int;
+    using CameraId = unsigned int;
 
 class Framebuffer
 {
@@ -18,7 +19,7 @@ public:
         DEPTH24_STENCIL8
     };
 
-    void Draw() const;
+    void Draw(CameraId id = 0) const;
     void Bind() const;
     static void UnBind();
 private:

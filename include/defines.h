@@ -43,6 +43,8 @@ namespace gl
 	const std::string_view VIEW_POSITION_NAME = "viewPos";
 	const std::string_view FRAMEBUFFER_TEXTURE_NAME = "fbTexture";
 	const int FRAMEBUFFER_SAMPLER_TEXTURE_UNIT = 4;
+	const std::string_view CUBEMAP_TEXTURE_NAME = "cubemap";
+	const int CUBEMAP_SAMPLER_TEXTURE_UNIT = 5;
 
 	// Default obj shaders.
 	const std::string_view ILLUM0_SHADER[2] = {"../data/shaders/illum0.vert", "../data/shaders/illum0.frag" };
@@ -50,4 +52,5 @@ namespace gl
 	const std::string_view ILLUM2_SHADER[2] = {"../data/shaders/illum2.vert", "../data/shaders/illum2.frag" };
 	const std::string_view FRAMEBUFFER_RGB_SHADER[2] = {"../data/shaders/fb.vert", "../data/shaders/fb_rgb.frag" };
 	const std::string_view FRAMEBUFFER_HDR_REINHARD_SHADER[2] = {"../data/shaders/fb.vert", "../data/shaders/fb_hdr_reinhard.frag" };
+	const std::string_view SKYBOX_SHADER[2] = {"../data/shaders/skybox.vert", "../data/shaders/skybox.frag" };
 }//!gl
