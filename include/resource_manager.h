@@ -64,9 +64,9 @@ namespace gl
             GLenum textureType = DEFAULT_TEX_TYPE;
             std::vector<std::string> paths = {};
             std::pair<std::string, int> samplerTextureUnitPair = {};
-            bool flipImage = false; // TODO: not handling it for Framebuffers, throw a warning in the code for this!
-            bool correctGamma = false; // TODO: not handling it for Framebuffers, throw a warning in the code for this!
-            bool hdr = false; // TODO: not handling it for GL_TEXTURE_2D, throw a warning in the code for this!
+            bool flipImage = false;
+            bool correctGamma = false;
+            bool hdr = false;
         };
         struct ShaderDefinition
         {
@@ -141,7 +141,7 @@ namespace gl
         VertexBufferId CreateResource(const VertexBufferDefinition def);
         FramebufferId CreateResource(const FramebufferDefinition def);
         CameraId CreateResource(const CameraDefinition def);
-        std::vector<MeshId> LoadObj(const std::string_view path, bool flipTextures = true, bool correctGamma = true);
+        std::vector<MeshId> LoadObj(const std::string_view path, bool flipTextures = true, bool correctGamma = true, bool flipUvs = true);
         bool IsModelIdValid(ModelId id) const;
         bool IsMeshIdValid(MeshId id) const;
         bool IsShaderIdValid(ShaderId id) const;

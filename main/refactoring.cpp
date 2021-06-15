@@ -3,16 +3,14 @@
 // make sure we unbind everything once we're done using it, see where the code could fail for every function
 // on creation of a resource, check the validity of ids, check on draw that the asset is valid
 // Refactor shaders.
-// TODO: add skybox
-// TODO: add support for cubemaps
 // TODO: rename any <baseClass> variables into <baseClassId> variables where appropriate to better reflect the type of the variable.
 // TODO: remove all the old commented code.
 // TODO: rename files names to use CamelCase
 // TODO: remove id_ from classes, it's useless
 // TODO: make a define for lambda with value of <Shader& shader, const Model& model> and <Shader& shader, const Model& model, const Camera& camera>
-// TODO: replace usages of setInts with SetTexture
 // TODO: make sure whenever we bind shit, we unbind it afterwards
-// TODO: move framebuffer draw calls to it's own function to avoid having every Model and Skybox have to call it...
+
+// TODO: Do all the above crap, rebuild the demo scene.
 
 #include <glad/glad.h>
 
@@ -36,7 +34,7 @@ public:
         }
 
         // Model creation.
-        const auto meshes = resourceManager_.LoadObj("../data/models/crate/crate.obj");
+        const auto meshes = resourceManager_.LoadObj("../data/models/tank/tank.obj");
 
         ModelId modelId = DEFAULT_ID;
         {
@@ -47,26 +45,6 @@ public:
         }
 
         model_ = resourceManager_.GetModel(modelId);
-
-        // Framebuffer creation.
-        ShaderId fb_shaderId = DEFAULT_ID;
-        {
-            ResourceManager::ShaderDefinition def;
-            def.vertexPath = "../data/shaders/fb.vert";
-            def.fragmentPath = "../data/shaders/framebuffer_postprocess.frag";
-            def.onInit = [](Shader& shader, const Model& model)->void
-            {
-                shader.SetInt(FRAMEBUFFER_TEXTURE_NAME.data(), FRAMEBUFFER_SAMPLER_TEXTURE_UNIT);
-            };
-            fb_shaderId = resourceManager_.CreateResource(def);
-            assert(fb_shaderId != DEFAULT_ID);
-        }
-        {
-            ResourceManager::FramebufferDefinition def;
-            def.shader = fb_shaderId;
-            FramebufferId id = resourceManager_.CreateResource(def);
-            fb_ = resourceManager_.GetFramebuffer(id);
-        }
 
         // Skybox creation.
         {
@@ -84,13 +62,8 @@ public:
         glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        fb_.Bind();
-        {
-            model_.Draw();
-            skybox_.Draw();
-        }
-        fb_.UnBind();
-        fb_.Draw();
+        model_.Draw();
+        skybox_.Draw();
     }
     void Destroy() override
     {
@@ -156,7 +129,6 @@ private:
     bool mouseButtonDown_ = false;
     CameraId camera_ = DEFAULT_ID;
     Model model_;
-    Framebuffer fb_;
     Skybox skybox_;
     ResourceManager& resourceManager_ = ResourceManager::Get();
 };

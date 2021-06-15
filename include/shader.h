@@ -27,6 +27,7 @@ namespace gl {
 		void SetFloat(const std::string& name, const float value);
 		void SetVec3(const std::string& name, const glm::vec3 value);
 		void SetInt(const std::string& name, const int value);
+		void SetBool(const std::string& name, bool value);
 		void SetTexture(TextureId textureId);
 		void SetProjectionMatrix(const glm::mat4& mat);
 		void SetViewMatrix(const glm::mat4& mat);

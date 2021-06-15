@@ -569,6 +569,7 @@ gl::TextureId gl::ResourceManager::CreateResource(const gl::ResourceManager::Tex
     accumulatedData += std::to_string(def.flipImage);
     accumulatedData += std::to_string(def.correctGamma);
     accumulatedData += std::to_string(def.textureType);
+    accumulatedData += std::to_string(def.hdr);
 
     const XXH32_hash_t hash = XXH32(accumulatedData.c_str(), sizeof(char) * accumulatedData.size(), HASHING_SEED);
     assert(hash != UINT_MAX); // We aren't handling this issue...
@@ -985,7 +986,7 @@ void gl::ResourceManager::Shutdown()
     }
 }
 
-std::vector<gl::MeshId> gl::ResourceManager::LoadObj(const std::string_view path, bool flipTextures, bool correctGamma)
+std::vector<gl::MeshId> gl::ResourceManager::LoadObj(const std::string_view path, bool flipTextures, bool correctGamma, bool flipUvs)
 {
     // TODO: currently shaders don't handle normal mapping.
 
@@ -1076,7 +1077,7 @@ std::vector<gl::MeshId> gl::ResourceManager::LoadObj(const std::string_view path
             TextureDefinition def;
             def.paths = std::vector<std::string>{ dir + "/" + materials[matId].bump_texname };
             def.correctGamma = false;
-            def.flipImage = flipTextures;
+            def.flipImage = true;
             def.textureType = GL_TEXTURE_2D;
             def.samplerTextureUnitPair = std::pair<std::string, int>{ NORMAL_MAP_SAMPLER_NAME, NORMAL_SAMPLER_TEXTURE_UNIT };
             normalId = CreateResource(def);

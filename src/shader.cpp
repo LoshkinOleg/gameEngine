@@ -83,6 +83,10 @@ void gl::Shader::SetInt(const std::string& name, const int value)
 	}
 	CheckGlError(__FILE__, __LINE__);
 }
+void gl::Shader::SetBool(const std::string& name, bool value)
+{
+	SetInt(name, value);
+}
 void gl::Shader::SetTexture(TextureId textureId)
 {
 	if (textureId == DEFAULT_ID) return;
