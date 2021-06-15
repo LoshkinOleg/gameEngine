@@ -1,10 +1,9 @@
 #version 440 core
 out vec4 FragColor;
 
-in vec3 Pos;
 in vec2 TexCoord;
 
-uniform sampler2D screenTex;
+uniform sampler2D fbTexture;
 
 vec4 Invert();
 vec4 Default();
@@ -16,15 +15,15 @@ vec4 Edge();
 
 void main()
 {
-	if (Pos.x > 0 && Pos.y > 0)
+	if (TexCoord.x > 0.5 && TexCoord.y > 0.5)
 	{
 		FragColor = Blur();
 	}
-	else if(Pos.x > 0 && Pos.y <= 0)
+	else if(TexCoord.x > 0.5 && TexCoord.y <= 0.5)
 	{
 		FragColor = Edge();
 	}
-	else if(Pos.x <= 0 && Pos.y <= 0)
+	else if(TexCoord.x <= 0.5 && TexCoord.y <= 0.5)
 	{
 		FragColor = CorrectedGrayscale();
 	}
@@ -36,24 +35,24 @@ void main()
 
 vec4 Default()
 {
-	return vec4(texture(screenTex, TexCoord).rgb, 1.0);
+	return vec4(texture(fbTexture, TexCoord).rgb, 1.0);
 }
 
 vec4 Invert()
 {
-	return vec4(vec3(1.0 - texture(screenTex, TexCoord)), 0.0);
+	return vec4(vec3(1.0 - texture(fbTexture, TexCoord)), 0.0);
 }
 
 vec4 Grayscale()
 {
-	vec4 color = texture(screenTex, TexCoord);
+	vec4 color = texture(fbTexture, TexCoord);
 	float avg = (color.r + color.g + color.b) / 3.0;
 	return vec4(avg, avg, avg, 1.0);
 }
 
 vec4 CorrectedGrayscale()
 {
-	vec4 color = texture(screenTex, TexCoord);
+	vec4 color = texture(fbTexture, TexCoord);
 	float avg = color.r * 0.2126 + color.g * 0.7152 + color.b * 0.0722;
 	return vec4(avg, avg, avg, 1.0);
 }
@@ -83,7 +82,7 @@ vec4 Sharpen()
 	vec3 color = vec3(0.0);
 	for(int i = 0; i < 9; i++) // Sample neighbors and apply filter.
 	{
-		color += vec3(texture(screenTex, TexCoord + offsets[i])) * sharpenKernel[i];
+		color += vec3(texture(fbTexture, TexCoord + offsets[i])) * sharpenKernel[i];
 	}
 	return vec4(color, 1.0);
 }
@@ -113,7 +112,7 @@ vec4 Blur()
 	vec3 color = vec3(0.0);
 	for(int i = 0; i < 9; i++) // Sample neighbors and apply filter.
 	{
-		color += vec3(texture(screenTex, TexCoord + offsets[i])) * blurKernel[i];
+		color += vec3(texture(fbTexture, TexCoord + offsets[i])) * blurKernel[i];
 	}
 	return vec4(color, 1.0);
 }
@@ -143,7 +142,7 @@ vec4 Edge()
 	vec3 color = vec3(0.0);
 	for(int i = 0; i < 9; i++) // Sample neighbors and apply filter.
 	{
-		color += vec3(texture(screenTex, TexCoord + offsets[i])) * edgeKernel[i];
+		color += vec3(texture(fbTexture, TexCoord + offsets[i])) * edgeKernel[i];
 	}
 	return vec4(color, 1.0);
 }

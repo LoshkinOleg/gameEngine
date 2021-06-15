@@ -63,7 +63,6 @@ namespace gl
             bool flipImage = false;
             bool correctGamma = false;
             bool hdr = false;
-            bool usedByFramebuffer = false;
         };
         struct ShaderDefinition
         {
@@ -92,6 +91,7 @@ namespace gl
         struct FramebufferDefinition
         {
             std::vector<Framebuffer::Attachments> attachments = { Framebuffer::Attachments::COLOR, Framebuffer::Attachments::DEPTH24_STENCIL8 };
+            ShaderId shader = DEFAULT_ID;
             bool hdr = false;
         };
 

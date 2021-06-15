@@ -389,7 +389,11 @@ gl::Transform3dId gl::ResourceManager::CreateResource(const gl::ResourceManager:
 }
 gl::FramebufferId gl::ResourceManager::CreateResource(const gl::ResourceManager::FramebufferDefinition def)
 {
-    // TODO: this function doesn't allow for creation of any framebuffers that don't use the default shaders.
+    if (std::find(def.attachments.begin(), def.attachments.end(), Framebuffer::Attachments::COLOR) == def.attachments.end())
+    {
+        std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": framebuffer needs at the very least one color attachment!" << std::endl;
+        abort();
+    }
 
     std::string accumulatedData = "";
     accumulatedData += std::to_string(def.hdr);
@@ -406,6 +410,8 @@ gl::FramebufferId gl::ResourceManager::CreateResource(const gl::ResourceManager:
         std::cout << "WARNING: attempting to create a new Framebuffer with data identical to an existing one. Returning the id of the existing one instead." << std::endl;
         return hash;
     }
+    Framebuffer framebuffer;
+    framebuffer.attachments_ = def.attachments;
 
     VertexBufferId vertexBufferId = DEFAULT_ID;
     {
@@ -427,43 +433,43 @@ gl::FramebufferId gl::ResourceManager::CreateResource(const gl::ResourceManager:
         };
         vertexBufferId = CreateResource(def);
     }
-
-    ShaderId shaderId = DEFAULT_ID;
-    {
-        ShaderDefinition sdef;
-        sdef.vertexPath = def.hdr ? FRAMEBUFFER_HDR_REINHARD_SHADER[0].data() : FRAMEBUFFER_RGB_SHADER[0].data();
-        sdef.fragmentPath = def.hdr ? FRAMEBUFFER_HDR_REINHARD_SHADER[1].data() : FRAMEBUFFER_RGB_SHADER[1].data();
-        sdef.onInit = [](Shader& shader, const Model& model)->void
-        {
-            shader.SetInt(FRAMEBUFFER_TEXTURE_NAME.data(), FRAMEBUFFER_SAMPLER_TEXTURE_UNIT);
-        };
-        shaderId = CreateResource(sdef);
-
-        // Init shader here since it's not linked to any material.
-        const Shader& shader = shaders_[shaderId];
-        shader.Bind();
-        shader.OnInit(); // Fix this shit. A framebuffer isn't linked to a model...
-    }
-
-    Framebuffer framebuffer;
     framebuffer.vertexBuffer_ = vertexBufferId;
-    framebuffer.shader_ = shaderId;
-    framebuffer.attachments_ = def.attachments;
+
+    if (def.shader != DEFAULT_ID) // User wants to use own shader.
+    {
+        framebuffer.shader_ = def.shader;
+    }
+    else // User wants to use a default shader.
+    {
+        ShaderId shaderId = DEFAULT_ID;
+        {
+            ShaderDefinition sdef;
+            sdef.vertexPath = def.hdr ? FRAMEBUFFER_HDR_REINHARD_SHADER[0].data() : FRAMEBUFFER_RGB_SHADER[0].data();
+            sdef.fragmentPath = def.hdr ? FRAMEBUFFER_HDR_REINHARD_SHADER[1].data() : FRAMEBUFFER_RGB_SHADER[1].data();
+            sdef.onInit = [](Shader& shader, const Model& model)->void
+            {
+                shader.SetInt(FRAMEBUFFER_TEXTURE_NAME.data(), FRAMEBUFFER_SAMPLER_TEXTURE_UNIT);
+            };
+            shaderId = CreateResource(sdef);
+        }
+        framebuffer.shader_ = shaderId;
+    }
+    // Init shader here since it's not linked to any material.
+    Shader& shader = shaders_[framebuffer.shader_];
+    const Model dummyModel = {};
+    shader.Bind();
+    shader.OnInit(dummyModel); // Can pass it a dummy model since the lambda doesn't use it anyways.
+
     glGenFramebuffers(1, &framebuffer.FBO_);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.FBO_);
 
-    // If using a color attachment for the framebuffer, create a texture.
+    // Important that this creation is right after the binding of the framebuffer!
     TextureId textureId = DEFAULT_ID;
-    if (std::find(def.attachments.begin(), def.attachments.end(), Framebuffer::Attachments::COLOR) != def.attachments.end())
     {
-        // Important that this creation is right after the binding of the framebuffer!
-        {
-            TextureDefinition tdef;
-            tdef.samplerTextureUnitPair = { FRAMEBUFFER_TEXTURE_NAME.data(), FRAMEBUFFER_SAMPLER_TEXTURE_UNIT };
-            tdef.hdr = def.hdr;
-            tdef.usedByFramebuffer = true;
-            textureId = CreateResource(tdef);
-        }
+        TextureDefinition tdef;
+        tdef.samplerTextureUnitPair = { FRAMEBUFFER_TEXTURE_NAME.data(), FRAMEBUFFER_SAMPLER_TEXTURE_UNIT };
+        tdef.hdr = def.hdr;
+        textureId = CreateResource(tdef);
     }
     framebuffer.texture_ = textureId;
 
@@ -496,7 +502,6 @@ gl::TextureId gl::ResourceManager::CreateResource(const gl::ResourceManager::Tex
     }
     accumulatedData += def.samplerTextureUnitPair.first;
     accumulatedData += std::to_string(def.samplerTextureUnitPair.second);
-    accumulatedData += std::to_string(def.usedByFramebuffer);
     accumulatedData += std::to_string(def.flipImage);
     accumulatedData += std::to_string(def.correctGamma);
     accumulatedData += std::to_string(def.textureType);
@@ -524,14 +529,8 @@ gl::TextureId gl::ResourceManager::CreateResource(const gl::ResourceManager::Tex
 
     if (def.textureType == GL_TEXTURE_2D)
     {
-        if (!def.usedByFramebuffer)
+        if (def.paths.size() > 0)
         {
-            if (def.paths.size() < 1)
-            {
-                std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": trying to create a GL_TEXTURE_2D not linked to a framebuffer but the path is empty!" << std::endl;
-                abort();
-            }
-
             data = stbi_load(def.paths[0].c_str(), &width, &height, &nrChannels, 0);
             assert(data);
 
@@ -564,7 +563,7 @@ gl::TextureId gl::ResourceManager::CreateResource(const gl::ResourceManager::Tex
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glGenerateMipmap(GL_TEXTURE_2D);
         }
-        else
+        else // No path for texture means it's a texture being used by a framebuffer.
         {
             // NOTE: texture used is of same size as our screen.
             if (def.hdr)

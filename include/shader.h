@@ -39,6 +39,7 @@ namespace gl {
 		unsigned int PROGRAM_ = 0;
 		std::function<void(Shader&, const Model&)> onInit_ = nullptr;
 		std::function<void(Shader&, const Model&, const Camera&)> onDraw_ = nullptr;
+		// TODO: move this map to resource manager so that the Shader can be passed everywhere as const as well.
 		std::map<std::string, int> uniformNames_ = {};
 	};
 

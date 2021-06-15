@@ -1,14 +1,15 @@
-// Checklist: handle UINT_MAX where necessary, use textureType where appropriate, make a separate cubemap class?, check existing code to make sure we didn't miss anything, make sure there CheckGlError() at key points
-// make sure we're using "const auto match" everywhere, not a & version, make sure we're not fucking up where we're passing & in arguments, replace all generic errors with descriptive ones: throw() assert()
-// make sure we unbind everything once we're done using it, see where the code could fail for every function
-// on creation of a resource, check the validity of ids, check on draw that the asset is valid
-// move common strings of shader variables to #defines
-// Refactor shaders.
-// TODO: add framebuffers
-// TODO: add skybox
-// TODO: add support for cubemaps
-// TODO: rename any <baseClass> variables into <baseClassId> variables where appropriate to better reflect the type of the variable.
-// TODO: make a tests makes sure every class works, and tests every failure mode
+// TODO:
+// Camera: movement, rotations, multiple WASD inputs simultaneously, state saving and restoring, ???
+// Framebuffer: bind, unbind, draw, defaultRBG, reinhard, postprocess, color only, color + depth, color + stencil, color + depth + stencil, ???
+// Material: ???
+// Mesh: ???
+// Model: basic, normalMapped, transparent, objBasic, objNormalMapped, objTransparent, change shaders on the fly?, obj with multiple materials, ???
+// Shader: ???
+// Skybox: jpg, png, ???
+// Texture: jpg, png, cubemaps, ???
+// Transform: move, rotate, scale, ???
+// Utility: errors get caught, ???
+// VertexBuffer: draw, bind, unbind, ???
 
 #include <glad/glad.h>
 
@@ -39,25 +40,12 @@ public:
             modelId = resourceManager_.CreateResource(def);
         }
 
-        model_ = resourceManager_.GetModel(modelId);
-
-        ShaderId fb_shaderId = DEFAULT_ID;
-        {
-            ResourceManager::ShaderDefinition def;
-            def.vertexPath = "../data/shaders/fb.vert";
-            def.fragmentPath = "../data/shaders/framebuffer_postprocess.frag";
-            def.onInit = [](Shader& shader, const Model& model)->void
-            {
-                shader.SetInt(FRAMEBUFFER_TEXTURE_NAME.data(), FRAMEBUFFER_SAMPLER_TEXTURE_UNIT);
-            };
-            fb_shaderId = resourceManager_.CreateResource(def);
-            assert(fb_shaderId != DEFAULT_ID);
-        }
+        basicObj_ = resourceManager_.GetModel(modelId);
 
         {
             ResourceManager::FramebufferDefinition def;
-            def.shader = fb_shaderId;
-            fb_ = resourceManager_.CreateResource(def);
+            def.hdr = true;
+            fb_defaultReinhard_ = resourceManager_.CreateResource(def);
         }
     }
     void Update(seconds dt) override
@@ -66,7 +54,7 @@ public:
         glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        model_.Draw(camera_, fb_);
+        basicObj_.Draw(camera_, fb_defaultReinhard_);
     }
     void Destroy() override
     {
@@ -129,8 +117,20 @@ private:
     Camera camera_ = {};
     float timer_ = 0.0f;
     bool mouseButtonDown_ = false;
-    Model model_;
-    FramebufferId fb_ = DEFAULT_ID;
+    Model
+        basicModel_,
+        normalMapModel_,
+        transparentModel_,
+        basicObj_,
+        normalMapObj_,
+        transparentObj;
+    FramebufferId
+        fb_defaultReinhard_ = DEFAULT_ID,
+        fb_postProcessing_ = DEFAULT_ID,
+        fb_colorOnly_ = DEFAULT_ID,
+        fb_colorAndDepthOnly_ = DEFAULT_ID,
+        fb_colorAndStencilOnly_ = DEFAULT_ID,
+        fb_colorAndDepthAndStencil_ = DEFAULT_ID;
     ResourceManager& resourceManager_ = ResourceManager::Get();
 };
 
