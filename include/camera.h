@@ -37,6 +37,7 @@ namespace gl {
         State GetCameraState() const;
         void SetCameraState(const State& state);
         void Translate(glm::vec3 dir);
+        void SetPosition(glm::vec3 v);
 
 	private:
         friend class ResourceManager;

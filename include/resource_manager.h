@@ -18,6 +18,8 @@
 #include "skybox.h"
 #include "camera.h"
 
+// TODO: Move all definitions out of the ResourceManager class for less verbose use.
+
 namespace gl
 {
     using VertexBufferId = unsigned int;
@@ -94,7 +96,7 @@ namespace gl
         };
         struct FramebufferDefinition
         {
-            std::vector<Framebuffer::Attachments> attachments = { Framebuffer::Attachments::COLOR, Framebuffer::Attachments::DEPTH24_STENCIL8 };
+            std::vector<Framebuffer::AttachmentType> attachments = { Framebuffer::AttachmentType::COLOR, Framebuffer::AttachmentType::DEPTH24_STENCIL8 };
             ShaderId shader = DEFAULT_ID;
             bool hdr = false;
         };
@@ -114,12 +116,15 @@ namespace gl
             float pitch = 0.0f;
         };
 
-        static ResourceManager& Get()
+        ResourceManager() = default;
+        ~ResourceManager();
+        ResourceManager(const ResourceManager&) = delete; // Disallow things like ResourceManager r = ResourceManager::Get(), only allow ResourceManager& r = ResourceManager::Get() .
+        static inline ResourceManager& Get()
         {
             static gl::ResourceManager instance;
             return instance;
         }
-        const Transform3d& GetTransform(Transform3dId id) const;
+        Transform3d& GetTransform(Transform3dId id);
         const Texture& GetTexture(TextureId id) const;
         const Material& GetMaterial(MaterialId id) const;
         Camera& GetCamera(CameraId id);
@@ -154,6 +159,8 @@ namespace gl
         bool IsCameraValid(CameraId id) const;
         void Shutdown();
     private:
+        // ResourceManager(const ResourceManager&) = default;
+
         std::map<ModelId, Model> models_ = {};
         std::map<MeshId, Mesh> meshes_ = {};
         std::map<ShaderId, Shader> shaders_ = {};

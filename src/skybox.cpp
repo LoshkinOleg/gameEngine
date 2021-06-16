@@ -7,9 +7,9 @@
 #include "shader.h"
 #include "resource_manager.h"
 
-void gl::Skybox::Draw(CameraId id)
+void gl::Skybox::Draw(CameraId id) const
 {
-    ResourceManager resourceManager = ResourceManager::Get();
+    ResourceManager& resourceManager = ResourceManager::Get();
     const VertexBuffer& vertexBuffer = resourceManager.GetVertexBuffer(vertexBuffer_);
     const Texture& texture = resourceManager.GetTexture(texture_);
     Shader& shader = resourceManager.GetShader(shader_);

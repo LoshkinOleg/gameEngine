@@ -66,7 +66,11 @@ void gl::Camera::SetCameraState(const State& state)
 }
 void gl::Camera::Translate(glm::vec3 dir)
 {
-    state_.position_ = dir;
+    state_.position_ += dir;
+}
+void gl::Camera::SetPosition(glm::vec3 v)
+{
+    state_.position_ = v;
 }
 
 void gl::Camera::UpdateCameraVectors_()

@@ -5,6 +5,8 @@
 
 #include "defines.h"
 
+// TODO: there's a problem of creation orders between Shader and Material making the use of the code awkward. Look into it.
+
 namespace gl
 {
     using TextureId = unsigned int;

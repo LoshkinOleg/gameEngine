@@ -6,7 +6,7 @@
 
 void gl::Material::Bind() const
 {
-    ResourceManager resourceManager = ResourceManager::Get();
+    ResourceManager& resourceManager = ResourceManager::Get();
 
     if (ambientMap_ != DEFAULT_ID) // Don't process maps that aren't used.
     {

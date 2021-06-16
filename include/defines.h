@@ -41,7 +41,7 @@ namespace gl
 	const std::string_view SPECULAR_COLOR_NAME = "material.specularColor";
 	const std::string_view SHININESS_NAME = "material.shininess";
 	const std::string_view VIEW_POSITION_NAME = "viewPos";
-	const std::string_view FRAMEBUFFER_TEXTURE_NAME = "fbTexture";
+	const std::string_view FRAMEBUFFER_SAMPLER_NAME = "fbTexture";
 	const int FRAMEBUFFER_SAMPLER_TEXTURE_UNIT = 4;
 	const std::string_view CUBEMAP_TEXTURE_NAME = "cubemap";
 	const int CUBEMAP_SAMPLER_TEXTURE_UNIT = 5;

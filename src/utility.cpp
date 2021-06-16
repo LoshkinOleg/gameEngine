@@ -13,5 +13,6 @@ void gl::CheckGlError(const char* file, int line)
             << " in file: " << file
             << " at line: " << line
             << "\n";
+        abort();
     }
 }

@@ -24,7 +24,7 @@ void gl::Shader::SetMaterial(MaterialId materialId)
 	const std::array<TextureId, 4> textureIds = material.GetTextureIds();
 	for (const TextureId id : textureIds)
 	{
-		if (id != UINT_MAX) // Don't try setting textures that aren't used.
+		if (id != DEFAULT_ID) // Don't try setting textures that aren't used.
 		{
 			SetTexture(id);
 		}
@@ -40,6 +40,7 @@ void gl::Shader::SetMaterial(MaterialId materialId)
 }
 void gl::Shader::SetFloat(const std::string& name, const float value)
 {
+	glUseProgram(PROGRAM_);
 	const auto match = uniformNames_.find(name);
 	if (match != uniformNames_.end()) // Name of uniform already known, use it.
 	{
@@ -55,6 +56,7 @@ void gl::Shader::SetFloat(const std::string& name, const float value)
 }
 void gl::Shader::SetVec3(const std::string& name, const glm::vec3 value)
 {
+	glUseProgram(PROGRAM_);
 	const auto match = uniformNames_.find(name);
 	if (match != uniformNames_.end()) // Name of uniform already known, use it.
 	{
@@ -70,6 +72,7 @@ void gl::Shader::SetVec3(const std::string& name, const glm::vec3 value)
 }
 void gl::Shader::SetInt(const std::string& name, const int value)
 {
+	glUseProgram(PROGRAM_);
 	const auto match = uniformNames_.find(name);
 	if (match != uniformNames_.end()) // Name of uniform already known, use it.
 	{
@@ -91,6 +94,8 @@ void gl::Shader::SetTexture(TextureId textureId)
 {
 	if (textureId == DEFAULT_ID) return;
 
+	glUseProgram(PROGRAM_);
+
 	const Texture& tex = ResourceManager::Get().GetTexture(textureId);
 	const auto& samplerTextureUnitPair = tex.GetSamplerTextureUnitPair();
 
@@ -110,6 +115,7 @@ void gl::Shader::SetModelMatrix(const glm::mat4& mat)
 }
 void gl::Shader::SetMat4(const std::string& name, const glm::mat4& mat)
 {
+	glUseProgram(PROGRAM_);
 	const auto match = uniformNames_.find(name);
 	if (match != uniformNames_.end()) // Name of the uniform already retireved, use it, don't bother the gpu.
 	{
@@ -135,6 +141,7 @@ void gl::Shader::SetMat4(const std::string& name, const glm::mat4& mat)
 
 void gl::Shader::OnInit(const Model& model)
 {
+	glUseProgram(PROGRAM_);
 	try
 	{
 		onInit_(*this, model);
@@ -147,6 +154,7 @@ void gl::Shader::OnInit(const Model& model)
 
 void gl::Shader::OnDraw(const Model& model, const Camera& camera)
 {
+	glUseProgram(PROGRAM_);
 	try
 	{
 		onDraw_(*this, model, camera);

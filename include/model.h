@@ -18,6 +18,7 @@ namespace gl
     public:
         void Draw(CameraId id = 0) const;
         const glm::mat4& GetModelMatrix() const;
+        Transform3dId GetTransform() const;
         std::vector<ShaderId> GetShaderIds() const;
     private:
         friend class ResourceManager;

@@ -9,6 +9,10 @@
 // TODO: remove id_ from classes, it's useless
 // TODO: make a define for lambda with value of <Shader& shader, const Model& model> and <Shader& shader, const Model& model, const Camera& camera>
 // TODO: make sure whenever we bind shit, we unbind it afterwards
+// TODO: add normalsmaps support
+// TODO: add transparency
+// TODO: add frustrum culling
+// TODO: handle resizing of window? glViewport and framebuffer too
 
 // TODO: Do all the above crap, rebuild the demo scene.
 

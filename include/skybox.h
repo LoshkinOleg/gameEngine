@@ -23,7 +23,7 @@ public:
         std::string_view back = "../data/textures/skybox/back.jpg";
     };
 
-    void Draw(CameraId id = 0);
+    void Draw(CameraId id = 0) const;
 private:
     friend class ResourceManager;
 

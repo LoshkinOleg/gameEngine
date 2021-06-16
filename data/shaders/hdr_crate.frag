@@ -28,7 +28,7 @@ struct PointLight
     float quadratic;
 };
 
-uniform Material mat;
+uniform Material material;
 uniform PointLight light0;
 uniform PointLight light1;
 uniform vec3 viewPos;
@@ -49,18 +49,18 @@ vec3 ComputePointLight(PointLight light)
     float attenuation = 1.0 / (light.constant + light.linear * distanceToLight + light.quadratic * distanceToLight * distanceToLight);
 
     // ambient
-    vec3 ambient = texture(mat.diffuseMap, TexCoord).rgb * light.ambient * attenuation;
+    vec3 ambient = texture(material.diffuseMap, TexCoord).rgb * light.ambient * attenuation;
 
     // diffuse
     vec3 lightDir = normalize(light.pos - FragPos);
-    float diffuseIntensity = max(dot(lightDir, -Normal), 0.0); // Normals flipped because we're rendering the inside of the crate.
-    vec3 diffuse = texture(mat.diffuseMap, TexCoord).rgb * light.diffuse * diffuseIntensity * attenuation;
+    float diffuseIntensity = max(dot(lightDir, Normal), 0.0);
+    vec3 diffuse = texture(material.diffuseMap, TexCoord).rgb * light.diffuse * diffuseIntensity * attenuation;
 
     // specular
     vec3 reflectDir = normalize(reflect(-lightDir, -Normal)); // light -> frag -> normal
     vec3 viewDir = normalize(viewPos - FragPos);
-    float specularIntensity = pow(max(dot(viewDir, reflectDir), 0.0), mat.shininess);
-    vec3 specular = texture(mat.specularMap, TexCoord).rgb * light.specular * specularIntensity * attenuation;
+    float specularIntensity = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+    vec3 specular = texture(material.specularMap, TexCoord).rgb * light.specular * specularIntensity * attenuation;
 
     // result
     return (ambient + diffuse + specular);

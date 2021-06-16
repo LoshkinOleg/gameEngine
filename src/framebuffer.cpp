@@ -9,7 +9,7 @@
 
 void gl::Framebuffer::Draw(CameraId id) const
 {
-    ResourceManager resourceManager = ResourceManager::Get();
+    ResourceManager& resourceManager = ResourceManager::Get();
     const Texture& texture = (texture_ == DEFAULT_ID) ? Texture() : resourceManager.GetTexture(texture_);
     const VertexBuffer& vertexBuffer = resourceManager.GetVertexBuffer(vertexBuffer_);
     Shader& shader = resourceManager.GetShader(shader_);
@@ -32,11 +32,11 @@ void gl::Framebuffer::Bind() const
     int clearMask = 0;
     for (const auto& attachment : attachments_)
     {
-        if (attachment == Attachments::COLOR)
+        if (attachment == AttachmentType::COLOR)
         {
             clearMask |= GL_COLOR_BUFFER_BIT;
         }
-        else if (attachment == Attachments::DEPTH24_STENCIL8)
+        else if (attachment == AttachmentType::DEPTH24_STENCIL8)
         {
             clearMask |= GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT;
         }

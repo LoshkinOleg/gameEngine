@@ -26,9 +26,13 @@ const glm::mat4& gl::Model::GetModelMatrix() const
 {
     return gl::ResourceManager::Get().GetTransform(transform_).GetModelMatrix();
 }
+gl::Transform3dId gl::Model::GetTransform() const
+{
+    return transform_;
+}
 std::vector<gl::ShaderId> gl::Model::GetShaderIds() const
 {
-    const gl::ResourceManager resourceManager = gl::ResourceManager::Get();
+    const gl::ResourceManager& resourceManager = gl::ResourceManager::Get();
     const std::vector<Mesh> meshes = resourceManager.GetMeshes(meshes_);
     auto returnVal = std::vector<ShaderId>(meshes.size());
     for (size_t i = 0; i < meshes.size(); i++)

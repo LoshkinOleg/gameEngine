@@ -12,8 +12,16 @@ namespace gl
     {
     public:
         const glm::mat4& GetModelMatrix() const;
+        void Translate(glm::vec3 v);
+        void Rotate(glm::vec3 cardinalRotation);
+        void Scale(glm::vec3 v);
+        void SetPosition(glm::vec3 v);
+        void SetRotation(glm::vec3 v);
+        void SetScale(glm::vec3 v);
     private:
         friend class ResourceManager;
+
+        void UpdateModel();
 
         Transform3dId id_ = DEFAULT_ID;
         glm::mat4 model_ = glm::mat4(1.0f);

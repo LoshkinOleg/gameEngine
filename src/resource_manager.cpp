@@ -16,11 +16,16 @@
 #include "camera.h"
 #include "utility.h"
 
-const gl::Transform3d& gl::ResourceManager::GetTransform(gl::Transform3dId id) const
+gl::ResourceManager::~ResourceManager()
+{
+    std::cout << "WARNING at file: " << __FILE__ << ", line: " << __LINE__ << ": ResourceManager has been destroyed. This message should only appear when you close the program!" << std::endl;
+}
+
+gl::Transform3d& gl::ResourceManager::GetTransform(gl::Transform3dId id)
 {
     assert(id != DEFAULT_ID);
 
-    const auto match = transforms_.find(id);
+    auto match = transforms_.find(id);
     if (match != transforms_.end())
     {
         return match->second;
@@ -235,7 +240,7 @@ gl::ModelId gl::ResourceManager::CreateResource(const gl::ResourceManager::Model
     model.transform_ = def.transform;
 
     // Call onInit of all shaders.
-    auto shaders = gl::ResourceManager::Get().GetShaders(model.GetShaderIds());
+    auto shaders = GetShaders(model.GetShaderIds());
     for (auto& shader : shaders)
     {
         shader.Bind();
@@ -437,7 +442,7 @@ gl::Transform3dId gl::ResourceManager::CreateResource(const gl::ResourceManager:
 }
 gl::FramebufferId gl::ResourceManager::CreateResource(const gl::ResourceManager::FramebufferDefinition def)
 {
-    if (std::find(def.attachments.begin(), def.attachments.end(), Framebuffer::Attachments::COLOR) == def.attachments.end())
+    if (std::find(def.attachments.begin(), def.attachments.end(), Framebuffer::AttachmentType::COLOR) == def.attachments.end())
     {
         std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": framebuffer needs at the very least one color attachment!" << std::endl;
         abort();
@@ -496,7 +501,7 @@ gl::FramebufferId gl::ResourceManager::CreateResource(const gl::ResourceManager:
             sdef.fragmentPath = def.hdr ? FRAMEBUFFER_HDR_REINHARD_SHADER[1].data() : FRAMEBUFFER_RGB_SHADER[1].data();
             sdef.onInit = [](Shader& shader, const Model& model)->void
             {
-                shader.SetInt(FRAMEBUFFER_TEXTURE_NAME.data(), FRAMEBUFFER_SAMPLER_TEXTURE_UNIT);
+                shader.SetInt(FRAMEBUFFER_SAMPLER_NAME.data(), FRAMEBUFFER_SAMPLER_TEXTURE_UNIT);
             };
             shaderId = CreateResource(sdef);
         }
@@ -515,7 +520,7 @@ gl::FramebufferId gl::ResourceManager::CreateResource(const gl::ResourceManager:
     TextureId textureId = DEFAULT_ID;
     {
         TextureDefinition tdef;
-        tdef.samplerTextureUnitPair = { FRAMEBUFFER_TEXTURE_NAME.data(), FRAMEBUFFER_SAMPLER_TEXTURE_UNIT };
+        tdef.samplerTextureUnitPair = { FRAMEBUFFER_SAMPLER_NAME.data(), FRAMEBUFFER_SAMPLER_TEXTURE_UNIT };
         tdef.hdr = def.hdr;
         textureId = CreateResource(tdef);
     }
@@ -523,7 +528,7 @@ gl::FramebufferId gl::ResourceManager::CreateResource(const gl::ResourceManager:
 
     glGenRenderbuffers(1, &framebuffer.RBO_);
     glBindRenderbuffer(GL_RENDERBUFFER, framebuffer.RBO_); // Only viable target is GL_RENDERBUFFER, making this type of argument completely redundant... thanks gl.
-    if (std::find(def.attachments.begin(), def.attachments.end(), Framebuffer::Attachments::DEPTH24_STENCIL8) != def.attachments.end())
+    if (std::find(def.attachments.begin(), def.attachments.end(), Framebuffer::AttachmentType::DEPTH24_STENCIL8) != def.attachments.end())
     {
         // Note: using a render buffer with dimensions identical to our screen.
         glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, (GLsizei)SCREEN_RESOLUTION[0], (GLsizei)SCREEN_RESOLUTION[1]);

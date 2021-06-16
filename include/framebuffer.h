@@ -3,6 +3,8 @@
 
 #include "defines.h"
 
+// TODO: make a "resize" function for framebuffer that recreates new framebuffer with the right dimensions
+
 namespace gl
 {
     using VertexBufferId = unsigned int;
@@ -13,7 +15,7 @@ namespace gl
 class Framebuffer
 {
 public:
-    enum class Attachments
+    enum class AttachmentType
     {
         COLOR,
         DEPTH24_STENCIL8
@@ -29,7 +31,7 @@ private:
     VertexBufferId vertexBuffer_ = DEFAULT_ID;
     TextureId texture_ = DEFAULT_ID;
     ShaderId shader_ = DEFAULT_ID;
-    std::vector<Attachments> attachments_ = { Attachments::COLOR, Attachments::DEPTH24_STENCIL8 };
+    std::vector<AttachmentType> attachments_ = { AttachmentType::COLOR, AttachmentType::DEPTH24_STENCIL8 };
 };
 
 }//!gl
