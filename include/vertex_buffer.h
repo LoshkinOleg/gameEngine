@@ -10,6 +10,7 @@ namespace gl
     {
     public:
         void Draw() const;
+        unsigned int GetVAO() const;
     private:
         friend class ResourceManager;
 

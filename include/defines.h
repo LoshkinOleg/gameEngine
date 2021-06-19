@@ -8,7 +8,7 @@ namespace gl
 {
 	// Window parameters.
 	const float SCREEN_RESOLUTION[2] = { 1024.0f, 720.0f };
-	const glm::mat4 PERSPECTIVE = glm::perspective(glm::radians(45.0f), SCREEN_RESOLUTION[0] / SCREEN_RESOLUTION[1], 0.1f, 100.0f);
+	const glm::mat4 PERSPECTIVE = glm::perspective(glm::radians(45.0f), SCREEN_RESOLUTION[0] / SCREEN_RESOLUTION[1], 0.1f, 1000.0f);
 
 	// Camera parameters.
 	const float CAMERA_MOV_SPEED = 0.1f;

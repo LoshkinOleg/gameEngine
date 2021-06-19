@@ -41,3 +41,8 @@ std::vector<gl::ShaderId> gl::Model::GetShaderIds() const
     }
     return returnVal;
 }
+
+std::vector<gl::MeshId> gl::Model::GetMeshIds() const
+{
+    return meshes_;
+}

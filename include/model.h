@@ -20,6 +20,7 @@ namespace gl
         const glm::mat4& GetModelMatrix() const;
         Transform3dId GetTransform() const;
         std::vector<ShaderId> GetShaderIds() const;
+        std::vector<MeshId> GetMeshIds() const;
     private:
         friend class ResourceManager;
 

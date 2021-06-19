@@ -13,6 +13,7 @@ namespace gl {
     public:
         void Draw() const;
         MaterialId GetMaterialId() const;
+        VertexBufferId GetVertexBufferId() const;
     private:
         friend class ResourceManager;
 

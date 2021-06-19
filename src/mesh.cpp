@@ -16,3 +16,7 @@ gl::MaterialId gl::Mesh::GetMaterialId() const
 {
     return material_;
 }
+gl::VertexBufferId gl::Mesh::GetVertexBufferId() const
+{
+    return vertexBuffer_;
+}
