@@ -1,21 +1,3 @@
-// Checklist: use textureType where appropriate, make a separate cubemap class?, make sure there CheckGlError() at key points
-// make sure we're using "const auto match" everywhere, not a & version, make sure we're not fucking up where we're passing & in arguments, replace all generic errors with descriptive ones: throw() assert()
-// make sure we unbind everything once we're done using it, see where the code could fail for every function
-// on creation of a resource, check the validity of ids, check on draw that the asset is valid
-// Refactor shaders.
-// TODO: rename any <baseClass> variables into <baseClassId> variables where appropriate to better reflect the type of the variable.
-// TODO: remove all the old commented code.
-// TODO: rename files names to use CamelCase
-// TODO: remove id_ from classes, it's useless
-// TODO: make a define for lambda with value of <Shader& shader, const Model& model> and <Shader& shader, const Model& model, const Camera& camera>
-// TODO: make sure whenever we bind shit, we unbind it afterwards
-// TODO: add normalsmaps support
-// TODO: add transparency
-// TODO: add frustrum culling
-// TODO: handle resizing of window? glViewport and framebuffer too
-
-// TODO: Do all the above crap, rebuild the demo scene.
-
 #include <glad/glad.h>
 
 #include "engine.h"
@@ -23,13 +5,13 @@
 
 namespace gl {
 
-class HelloTriangle : public Program
+class HelloNormalmapping : public Program
 {
 public:
     void Init() override
     {
         glEnable(GL_DEPTH_TEST);
-        glEnable(GL_CULL_FACE);
+        // glEnable(GL_CULL_FACE);
         glEnable(GL_FRAMEBUFFER_SRGB_EXT);
 
         {
@@ -37,27 +19,173 @@ public:
             camera_ = resourceManager_.CreateResource(def);
         }
 
-        // Model creation.
-        const auto meshes = resourceManager_.LoadObj("../data/models/tank/tank.obj");
-
-        ModelId modelId = DEFAULT_ID;
+        // Load a crate.
         {
+            // vbo
+            VertexBufferId vb = DEFAULT_ID;
+            {
+                // positions
+                glm::vec3 pos1(-1.0f, 1.0f, 0.0f);
+                glm::vec3 pos2(-1.0f, -1.0f, 0.0f);
+                glm::vec3 pos3(1.0f, -1.0f, 0.0f);
+                glm::vec3 pos4(1.0f, 1.0f, 0.0f);
+                // texture coordinates
+                glm::vec2 uv1(0.0f, 1.0f);
+                glm::vec2 uv2(0.0f, 0.0f);
+                glm::vec2 uv3(1.0f, 0.0f);
+                glm::vec2 uv4(1.0f, 1.0f);
+                // normal vector
+                glm::vec3 nm(0.0f, 0.0f, 1.0f);
+
+                // calculate tangent/bitangent vectors of both triangles
+                glm::vec3 tangent1, bitangent1;
+                glm::vec3 tangent2, bitangent2;
+                // triangle 1
+                // ----------
+                glm::vec3 edge1 = pos2 - pos1;
+                glm::vec3 edge2 = pos3 - pos1;
+                glm::vec2 deltaUV1 = uv2 - uv1;
+                glm::vec2 deltaUV2 = uv3 - uv1;
+
+                float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+
+                tangent1.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+                tangent1.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+                tangent1.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+
+                bitangent1.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
+                bitangent1.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
+                bitangent1.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
+
+                // triangle 2
+                // ----------
+                edge1 = pos3 - pos1;
+                edge2 = pos4 - pos1;
+                deltaUV1 = uv3 - uv1;
+                deltaUV2 = uv4 - uv1;
+
+                f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+
+                tangent2.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+                tangent2.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+                tangent2.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+
+
+                bitangent2.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
+                bitangent2.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
+                bitangent2.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
+
+                ResourceManager::VertexBufferDefinition def;
+                def.data =
+                {
+                    pos1.x, pos1.y, pos1.z, nm.x, nm.y, nm.z, uv1.x, uv1.y, tangent1.x, tangent1.y, tangent1.z, bitangent1.x, bitangent1.y, bitangent1.z,
+                    pos2.x, pos2.y, pos2.z, nm.x, nm.y, nm.z, uv2.x, uv2.y, tangent1.x, tangent1.y, tangent1.z, bitangent1.x, bitangent1.y, bitangent1.z,
+                    pos3.x, pos3.y, pos3.z, nm.x, nm.y, nm.z, uv3.x, uv3.y, tangent1.x, tangent1.y, tangent1.z, bitangent1.x, bitangent1.y, bitangent1.z,
+
+                    pos1.x, pos1.y, pos1.z, nm.x, nm.y, nm.z, uv1.x, uv1.y, tangent2.x, tangent2.y, tangent2.z, bitangent2.x, bitangent2.y, bitangent2.z,
+                    pos3.x, pos3.y, pos3.z, nm.x, nm.y, nm.z, uv3.x, uv3.y, tangent2.x, tangent2.y, tangent2.z, bitangent2.x, bitangent2.y, bitangent2.z,
+                    pos4.x, pos4.y, pos4.z, nm.x, nm.y, nm.z, uv4.x, uv4.y, tangent2.x, tangent2.y, tangent2.z, bitangent2.x, bitangent2.y, bitangent2.z
+                };
+                def.dataLayout =
+                {
+                    ResourceManager::VertexDataTypes::POSITIONS_3D,
+                    ResourceManager::VertexDataTypes::POSITIONS_3D,
+                    ResourceManager::VertexDataTypes::POSITIONS_2D,
+                    ResourceManager::VertexDataTypes::POSITIONS_3D,
+                    ResourceManager::VertexDataTypes::POSITIONS_3D
+                };
+                vb = resourceManager_.CreateResource(def);
+            }
+            // tex
+            TextureId diffuseTex = DEFAULT_ID;
+            {
+                ResourceManager::TextureDefinition def;
+                def.correctGamma = true;
+                def.flipImage = false;
+                def.hdr = false;
+                def.paths =
+                {
+                    "../data/textures/brickwall.jpg"
+                };
+                def.samplerTextureUnitPair =
+                {
+                    "diffuseMap", 1
+                };
+                def.textureType = DEFAULT_TEX_TYPE;
+                diffuseTex = resourceManager_.CreateResource(def);
+            }
+            TextureId normalTex = DEFAULT_ID;
+            {
+                ResourceManager::TextureDefinition def;
+                def.correctGamma = false;
+                def.flipImage = false;
+                def.hdr = false;
+                def.paths =
+                {
+                    "../data/textures/brickwall_normal.jpg"
+                };
+                def.samplerTextureUnitPair =
+                {
+                    "normalMap", 4
+                };
+                def.textureType = DEFAULT_TEX_TYPE;
+                normalTex = resourceManager_.CreateResource(def);
+            }
+            // shad
+            ShaderId sh = DEFAULT_ID;
+            {
+                ResourceManager::ShaderDefinition def;
+                def.vertexPath = "../data/shaders/hello_normalmapping.vert";
+                def.fragmentPath = "../data/shaders/hello_normalmapping.frag";
+                def.onInit = [](Shader& shader, const Model& model)->void
+                {
+                    shader.SetProjectionMatrix(PERSPECTIVE);
+                    shader.SetVec3("lightPos", glm::vec3(0.5f, 1.0f, 0.3f));
+                    shader.SetInt("diffuseMap", 1);
+                    shader.SetInt("normalMap", 4);
+                };
+                def.onDraw = [](Shader& shader, const Model& model, const Camera& camera)->void
+                {
+                    shader.SetViewMatrix(camera.GetViewMatrix());
+                    shader.SetVec3("viewPos", camera.GetPosition());
+                    shader.SetModelMatrix(model.GetModelMatrix());
+                };
+                sh = resourceManager_.CreateResource(def);
+            }
+            // mat
+            MaterialId mat = DEFAULT_ID;
+            {
+                ResourceManager::MaterialDefinition def;
+                def.diffuseColor = ONE_VEC3;
+                def.diffuseMap = diffuseTex;
+                def.normalMap = normalTex;
+                def.shader = sh;
+                mat = resourceManager_.CreateResource(def);
+            }
+            // mesh
+            MeshId mesh = DEFAULT_ID;
+            {
+                ResourceManager::MeshDefinition def;
+                def.material = mat;
+                def.vertexBuffer = vb;
+                mesh = resourceManager_.CreateResource(def);
+            }
+            // model
             ResourceManager::ModelDefinition def;
-            def.meshes = meshes;
-            def.transform = resourceManager_.CreateResource(ResourceManager::Transform3dDefinition{});
-            modelId = resourceManager_.CreateResource(def);
-        }
-
-        model_ = resourceManager_.GetModel(modelId);
-
-        // Skybox creation.
-        {
-            ResourceManager::SkyboxDefinition def;
-            def.correctGamma = true;
-            def.paths = Skybox::Paths{};
-            SkyboxId id = resourceManager_.CreateResource(def);
-            assert(id != DEFAULT_ID);
-            skybox_ = resourceManager_.GetSkybox(id);
+            def.meshes =
+            {
+                mesh
+            };
+            def.transform = resourceManager_.CreateResource
+            (
+                ResourceManager::Transform3dDefinition
+                {
+                    ZERO_VEC3,
+                    ZERO_VEC3,
+                    ONE_VEC3
+                }
+            );
+            modelPlane_ = resourceManager_.CreateResource(def);
         }
     }
     void Update(seconds dt) override
@@ -66,8 +194,7 @@ public:
         glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        model_.Draw();
-        skybox_.Draw();
+        resourceManager_.GetModel(modelPlane_).Draw();
     }
     void Destroy() override
     {
@@ -132,16 +259,15 @@ private:
     float timer_ = 0.0f;
     bool mouseButtonDown_ = false;
     CameraId camera_ = DEFAULT_ID;
-    Model model_;
-    Skybox skybox_;
     ResourceManager& resourceManager_ = ResourceManager::Get();
+    ModelId modelPlane_ = DEFAULT_ID;
 };
 
 } // End namespace gl.
 
 int main(int argc, char** argv)
 {
-    gl::HelloTriangle program;
+    gl::HelloNormalmapping program;
     gl::Engine engine(program);
     engine.Run();
     return EXIT_SUCCESS;
