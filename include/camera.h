@@ -2,48 +2,55 @@
 
 #include <glm/glm.hpp>
 
+#include "defines.h"
+
 namespace gl {
+
+    using CameraId = unsigned int;
 
 	class Camera
 	{
 	public:
-		enum class Camera_Movement
-		{
-			FORWARD,
-			BACKWARD,
-			LEFT,
-			RIGHT,
-			UP,
-			DOWN
-		};
         struct State
         {
-            glm::vec3 position_ = glm::vec3(0.0f, 0.0f, 0.0f);
-            glm::vec3 front_ = glm::vec3(0.0f, 0.0f, -1.0f);
-            glm::vec3 right_ = glm::vec3(1.0f, 0.0f, 0.0f);
-            glm::vec3 up_ = glm::vec3(0.0f, 1.0f, 0.0f);
+            glm::vec3 position = FRONT_VEC3 * 5.0f; // (0;0;5)
+            glm::vec3 front = BACK_VEC3; // Want the camera to face origin by default.
+            glm::vec3 right = RIGHT_VEC3;
+            glm::vec3 up = UP_VEC3;
             // Used for mouse input.
-            float pitch_ = 0.0f;
-            float yaw_ = glm::radians(-90.0f);
+            float pitch = 0.0f;
+            float yaw = glm::radians(-90.0f);
+        };
+        struct Definition
+        {
+            glm::vec3 position = FRONT_VEC3 * 5.0f;
+            glm::vec3 front = BACK_VEC3;
+            glm::vec3 up = UP_VEC3;
+            float pitch = 0.0f;
         };
 
-        void ProcessKeyboard(Camera_Movement direction);
-        void ProcessMouseMovement(int x, int y);
-        glm::vec3 GetPosition() const;
-        glm::vec3 GetFront() const;
-        glm::vec3 GetRight() const;
-        glm::vec3 GetUp() const;
-        glm::mat4 GetViewMatrix() const;
-        State GetCameraState() const;
-        void SetCameraState(const State& state);
         void Translate(glm::vec3 dir);
         void SetPosition(glm::vec3 v);
+        void LookAt(const glm::vec3 pos, const glm::vec3 up = UP_VEC3);
+        void SetCameraState(const State& state);
+
+        void ProcessKeyboard(const glm::vec3 direction);
+        void ProcessMouseMovement(int x, int y);
+
+        State GetCameraState() const;
+        // These get functions return read-only references, allowing the Material class to update dynamic(ie: the ones that change on every frame) shader uniforms.
+        const glm::mat4& GetViewMatrix();
+        const glm::vec3& GetPosition() const;
+        const glm::vec3& GetFront() const;
+        const glm::vec3& GetRight() const;
+        const glm::vec3& GetUp() const;
 
 	private:
         friend class ResourceManager;
 
-        void UpdateCameraVectors_();
+        void UpdateCameraVectors();
 
         State state_ = {};
+        glm::mat4 view_ = IDENTITY_MAT4;
 	};
 }//!gl.

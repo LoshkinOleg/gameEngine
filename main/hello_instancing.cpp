@@ -92,7 +92,7 @@ public:
                 };
                 def.samplerTextureUnitPair =
                 {
-                    "texture_diffuse1", DIFFUSE_SAMPLER_TEXTURE_UNIT
+                    "texture_diffuse1", DIFFUSE_TEXTURE_UNIT
                 };
                 def.textureType = DEFAULT_TEX_TYPE;
                 tex = resourceManager_.CreateResource(def);
@@ -106,7 +106,7 @@ public:
                 def.onInit = [](Shader& shader, const Model& model)->void
                 {
                     shader.SetProjectionMatrix(PERSPECTIVE);
-                    shader.SetInt("texture_diffuse1", DIFFUSE_SAMPLER_TEXTURE_UNIT);
+                    shader.SetInt("texture_diffuse1", DIFFUSE_TEXTURE_UNIT);
                 };
                 def.onDraw = [](Shader& shader, const Model& model, const Camera& camera)->void
                 {

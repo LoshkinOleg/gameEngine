@@ -1,37 +1,48 @@
 #pragma once
+#include <array>
 #include <vector>
 
 #include "defines.h"
 
-// TODO: make a "resize" function for framebuffer that recreates new framebuffer with the right dimensions
-
 namespace gl
 {
-    using VertexBufferId = unsigned int;
-    using TextureId = unsigned int;
-    using ShaderId = unsigned int;
-    using CameraId = unsigned int;
+    using FramebufferId = unsigned int;
+    using MeshId = unsigned int;
 
 class Framebuffer
 {
 public:
-    enum class AttachmentType
+    enum class AttachmentMask
     {
-        COLOR,
-        DEPTH24_STENCIL8
+        DEPTH24 =   1 << 0, // 0000 0001
+        STENCIL8 =  1 << 1, // 0000 0010
+        COLOR0 =    1 << 2, // 0000 0100
+        COLOR1 =    1 << 3, // 0000 1000
+
+        COLOR2 =    1 << 4, // 0001 0000
+        COLOR3 =    1 << 5, // 0010 0000
+        COLOR4 =    1 << 6, // 0100 0000
+        COLOR5 =    1 << 7, // 1000 0000
+    };
+    struct Definition
+    {
+        AttachmentMask attachments = AttachmentMask::COLOR0;
+        std::array<std::string_view, 2> shaderPaths =
+        {
+            "../data/shaders/fb.vert",
+            "../data/shaders/fb_hdr_reinhard.frag"
+        };
     };
 
-    void Draw(CameraId id = 0) const;
     void Bind() const;
     static void UnBind();
+    void Draw() const;
 private:
     friend class ResourceManager;
 
     unsigned int FBO_ = 0, RBO_ = 0;
-    VertexBufferId vertexBuffer_ = DEFAULT_ID;
-    TextureId texture_ = DEFAULT_ID;
-    ShaderId shader_ = DEFAULT_ID;
-    std::vector<AttachmentType> attachments_ = { AttachmentType::COLOR, AttachmentType::DEPTH24_STENCIL8 };
+    MeshId mesh_ = DEFAULT_ID;
+    AttachmentMask attachments_ = AttachmentMask::COLOR0;
 };
 
 }//!gl

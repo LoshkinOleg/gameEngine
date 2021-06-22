@@ -16,3 +16,14 @@ void gl::CheckGlError(const char* file, int line)
         abort();
     }
 }
+
+void gl::Error(const char* file, int line, const char* msg)
+{
+    std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": " << msg << std::endl;
+    abort();
+}
+
+void gl::Warning(const char* file, int line, const char* msg)
+{
+    std::cout << "WARNING at file: " << __FILE__ << ", line: " << __LINE__ << ": " << msg << std::endl;
+}

@@ -1,34 +1,41 @@
 #pragma once
 
+#include <array>
+
 #include "defines.h"
 
 namespace gl
 {
-    using VertexBufferId = unsigned int;
-    using TextureId = unsigned int;
-    using ShaderId = unsigned int;
-    using CameraId = unsigned int;
+    using SkyboxId = unsigned int;
+    using MeshId = unsigned int;
 
 class Skybox
 {
 public:
-
-    struct Paths
+    struct Definition
     {
-        std::string_view right = "../data/textures/skybox/right.jpg";
-        std::string_view left = "../data/textures/skybox/left.jpg";
-        std::string_view top = "../data/textures/skybox/top.jpg";
-        std::string_view bottom = "../data/textures/skybox/bottom.jpg";
-        std::string_view front = "../data/textures/skybox/front.jpg";
-        std::string_view back = "../data/textures/skybox/back.jpg";
+        std::array<std::string_view, 6> paths =
+        {
+            "../data/textures/skybox/right.jpg",
+            "../data/textures/skybox/left.jpg",
+            "../data/textures/skybox/top.jpg",
+            "../data/textures/skybox/bottom.jpg",
+            "../data/textures/skybox/front.jpg",
+            "../data/textures/skybox/back.jpg"
+        };
+        std::array<std::string_view, 2> shader =
+        {
+            "../data/shaders/skybox.vert",
+            "../data/shaders/skybox.frag"
+        };
+        bool flipImages = true;
+        bool correctGamma = true;
     };
 
-    void Draw(CameraId id = 0) const;
+    void Draw() const;
 private:
     friend class ResourceManager;
 
-    VertexBufferId vertexBuffer_ = DEFAULT_ID;
-    TextureId texture_ = DEFAULT_ID;
-    ShaderId shader_ = DEFAULT_ID;
+    MeshId mesh_ = DEFAULT_ID;
 };
 }//!gl

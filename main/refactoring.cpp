@@ -33,31 +33,30 @@ public:
         glEnable(GL_FRAMEBUFFER_SRGB_EXT);
 
         {
-            ResourceManager::CameraDefinition def;
+            Camera::Definition def;
             camera_ = resourceManager_.CreateResource(def);
         }
 
         // Model creation.
-        const auto meshes = resourceManager_.LoadObj("../data/models/tank/tank.obj");
-
-        ModelId modelId = DEFAULT_ID;
-        {
-            ResourceManager::ModelDefinition def;
-            def.meshes = meshes;
-            def.transform = resourceManager_.CreateResource(ResourceManager::Transform3dDefinition{});
-            modelId = resourceManager_.CreateResource(def);
-        }
-
-        model_ = resourceManager_.GetModel(modelId);
+        const ModelId id = resourceManager_.CreateResource(resourceManager_.ReadObjData("../data/models/crate/crate.obj"));
+        model_ = resourceManager_.GetModel(id);
 
         // Skybox creation.
         {
-            ResourceManager::SkyboxDefinition def;
+            Skybox::Definition def;
             def.correctGamma = true;
-            def.paths = Skybox::Paths{};
-            SkyboxId id = resourceManager_.CreateResource(def);
-            assert(id != DEFAULT_ID);
-            skybox_ = resourceManager_.GetSkybox(id);
+            def.flipImages = false;
+            def.shader = {SKYBOX_SHADER[0], SKYBOX_SHADER[1]};
+            def.paths =
+            {
+                "../data/textures/skybox/right.jpg",
+                "../data/textures/skybox/left.jpg",
+                "../data/textures/skybox/top.jpg",
+                "../data/textures/skybox/bottom.jpg",
+                "../data/textures/skybox/front.jpg",
+                "../data/textures/skybox/back.jpg"
+            };
+            skybox_ = resourceManager_.GetSkybox(resourceManager_.CreateResource(def));
         }
     }
     void Update(seconds dt) override
@@ -89,22 +88,22 @@ public:
             switch (event.key.keysym.sym)
             {
             case SDLK_w:
-                camera.ProcessKeyboard(Camera::Camera_Movement::FORWARD);
+                camera.ProcessKeyboard(FRONT_VEC3);
                 break;
             case SDLK_s:
-                camera.ProcessKeyboard(Camera::Camera_Movement::BACKWARD);
+                camera.ProcessKeyboard(BACK_VEC3);
                 break;
             case SDLK_a:
-                camera.ProcessKeyboard(Camera::Camera_Movement::LEFT);
+                camera.ProcessKeyboard(LEFT_VEC3);
                 break;
             case SDLK_d:
-                camera.ProcessKeyboard(Camera::Camera_Movement::RIGHT);
+                camera.ProcessKeyboard(RIGHT_VEC3);
                 break;
             case SDLK_SPACE:
-                camera.ProcessKeyboard(Camera::Camera_Movement::UP);
+                camera.ProcessKeyboard(UP_VEC3);
                 break;
             case SDLK_LCTRL:
-                camera.ProcessKeyboard(Camera::Camera_Movement::DOWN);
+                camera.ProcessKeyboard(DOWN_VEC3);
                 break;
             default:
                 break;

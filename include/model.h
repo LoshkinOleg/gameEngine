@@ -3,29 +3,31 @@
 
 #include <glm/glm.hpp>
 
-#include "defines.h"
-
 namespace gl
 {
     using ModelId = unsigned int;
-    using Transform3dId = unsigned int;
     using MeshId = unsigned int;
-    using ShaderId = unsigned int;
-    using CameraId = unsigned int;
 
     class Model
     {
     public:
-        void Draw(CameraId id = 0) const;
-        const glm::mat4& GetModelMatrix() const;
-        Transform3dId GetTransform() const;
-        std::vector<ShaderId> GetShaderIds() const;
-        std::vector<MeshId> GetMeshIds() const;
+        struct Definition
+        {
+            std::vector<MeshId> meshes = {};
+            std::vector<glm::mat4> modelMatrices = {};
+        };
+
+        void Draw() const;
+
+        void Translate(glm::vec3 v, size_t modelMatrixIndex = 0);
+        void Rotate(glm::vec3 cardinalRotation, size_t modelMatrixIndex = 0);
+        void Scale(glm::vec3 v, size_t modelMatrixIndex = 0);
+
     private:
         friend class ResourceManager;
 
-        ModelId id_ = DEFAULT_ID;
         std::vector<MeshId> meshes_ = {};
-        Transform3dId transform_ = DEFAULT_ID;
+        std::vector<glm::mat4> modelMatrices_ = {};
+        unsigned int modelMatricesVBO_ = 0;
     };
 }//!gl

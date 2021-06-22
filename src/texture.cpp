@@ -2,21 +2,27 @@
 
 #include<glad/glad.h>
 
-#include "utility.h"
+#include "defines.h"
 
 void gl::Texture::Bind() const
 {
-    glActiveTexture(GL_TEXTURE0 + samplerTextureUnitPair_.second);
-    glBindTexture(textureType_, TEX_);
-    CheckGlError(__FILE__, __LINE__);
+    if ((int)textureType_ < AMBIENT_TEXTURE_UNIT || (int)textureType_ > CUBEMAP_TEXTURE_UNIT)
+    {
+        EngineError("TextureType of texture being bound is invalid!");
+    }
+
+    glActiveTexture(GL_TEXTURE0 + (int)textureType_); // Value of TextureType corresponds to index of texture unit a particular kind of texture is usually found in.
+    glBindTexture((textureType_ == Texture::Type::CUBEMAP ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D), TEX_);
+    CheckGlError();
 }
 void gl::Texture::Unbind() const
 {
-    glActiveTexture(GL_TEXTURE0 + samplerTextureUnitPair_.second);
-    glBindTexture(textureType_, 0);
-    CheckGlError(__FILE__, __LINE__);
-}
-const std::pair<std::string, int>& gl::Texture::GetSamplerTextureUnitPair() const
-{
-    return samplerTextureUnitPair_;
+    if ((int)textureType_ < AMBIENT_TEXTURE_UNIT || (int)textureType_ > CUBEMAP_TEXTURE_UNIT)
+    {
+        EngineError("TextureType of texture being unbound is invalid!");
+    }
+
+    glActiveTexture(GL_TEXTURE0 + (int)textureType_); // Value of TextureType corresponds to index of texture unit a particular kind of texture is usually found in.
+    glBindTexture((textureType_ == Texture::Type::CUBEMAP ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D), 0);
+    CheckGlError();
 }

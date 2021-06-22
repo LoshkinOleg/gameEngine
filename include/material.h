@@ -1,39 +1,68 @@
 #pragma once
-#include <array>
+
+#include <utility>
+#include <map>
+#include <string_view>
+
+#include "texture.h"
 
 #include <glm/glm.hpp>
 
-#include "defines.h"
-
-// TODO: there's a problem of creation orders between Shader and Material making the use of the code awkward. Look into it.
-
 namespace gl
 {
-    using TextureId = unsigned int;
     using MaterialId = unsigned int;
-    using ShaderId = unsigned int;
+    using TextureId = unsigned int;
 
     class Material
     {
     public:
+        struct Definition
+        {
+            std::map<std::string_view, int> staticInts = {};
+            std::map<std::string_view, glm::vec3> staticVec3s = {};
+            std::map<std::string_view, glm::mat4> staticMat4s = {};
+            std::map<std::string_view, float> staticFloats = {};
+
+            // NOTE: const& since those value are read only.
+            std::map<std::string_view, const int&> dynamicInts = {};
+            std::map<std::string_view, const glm::vec3&> dynamicVec3s = {};
+            std::map<std::string_view, const glm::mat4&> dynamicMat4s = {};
+            std::map<std::string_view, const float&> dynamicFloats = {};
+
+            std::vector<std::pair<std::string_view, Texture::Type>> texturePathsAndTypes = {};
+            bool flipImages = true;
+            bool correctGamma = true;
+            bool useHdr = false;
+
+            std::string_view vertexPath;
+            std::string_view fragmentPath;
+        };
+
         void Bind() const;
-        static void Unbind();
-        std::array<TextureId, 4> GetTextureIds() const;
-        const std::array<glm::vec3, 3> GetColors() const;
-        float GetShininess() const;
-        ShaderId GetShaderId() const;
+        void Unbind() const;
     private:
         friend class ResourceManager;
 
-        MaterialId id_ = DEFAULT_ID;
-        TextureId ambientMap_ = DEFAULT_ID;
-        TextureId diffuseMap_ = DEFAULT_ID;
-        TextureId specularMap_ = DEFAULT_ID;
-        TextureId normalMap_ = DEFAULT_ID;
-        ShaderId shader_ = DEFAULT_ID;
-        glm::vec3 ambientColor_ = ONE_VEC3;
-        glm::vec3 diffuseColor_ = ONE_VEC3;
-        glm::vec3 specularColor_ = ONE_VEC3;
-        float shininess_ = 1.0f;
+        void OnInit() const; // Called from ResourceManager::CreateResource(Material::Definition)
+        void OnDraw() const; // Called from Bind()
+
+        void SetInt(const std::pair<std::string_view, int> pair) const;
+        void SetVec3(const std::pair<std::string_view, glm::vec3> pair) const;
+        void SetMat4(const std::pair<std::string_view, glm::mat4> pair) const;
+        void SetFloat(const std::pair<std::string_view, float> pair) const;
+
+        unsigned int PROGRAM_ = 0;
+
+        std::vector<TextureId> textures_ = {};
+
+        std::map<std::string_view, int> staticInts_ = {}; // ex: texture units
+        std::map<std::string_view, glm::vec3> staticVec3s_ = {}; // ex: material's ambient color
+        std::map<std::string_view, glm::mat4> staticMat4s_ = {}; // ex: perspective matrix
+        std::map<std::string_view, float> staticFloats_ = {}; // ex: material's shininess
+
+        std::map<std::string_view, const int&> dynamicInts_ = {}; // ex: boolean for using normalmapping
+        std::map<std::string_view, const glm::vec3&> dynamicVec3s_ = {}; // ex: camera position
+        std::map<std::string_view, const glm::mat4&> dynamicMat4s_ = {}; // ex: transform model matrix
+        std::map<std::string_view, const float&> dynamicFloats_ = {};
     };
 }//!gl

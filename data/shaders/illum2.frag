@@ -5,37 +5,48 @@ layout (location = 0) out vec4 FragColor;
 struct Material
 {
     sampler2D ambientMap;
+    sampler2D alphaMap;
     sampler2D diffuseMap;
     sampler2D specularMap;
-    vec3 ambientColor;
-    vec3 diffuseColor;
-    vec3 specularColor;
+    sampler2D normalMap;
+    sampler2D roughnessMap;
+    sampler2D metallicMap;
+    sampler2D sheenMap;
+    sampler2D emissiveMap;
     float shininess;
+    float ior;
 };
 
-in vec3 FragPos;
-in vec3 Normal;
-in vec2 TexCoord;
+in VS_OUT {
+    vec3 FragPos;
+    vec2 TexCoords;
+    vec3 TangentLightDir;
+    vec3 TangentViewPos;
+    vec3 TangentFragPos;
+} fs_in;
 
 uniform Material material;
-uniform vec3 viewPos;
-
-const vec3 lightDir = normalize(vec3(-1.0)); // Constant (-1;-1;-1) light direction for illum mode 2.
 
 void main()
 {
-    const vec3 ambient = texture(material.ambientMap, TexCoord).rgb * material.ambientColor;
+    // obtain normal from normal map in range [0,1]
+    vec3 normal = texture(material.normalMap, fs_in.TexCoords).rgb;
+    // transform normal vector to range [-1,1]
+    normal = normalize(normal * 2.0 - 1.0);  // this normal is in tangent space
+   
+    // get diffuse color
+    vec3 color = texture(material.diffuseMap, fs_in.TexCoords).rgb;
+    // ambient
+    vec3 ambient = 0.1 * color;
+    // diffuse
+    float diffuseIntensity = max(dot(-fs_in.TangentLightDir, normal), 0.0);
+    vec3 diffuse = diffuseIntensity * color;
+    // specular
+    vec3 viewDir = normalize(fs_in.TangentViewPos - fs_in.TangentFragPos);
+    vec3 reflectDir = reflect(fs_in.TangentLightDir, normal);
+    vec3 halfwayDir = normalize(-fs_in.TangentLightDir + viewDir);  
+    float spec = pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
 
-    // Phong diffuse.
-    const vec3 diffuse = texture(material.diffuseMap, TexCoord).rgb * material.diffuseColor * max(dot(-lightDir, Normal), 0.0);
-
-    // Blinn specular.
-    const vec3 viewDir = normalize(viewPos - FragPos);
-    const vec3 halfDir = normalize(-lightDir + viewDir);
-    const vec3 specular =
-            texture(material.specularMap, TexCoord).rgb *
-            material.specularColor *
-            pow(max(dot(Normal, halfDir), 0.0), material.shininess);
-
+    vec3 specular = vec3(0.2) * spec;
     FragColor = vec4(ambient + diffuse + specular, 1.0);
 }

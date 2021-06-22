@@ -4,6 +4,7 @@
 #include <fstream>
 #include <sstream>
 #include <algorithm>
+#include <numeric>
 
 #include <glad/glad.h>
 #define XXH_INLINE_ALL
@@ -21,7 +22,7 @@ gl::ResourceManager::~ResourceManager()
     std::cout << "WARNING at file: " << __FILE__ << ", line: " << __LINE__ << ": ResourceManager has been destroyed. This message should only appear when you close the program!" << std::endl;
 }
 
-gl::Transform3d& gl::ResourceManager::GetTransform(gl::Transform3dId id)
+gl::Transform& gl::ResourceManager::GetTransform(gl::TransformId id)
 {
     assert(id != DEFAULT_ID);
 
@@ -38,7 +39,7 @@ gl::Transform3d& gl::ResourceManager::GetTransform(gl::Transform3dId id)
 }
 const gl::Texture& gl::ResourceManager::GetTexture(gl::TextureId id) const
 {
-    assert(id != DEFAULT_ID);
+    if (id == DEFAULT_ID) EngineError("Trying to retireve a non valid Texture!");
 
     const auto match = textures_.find(id);
     if (match != textures_.end())
@@ -47,9 +48,19 @@ const gl::Texture& gl::ResourceManager::GetTexture(gl::TextureId id) const
     }
     else
     {
-        std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": Trying to access a non existent Texture!" << std::endl;
-        abort();
+        EngineError("Trying to retireve a non valid Texture!");
     }
+}
+const std::vector<gl::Texture> gl::ResourceManager::GetTextures(std::vector<TextureId> ids) const
+{
+    std::vector<Texture> returnVal = std::vector<Texture>(ids.size());
+    for (size_t i = 0; i < ids.size(); i++)
+    {
+        if (ids[i] == DEFAULT_ID) EngineError("Trying to retireve a non valid Texture!");
+
+        returnVal[i] = GetTexture(ids[i]);
+    }
+    return returnVal;
 }
 const gl::Material& gl::ResourceManager::GetMaterial(gl::MaterialId id) const
 {
@@ -111,40 +122,20 @@ const gl::Skybox& gl::ResourceManager::GetSkybox(SkyboxId id) const
         abort();
     }
 }
-gl::Shader& gl::ResourceManager::GetShader(gl::ShaderId id)
+int gl::ResourceManager::GetUniformName(std::string_view strName, unsigned int gpuProgramName)
 {
-    assert(id != DEFAULT_ID);
-
-    auto match = shaders_.find(id);
-    if (match != shaders_.end())
+    const auto match = uniformNames_.find(std::to_string(gpuProgramName) + strName.data());
+    if (match != uniformNames_.end()) // Name of uniform already known, use it.
     {
         return match->second;
     }
     else
     {
-        std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": Trying to access a non existent Shader!" << std::endl;
-        abort();
+        const int uniformIntName = glGetUniformLocation(gpuProgramName, strName.data());
+        CheckGlError();
+        uniformNames_.insert({ std::to_string(gpuProgramName) + strName.data(), uniformIntName }); // Add the new entry.
+        return uniformIntName;
     }
-}
-std::vector<gl::Shader> gl::ResourceManager::GetShaders(const std::vector<gl::ShaderId>& ids) const
-{
-    std::vector<Shader> returnVal;
-    for (const auto& id : ids)
-    {
-        assert(id != DEFAULT_ID);
-
-        const auto match = shaders_.find(id);
-        if (match != shaders_.end())
-        {
-            returnVal.push_back(match->second);
-        }
-        else
-        {
-            std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": Trying to access a non existent Shader!" << std::endl;
-            abort();
-        }
-    }
-    return returnVal;
 }
 const gl::VertexBuffer& gl::ResourceManager::GetVertexBuffer(gl::VertexBufferId id) const
 {
@@ -180,42 +171,40 @@ const gl::Framebuffer& gl::ResourceManager::GetFramebuffer(gl::FramebufferId id)
         abort();
     }
 }
-std::vector<gl::Mesh> gl::ResourceManager::GetMeshes(const std::vector<gl::MeshId>&ids) const
+const std::vector<gl::Mesh> gl::ResourceManager::GetMeshes(const std::vector<gl::MeshId>&ids) const
 {
-    std::vector<Mesh> returnVal;
-    for (const auto& id : ids)
+    std::vector<Mesh> returnVal = std::vector<Mesh>(ids.size());
+    for (size_t i = 0; i < ids.size(); i++)
     {
-        assert(id != DEFAULT_ID);
+        if (ids[i] == DEFAULT_ID) EngineError("Trying to retireve a non valid Mesh!");
 
-        const auto match = meshes_.find(id);
-        if (match != meshes_.end())
-        {
-            returnVal.push_back(match->second);
-        }
-        else
-        {
-            std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": Trying to access a non existent Mesh!" << std::endl;
-            abort();
-        }
+        returnVal[i] = GetMesh(ids[i]);
     }
     return returnVal;
 }
-gl::Mesh gl::ResourceManager::GetMesh(gl::MeshId id) const
+const gl::Mesh gl::ResourceManager::GetMesh(gl::MeshId id) const
 {
     assert(id != DEFAULT_ID);
 
-    const auto match = meshes_.find(id);
-    if (match != meshes_.end())
+    const auto opaqueMatch = opaqueMeshes_.find(id);
+    if (opaqueMatch != opaqueMeshes_.end())
     {
-        return match->second;
+        return opaqueMatch->second;
     }
     else
     {
-        std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": Trying to access a non existent Mesh!" << std::endl;
-        abort();
+        const auto transparentMatch = transparentMeshes_.find(id);
+        if (transparentMatch != transparentMeshes_.end())
+        {
+            return transparentMatch->second;
+        }
+        else
+        {
+            EngineError("Trying to access a non existent Mesh!");
+        }
     }
 }
-gl::ModelId gl::ResourceManager::CreateResource(const gl::ResourceManager::ModelDefinition def)
+gl::ModelId gl::ResourceManager::CreateResource(const gl::Model::Definition def)
 {
     // Accumulate relevant data into a string for hashing.
     std::string accumulatedData = "";
@@ -223,7 +212,7 @@ gl::ModelId gl::ResourceManager::CreateResource(const gl::ResourceManager::Model
     {
         accumulatedData += std::to_string(id);
     }
-    accumulatedData += std::to_string(def.transform);
+    // Note: we don't take into account the transform models.
 
     const XXH32_hash_t hash = XXH32(accumulatedData.c_str(), sizeof(char) * accumulatedData.size(), HASHING_SEED);
     assert(hash != UINT_MAX); // We aren't handling this issue...
@@ -235,25 +224,47 @@ gl::ModelId gl::ResourceManager::CreateResource(const gl::ResourceManager::Model
     }
 
     gl::Model model;
-    model.id_ = hash;
     model.meshes_ = def.meshes;
-    model.transform_ = def.transform;
+    model.modelMatrices_ = def.modelMatrices;
 
-    // Call onInit of all shaders.
-    auto shaders = GetShaders(model.GetShaderIds());
-    for (auto& shader : shaders)
+    // Create a vbo for the model matrices.
+    glGenBuffers(1, &model.modelMatricesVBO_);
+    glBindBuffer(GL_ARRAY_BUFFER, model.modelMatricesVBO_);
+    glBufferData(GL_ARRAY_BUFFER, model.modelMatrices_.size() * sizeof(glm::mat4), &model.modelMatrices_[0], GL_DYNAMIC_DRAW);
+
+    const auto& meshes = GetMeshes(model.meshes_);
+    for (size_t i = 0; i < meshes.size(); i++)
     {
-        shader.Bind();
-        shader.OnInit(model);
+        const VertexBuffer& vb = GetVertexBuffer(meshes[i].vertexBuffer_);
+        glBindVertexArray(vb.VAO_);
+        CheckGlError();
+        const size_t vec4Size = sizeof(glm::vec4);
+        glEnableVertexAttribArray(MODEL_MATRIX_LOCATION);
+        glVertexAttribPointer(MODEL_MATRIX_LOCATION, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)0);
+        glEnableVertexAttribArray(MODEL_MATRIX_LOCATION + 1);
+        glVertexAttribPointer(MODEL_MATRIX_LOCATION + 1, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)vec4Size);
+        glEnableVertexAttribArray(MODEL_MATRIX_LOCATION + 2);
+        glVertexAttribPointer(MODEL_MATRIX_LOCATION + 2, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(2 * vec4Size));
+        glEnableVertexAttribArray(MODEL_MATRIX_LOCATION + 3);
+        glVertexAttribPointer(MODEL_MATRIX_LOCATION + 3, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(3 * vec4Size));
+        CheckGlError();
+        glVertexAttribDivisor(MODEL_MATRIX_LOCATION, 1);
+        glVertexAttribDivisor(MODEL_MATRIX_LOCATION + 1, 1);
+        glVertexAttribDivisor(MODEL_MATRIX_LOCATION + 2, 1);
+        glVertexAttribDivisor(MODEL_MATRIX_LOCATION + 3, 1);
+        CheckGlError();
+        glBindVertexArray(0);
+        CheckGlError();
     }
-    gl::Shader::Unbind();
 
     models_.insert({ hash, model });
 
     return hash;
 }
-gl::MeshId gl::ResourceManager::CreateResource(const gl::ResourceManager::MeshDefinition def)
+gl::MeshId gl::ResourceManager::CreateResource(const gl::Mesh::Definition def)
 {
+    // TODO: put the transparent meshes into the proper map.
+
     // Accumulate relevant data into a string for hashing.
     std::string accumulatedData = "";
     accumulatedData += std::to_string(def.material);
@@ -269,36 +280,198 @@ gl::MeshId gl::ResourceManager::CreateResource(const gl::ResourceManager::MeshDe
     }
 
     Mesh mesh;
-    mesh.id_ = hash;
     mesh.vertexBuffer_ = def.vertexBuffer;
     mesh.material_ = def.material;
 
-    meshes_.insert({ hash, mesh });
+    opaqueMeshes_.insert({ hash, mesh });
 
     return hash;
 }
-gl::ShaderId gl::ResourceManager::CreateResource(const gl::ResourceManager::ShaderDefinition def)
+gl::MaterialId gl::ResourceManager::CreateResource(const gl::Material::Definition def)
 {
-    // Accumulate relevant data into a string for hashing.
+    // Accumulate all the relevant data in a single string for hashing.
     std::string accumulatedData = "";
     accumulatedData += def.vertexPath;
     accumulatedData += def.fragmentPath;
-    // NOTE: not taking into account the code of onInit and onDraw for hashing!
+    accumulatedData += std::to_string(def.correctGamma);
+    accumulatedData += std::to_string(def.flipImages);
+    accumulatedData += std::to_string(def.useHdr);
+
+    for (const auto& pair : def.texturePathsAndTypes)
+    {
+        accumulatedData += pair.first;
+        accumulatedData += (int)pair.second;
+    }
+    for (const auto& pair : def.staticFloats)
+    {
+        accumulatedData += pair.first; // Name of shader variable.
+        accumulatedData += std::to_string(pair.second);
+    }
+    for (const auto& pair : def.staticInts)
+    {
+        accumulatedData += pair.first;
+        accumulatedData += std::to_string(pair.second);
+    }
+    for (const auto& pair : def.staticMat4s)
+    {
+        accumulatedData += pair.first;
+
+        accumulatedData += std::to_string(pair.second[0][0]);
+        accumulatedData += std::to_string(pair.second[0][1]);
+        accumulatedData += std::to_string(pair.second[0][2]);
+        accumulatedData += std::to_string(pair.second[0][3]);
+
+        accumulatedData += std::to_string(pair.second[1][0]);
+        accumulatedData += std::to_string(pair.second[1][1]);
+        accumulatedData += std::to_string(pair.second[1][2]);
+        accumulatedData += std::to_string(pair.second[1][3]);
+
+        accumulatedData += std::to_string(pair.second[2][0]);
+        accumulatedData += std::to_string(pair.second[2][1]);
+        accumulatedData += std::to_string(pair.second[2][2]);
+        accumulatedData += std::to_string(pair.second[2][3]);
+
+        accumulatedData += std::to_string(pair.second[3][0]);
+        accumulatedData += std::to_string(pair.second[3][1]);
+        accumulatedData += std::to_string(pair.second[3][2]);
+        accumulatedData += std::to_string(pair.second[3][3]);
+    }
+    for (const auto& pair : def.staticVec3s)
+    {
+        accumulatedData += pair.first;
+        accumulatedData += std::to_string(pair.second[0]);
+        accumulatedData += std::to_string(pair.second[1]);
+        accumulatedData += std::to_string(pair.second[2]);
+    }
+    for (const auto& pair : def.dynamicFloats)
+    {
+        accumulatedData += pair.first;
+        accumulatedData += std::to_string((size_t)&pair.second); // addr of variable being referenced.
+    }
+    for (const auto& pair : def.dynamicInts)
+    {
+        accumulatedData += pair.first;
+        accumulatedData += std::to_string((size_t)&pair.second);
+    }
+    for (const auto& pair : def.dynamicMat4s)
+    {
+        accumulatedData += pair.first;
+        accumulatedData += std::to_string((size_t)&pair.second);
+    }
+    for (const auto& pair : def.dynamicVec3s)
+    {
+        accumulatedData += pair.first;
+        accumulatedData += std::to_string((size_t)&pair.second);
+    }
 
     const XXH32_hash_t hash = XXH32(accumulatedData.c_str(), sizeof(char) * accumulatedData.size(), HASHING_SEED);
     assert(hash != UINT_MAX); // We aren't handling this issue...
+    // NOTE: What happens if the hash value overflows? def.ambientMap is a random uint32_t generated by the hasing function, so if you add multiple maps together, it will overflow...
 
-    if (IsShaderIdValid(hash))
+    if (IsMaterialIdValid(hash))
     {
-        std::cout << "WARNING: attempting to create a new Shader with data identical to an existing one. Returning the id of the existing one instead." << std::endl;
+        std::cout << "WARNING: attempting to create a new Material with data identical to an existing one. Returning the id of the existing one instead." << std::endl;
         return hash;
     }
+    gl::Material material;
+    material.staticFloats_ = def.staticFloats;
+    material.staticInts_ = def.staticInts;
+    material.staticMat4s_ = def.staticMat4s;
+    material.staticVec3s_ = def.staticVec3s;
+    material.dynamicFloats_ = def.dynamicFloats;
+    material.dynamicInts_ = def.dynamicInts;
+    material.dynamicMat4s_ = def.dynamicMat4s;
+    material.dynamicVec3s_ = def.dynamicVec3s;
+    
+    std::vector<TextureId> texIds = std::vector<TextureId>(def.texturePathsAndTypes.size(), DEFAULT_ID);
+    for (size_t i = 0; i < def.texturePathsAndTypes.size(); i++)
+    {
+        if (def.texturePathsAndTypes[i].second == Texture::Type::CUBEMAP)
+        {
+            if (def.texturePathsAndTypes[i + 1].second != Texture::Type::CUBEMAP ||
+                def.texturePathsAndTypes[i + 2].second != Texture::Type::CUBEMAP || 
+                def.texturePathsAndTypes[i + 3].second != Texture::Type::CUBEMAP || 
+                def.texturePathsAndTypes[i + 4].second != Texture::Type::CUBEMAP || 
+                def.texturePathsAndTypes[i + 5].second != Texture::Type::CUBEMAP)
+            {
+                EngineError("There needs to be 6 textures for a cubemap to function!");
+            }
+            else
+            {
+                Texture::Definition tdef;
+                tdef.correctGamma = def.correctGamma;
+                tdef.flipImage = def.flipImages;
+                tdef.useHdr = def.useHdr;
+                tdef.paths =
+                {
+                    def.texturePathsAndTypes[i].first,
+                    def.texturePathsAndTypes[i + 1].first,
+                    def.texturePathsAndTypes[i + 2].first,
+                    def.texturePathsAndTypes[i + 3].first,
+                    def.texturePathsAndTypes[i + 4].first,
+                    def.texturePathsAndTypes[i + 5].first
+                };
+                tdef.textureType = Texture::Type::CUBEMAP;
+                texIds[i] = CreateResource(tdef);
+                i += 6; // Don't try to load the other components of the cubemap again.
+                material.staticInts_.insert({CUBEMAP_SAMPLER_NAME, CUBEMAP_TEXTURE_UNIT});
+            }
+        }
+        else
+        {
+            Texture::Definition tdef;
+            tdef.correctGamma = def.correctGamma;
+            tdef.flipImage = def.flipImages;
+            tdef.useHdr = def.useHdr;
+            tdef.paths = { def.texturePathsAndTypes[i].first };
+            tdef.textureType = def.texturePathsAndTypes[i].second;
+            texIds[i] = CreateResource(tdef);
+            /*switch (tdef.textureType)
+            {
+                case Texture::Type::AMBIENT:
+                    {
+                        material.staticInts_.insert({ AMBIENT_SAMPLER_NAME, AMBIENT_TEXTURE_UNIT });
+                    }break;
+                case Texture::Type::ALPHA:
+                    {
+                        material.staticInts_.insert({ ALPHA_SAMPLER_NAME, ALPHA_TEXTURE_UNIT });
+                    }break;
+                case Texture::Type::DIFFUSE:
+                    {
+                        material.staticInts_.insert({ DIFFUSE_SAMPLER_NAME, DIFFUSE_TEXTURE_UNIT });
+                    }break;
+                case Texture::Type::SPECULAR:
+                    {
+                        material.staticInts_.insert({ SPECULAR_SAMPLER_NAME, SPECULAR_TEXTURE_UNIT });
+                    }break;
+                case Texture::Type::NORMAL:
+                    {
+                        material.staticInts_.insert({ NORMALMAP_SAMPLER_NAME, NORMALMAP_TEXTURE_UNIT });
+                    }break;
+                case Texture::Type::ROUGHNESS:
+                    {
+                        material.staticInts_.insert({ ROUGHNESS_SAMPLER_NAME, ROUGHNESS_TEXTURE_UNIT });
+                    }break;
+                case Texture::Type::METALLIC:
+                    {
+                        material.staticInts_.insert({ METALLIC_SAMPLER_NAME, METALLIC_TEXTURE_UNIT });
+                    }break;
+                case Texture::Type::SHEEN:
+                    {
+                        material.staticInts_.insert({ SHEEN_SAMPLER_NAME, SHEEN_TEXTURE_UNIT });
+                    }break;
+                case Texture::Type::EMISSIVE:
+                    {
+                        material.staticInts_.insert({ EMISSIVE_SAMPLER_NAME, EMISSIVE_TEXTURE_UNIT });
+                    }break;
+                default:
+                    Error("Unexpected Texture::Type!");
+            }*/
+        }
+    }
+    material.textures_ = texIds;
 
-    gl::Shader shader;
-    shader.id_ = hash;
-    shader.onInit_ = def.onInit;
-    shader.onDraw_ = def.onDraw;
-
+    // Load shader.
     std::string vertexCode;
     std::string fragmentCode;
     std::ifstream vShaderFile;
@@ -308,11 +481,11 @@ gl::ShaderId gl::ResourceManager::CreateResource(const gl::ResourceManager::Shad
     fShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
     try
     {
-        vShaderFile.open(def.vertexPath);
-        fShaderFile.open(def.fragmentPath);
+        vShaderFile.open(def.vertexPath.data());
+        fShaderFile.open(def.fragmentPath.data());
 
         // read file's buffer contents into streams
-        std::stringstream vShaderStream, fShaderStream;
+        std::stringstream vShaderStream, fShaderStream, gShaderStream;
         vShaderStream << vShaderFile.rdbuf();
         fShaderStream << fShaderFile.rdbuf();
 
@@ -323,10 +496,9 @@ gl::ShaderId gl::ResourceManager::CreateResource(const gl::ResourceManager::Shad
         vertexCode = vShaderStream.str();
         fragmentCode = fShaderStream.str();
     }
-    catch (std::ifstream::failure& e)
+    catch (std::ifstream::failure&)
     {
-        std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": could not open shader file: " << e.what() << std::endl;
-        abort();
+        EngineError("Could not open shader file!");
     }
 
     const char* vShaderCode = vertexCode.c_str();
@@ -339,7 +511,7 @@ gl::ShaderId gl::ResourceManager::CreateResource(const gl::ResourceManager::Shad
     glShaderSource(vertex, 1, &vShaderCode, NULL);
     glCompileShader(vertex);
     glGetShaderiv(vertex, GL_COMPILE_STATUS, &success);
-    CheckGlError(__FILE__, __LINE__);
+    CheckGlError();
     if (!success)
     {
         glGetShaderInfoLog(vertex, 1024, NULL, infoLog);
@@ -352,7 +524,7 @@ gl::ShaderId gl::ResourceManager::CreateResource(const gl::ResourceManager::Shad
     glCompileShader(fragment);
     glGetShaderiv(fragment, GL_COMPILE_STATUS, &success);
 
-    CheckGlError(__FILE__, __LINE__);
+    CheckGlError();
     if (!success)
     {
         glGetShaderInfoLog(vertex, 1024, NULL, infoLog);
@@ -360,99 +532,56 @@ gl::ShaderId gl::ResourceManager::CreateResource(const gl::ResourceManager::Shad
         abort();
     }
 
-    shader.PROGRAM_ = glCreateProgram();
-    glAttachShader(shader.PROGRAM_, vertex);
-    glAttachShader(shader.PROGRAM_, fragment);
-    glLinkProgram(shader.PROGRAM_);
-    glGetProgramiv(shader.PROGRAM_, GL_LINK_STATUS, &success);
-    CheckGlError(__FILE__, __LINE__);
+    material.PROGRAM_ = glCreateProgram();
+    glAttachShader(material.PROGRAM_, vertex);
+    glAttachShader(material.PROGRAM_, fragment);
+    glLinkProgram(material.PROGRAM_);
+    glGetProgramiv(material.PROGRAM_, GL_LINK_STATUS, &success);
+    CheckGlError();
     if (!success)
     {
-        glGetShaderInfoLog(shader.PROGRAM_, 1024, NULL, infoLog);
+        glGetShaderInfoLog(material.PROGRAM_, 1024, NULL, infoLog);
         std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": shader linker has thrown an exception: " << infoLog << std::endl;
         abort();
     }
 
+    material.OnInit();
+
     glDeleteShader(vertex);
     glDeleteShader(fragment);
     glUseProgram(0);
-    CheckGlError(__FILE__, __LINE__);
-
-    shaders_.insert({ hash, shader });
-    return hash;
-}
-gl::MaterialId gl::ResourceManager::CreateResource(const gl::ResourceManager::MaterialDefinition def)
-{
-    // Accumulate all the relevant data in a single string for hashing.
-    std::string accumulatedData = "";
-    accumulatedData += std::to_string(def.ambientMap);
-    accumulatedData += std::to_string(def.diffuseMap);
-    accumulatedData += std::to_string(def.specularMap);
-    accumulatedData += std::to_string(def.normalMap);
-    accumulatedData += std::to_string(def.ambientColor[0]);
-    accumulatedData += std::to_string(def.ambientColor[1]);
-    accumulatedData += std::to_string(def.ambientColor[2]);
-    accumulatedData += std::to_string(def.diffuseColor[0]);
-    accumulatedData += std::to_string(def.diffuseColor[1]);
-    accumulatedData += std::to_string(def.diffuseColor[2]);
-    accumulatedData += std::to_string(def.specularColor[0]);
-    accumulatedData += std::to_string(def.specularColor[1]);
-    accumulatedData += std::to_string(def.specularColor[2]);
-    accumulatedData += std::to_string(def.shininess);
-    accumulatedData += std::to_string(def.shader);
-
-    const XXH32_hash_t hash = XXH32(accumulatedData.c_str(), sizeof(char) * accumulatedData.size(), HASHING_SEED);
-    assert(hash != UINT_MAX); // We aren't handling this issue...
-    // NOTE: What happens if the hash value overflows? def.ambientMap is a random uint32_t generated by the hasing function, so if you add multiple maps together, it will overflow...
-
-    if (IsMaterialIdValid(hash))
-    {
-        std::cout << "WARNING: attempting to create a new Material with data identical to an existing one. Returning the id of the existing one instead." << std::endl;
-        return hash;
-    }
-    gl::Material material;
-    material.id_ = hash;
-    material.ambientMap_ = def.ambientMap;
-    material.diffuseMap_ = def.diffuseMap;
-    material.specularMap_ = def.specularMap;
-    material.normalMap_ = def.normalMap;
-    material.shader_ = def.shader;
-    material.ambientColor_ = def.ambientColor;
-    material.diffuseColor_ = def.diffuseColor;
-    material.specularColor_ = def.specularColor;
-    material.shininess_ = def.shininess;
+    CheckGlError();
 
     materials_.insert({ hash, material });
     return hash;
 }
-gl::Transform3dId gl::ResourceManager::CreateResource(const gl::ResourceManager::Transform3dDefinition def)
+gl::TransformId gl::ResourceManager::CreateResource(const gl::Transform::Definition def)
 {
     // NOTE: we want transforms to be able to have identical data, so no hashing.
-    gl::Transform3d transform;
+    gl::Transform transform;
     transform.position_ = def.position;
     transform.cardinalsRotation_ = def.cardinalsRotation;
     transform.scale_ = def.scale;
-    transform.quaternion_ = glm::quat(def.cardinalsRotation);
-    transform.model_ = glm::scale(IDENTITY_MAT4, def.scale) * glm::toMat4(transform.quaternion_) * glm::translate(IDENTITY_MAT4, def.position);
-    transform.id_ = (unsigned int)transforms_.size();
+    transform.model_ = glm::translate(IDENTITY_MAT4, def.position);
+    transform.model_ = glm::rotate(transform.model_, transform.cardinalsRotation_.x, RIGHT_VEC3);
+    transform.model_ = glm::rotate(transform.model_, transform.cardinalsRotation_.y, UP_VEC3);
+    transform.model_ = glm::rotate(transform.model_, transform.cardinalsRotation_.z, FRONT_VEC3);
+    transform.model_ = glm::scale(transform.model_, transform.scale_);
 
-    transforms_.insert({transform.id_, transform});
+    unsigned int id = (unsigned int)transforms_.size();
+    transforms_.insert({id, transform});
 
-    return transform.id_;
+    return id;
 }
-gl::FramebufferId gl::ResourceManager::CreateResource(const gl::ResourceManager::FramebufferDefinition def)
+gl::FramebufferId gl::ResourceManager::CreateResource(const gl::Framebuffer::Definition def)
 {
-    if (std::find(def.attachments.begin(), def.attachments.end(), Framebuffer::AttachmentType::COLOR) == def.attachments.end())
-    {
-        std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": framebuffer needs at the very least one color attachment!" << std::endl;
-        abort();
-    }
+    if (!((int)def.attachments & (int)Framebuffer::AttachmentMask::COLOR0)) EngineError("Framebuffer needs at the very least one color attachment!");
 
     std::string accumulatedData = "";
-    accumulatedData += std::to_string(def.hdr);
-    for (const auto& attachment : def.attachments)
+    accumulatedData += std::to_string((int)def.attachments);
+    for (const auto& path : def.shaderPaths)
     {
-        accumulatedData += std::to_string((int)attachment);
+        accumulatedData += path;
     }
 
     const XXH32_hash_t hash = XXH32(accumulatedData.c_str(), sizeof(char) * accumulatedData.size(), HASHING_SEED);
@@ -466,102 +595,95 @@ gl::FramebufferId gl::ResourceManager::CreateResource(const gl::ResourceManager:
     Framebuffer framebuffer;
     framebuffer.attachments_ = def.attachments;
 
-    VertexBufferId vertexBufferId = DEFAULT_ID;
-    {
-        VertexBufferDefinition def;
-        def.data =
-        {   // Positions   // TexCoords
-            -1.0f, -1.0f,   0.0f, 0.0f,
-             1.0f, -1.0f,   1.0f, 0.0f,
-             1.0f,  1.0f,   1.0f, 1.0f,
+    VertexBuffer::Definition vbdef;
+    Material::Definition matdef;
+    Mesh::Definition mdef;
 
-            -1.0f, -1.0f,   0.0f, 0.0f,
-             1.0f,  1.0f,   1.0f, 1.0f,
-            -1.0f,  1.0f,   0.0f, 1.0f
-        };
-        def.dataLayout =
-        {
-            VertexDataTypes::POSITIONS_2D,
-            VertexDataTypes::TEXCOORDS_2D,
-        };
-        vertexBufferId = CreateResource(def);
-    }
-    framebuffer.vertexBuffer_ = vertexBufferId;
+    vbdef.data =
+    {   // Positions   // TexCoords
+        -1.0f, -1.0f,   0.0f, 0.0f,
+         1.0f, -1.0f,   1.0f, 0.0f,
+         1.0f,  1.0f,   1.0f, 1.0f,
 
-    if (def.shader != DEFAULT_ID) // User wants to use own shader.
+        -1.0f, -1.0f,   0.0f, 0.0f,
+         1.0f,  1.0f,   1.0f, 1.0f,
+        -1.0f,  1.0f,   0.0f, 1.0f
+    };
+    vbdef.dataLayout =
     {
-        framebuffer.shader_ = def.shader;
-    }
-    else // User wants to use a default shader.
-    {
-        ShaderId shaderId = DEFAULT_ID;
-        {
-            ShaderDefinition sdef;
-            sdef.vertexPath = def.hdr ? FRAMEBUFFER_HDR_REINHARD_SHADER[0].data() : FRAMEBUFFER_RGB_SHADER[0].data();
-            sdef.fragmentPath = def.hdr ? FRAMEBUFFER_HDR_REINHARD_SHADER[1].data() : FRAMEBUFFER_RGB_SHADER[1].data();
-            sdef.onInit = [](Shader& shader, const Model& model)->void
-            {
-                shader.SetInt(FRAMEBUFFER_SAMPLER_NAME.data(), FRAMEBUFFER_SAMPLER_TEXTURE_UNIT);
-            };
-            shaderId = CreateResource(sdef);
-        }
-        framebuffer.shader_ = shaderId;
-    }
-    // Init shader here since it's not linked to any material.
-    Shader& shader = shaders_[framebuffer.shader_];
-    const Model dummyModel = {};
-    shader.Bind();
-    shader.OnInit(dummyModel); // Can pass it a dummy model since the lambda doesn't use it anyways.
+        2, // Positions
+        2 // Texcoords
+    };
+
+    matdef.correctGamma = false; // Framebuffers have no input.
+    matdef.flipImages = false;
+    matdef.useHdr = true; // NOTE: we're always using hdr for framebuffers by default.
+    matdef.texturePathsAndTypes.push_back({"", Texture::Type::FRAMEBUFFER}); // A framebuffer doesn't have any images to load.
+    matdef.vertexPath = def.shaderPaths[0];
+    matdef.fragmentPath = def.shaderPaths[1];
+    matdef.staticInts.insert({FRAMEBUFFER_SAMPLER_NAME, FRAMEBUFFER_TEXTURE_UNIT}); // To init fbTexture sampler
 
     glGenFramebuffers(1, &framebuffer.FBO_);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.FBO_);
 
-    // Important that this creation is right after the binding of the framebuffer!
-    TextureId textureId = DEFAULT_ID;
-    {
-        TextureDefinition tdef;
-        tdef.samplerTextureUnitPair = { FRAMEBUFFER_SAMPLER_NAME.data(), FRAMEBUFFER_SAMPLER_TEXTURE_UNIT };
-        tdef.hdr = def.hdr;
-        textureId = CreateResource(tdef);
-    }
-    framebuffer.texture_ = textureId;
+    // NOTE: It's important to call CreateResource for the texture to be after glBindFramebuffer()!
+    mdef.vertexBuffer = CreateResource(vbdef);
+    mdef.material = CreateResource(matdef);
+    framebuffer.mesh_ = CreateResource(mdef);
 
-    glGenRenderbuffers(1, &framebuffer.RBO_);
-    glBindRenderbuffer(GL_RENDERBUFFER, framebuffer.RBO_); // Only viable target is GL_RENDERBUFFER, making this type of argument completely redundant... thanks gl.
-    if (std::find(def.attachments.begin(), def.attachments.end(), Framebuffer::AttachmentType::DEPTH24_STENCIL8) != def.attachments.end())
+    if ((int)framebuffer.attachments_ & (int)Framebuffer::AttachmentMask::DEPTH24 && (int)framebuffer.attachments_ & (int)Framebuffer::AttachmentMask::STENCIL8) // Case color + depth + stencil
     {
-        // Note: using a render buffer with dimensions identical to our screen.
+        glGenRenderbuffers(1, &framebuffer.RBO_);
+        glBindRenderbuffer(GL_RENDERBUFFER, framebuffer.RBO_); // Only viable target is GL_RENDERBUFFER, making this type of argument completely redundant... thanks gl.
         glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, (GLsizei)SCREEN_RESOLUTION[0], (GLsizei)SCREEN_RESOLUTION[1]);
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, framebuffer.RBO_);
     }
+    else if ((int)framebuffer.attachments_ & (int)Framebuffer::AttachmentMask::DEPTH24) // case color + depth
+    {
+        glGenRenderbuffers(1, &framebuffer.RBO_);
+        glBindRenderbuffer(GL_RENDERBUFFER, framebuffer.RBO_);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, (GLsizei)SCREEN_RESOLUTION[0], (GLsizei)SCREEN_RESOLUTION[1]);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, framebuffer.RBO_);
+    }
+    else if ((int)framebuffer.attachments_ & (int)Framebuffer::AttachmentMask::STENCIL8) // case color + stencil
+    {
+        glGenRenderbuffers(1, &framebuffer.RBO_);
+        glBindRenderbuffer(GL_RENDERBUFFER, framebuffer.RBO_);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_STENCIL_INDEX8, (GLsizei)SCREEN_RESOLUTION[0], (GLsizei)SCREEN_RESOLUTION[1]);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, framebuffer.RBO_);
+    }
+
     assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     framebuffers_.insert({hash, framebuffer});
-    CheckGlError(__FILE__, __LINE__);
+    CheckGlError();
 
     return hash;
 }
-gl::CameraId gl::ResourceManager::CreateResource(const CameraDefinition def)
+gl::CameraId gl::ResourceManager::CreateResource(const gl::Camera::Definition def)
 {
     // NOTE: no checking for duplicates of cameras, we don't mind them having identical data.
     Camera camera;
-    camera.state_.position_ = def.position;
-    camera.state_.front_ = def.front;
-    camera.state_.up_ = def.up;
-    camera.state_.yaw_ = glm::radians(-90.0f); // We want the camera facing -Z.
-    camera.state_.pitch_ = def.pitch;
-    camera.UpdateCameraVectors_();
+    camera.state_.position = def.position;
+    camera.state_.front = def.front;
+    camera.state_.up = def.up;
+    camera.state_.yaw = glm::radians(-90.0f); // We want the camera facing -Z.
+    camera.state_.pitch = def.pitch;
+    camera.UpdateCameraVectors();
 
-    CameraId id = cameras_.size();
+    CameraId id = (unsigned int)cameras_.size();
     cameras_.insert({id, camera});
 
     return id;
 }
-gl::TextureId gl::ResourceManager::CreateResource(const gl::ResourceManager::TextureDefinition def)
+gl::TextureId gl::ResourceManager::CreateResource(const gl::Texture::Definition def, unsigned int nrOfFramebufferColorAttachments)
 {
-    // TODO: Currently, if the textures differ only in texture units / sampler names, the image is still loaded, resulting in duplicated data on the gpu. Ex: diffuse and ambient
+    for (const auto& path : def.paths)
+    {
+        if (path.empty()) EngineError("A path contained in Texture::Definition::paths is empty!");
+    }
 
     // Accumulate all the relevant data in a single string for hashing.
     std::string accumulatedData = "";
@@ -569,12 +691,10 @@ gl::TextureId gl::ResourceManager::CreateResource(const gl::ResourceManager::Tex
     {
         accumulatedData += path;
     }
-    accumulatedData += def.samplerTextureUnitPair.first;
-    accumulatedData += std::to_string(def.samplerTextureUnitPair.second);
     accumulatedData += std::to_string(def.flipImage);
     accumulatedData += std::to_string(def.correctGamma);
-    accumulatedData += std::to_string(def.textureType);
-    accumulatedData += std::to_string(def.hdr);
+    accumulatedData += std::to_string((int)def.textureType);
+    accumulatedData += std::to_string(def.useHdr);
 
     const XXH32_hash_t hash = XXH32(accumulatedData.c_str(), sizeof(char) * accumulatedData.size(), HASHING_SEED);
     assert(hash != UINT_MAX); // We aren't handling this issue...
@@ -585,58 +705,53 @@ gl::TextureId gl::ResourceManager::CreateResource(const gl::ResourceManager::Tex
         return hash;
     }
     gl::Texture texture;
-    texture.id_ = hash;
     texture.textureType_ = def.textureType;
-    texture.samplerTextureUnitPair_ = def.samplerTextureUnitPair;
 
     stbi_set_flip_vertically_on_load(def.flipImage);
     int width, height, nrChannels;
     unsigned char* data = nullptr;
 
     glGenTextures(1, &texture.TEX_);
-    CheckGlError(__FILE__, __LINE__);
-    glBindTexture(def.textureType, texture.TEX_);
+    CheckGlError();
+    glBindTexture((texture.textureType_ == Texture::Type::CUBEMAP) ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D, texture.TEX_);
 
-    if (def.textureType == GL_TEXTURE_2D)
+    if (texture.textureType_ != Texture::Type::CUBEMAP &&
+        texture.textureType_ != Texture::Type::FRAMEBUFFER)
     {
-        if (def.paths.size() > 0)
+        if (def.paths.size() < 1) EngineError("No texture paths specified for a non Framebuffer texture!");
+        
+        data = stbi_load(def.paths[0].data(), &width, &height, &nrChannels, 0);
+        assert(data);
+
+        if (nrChannels == 1 || nrChannels == 2)
         {
-            data = stbi_load(def.paths[0].c_str(), &width, &height, &nrChannels, 0);
-            assert(data);
-
-            int imageColorFormat, gpuColorFormat = 0;
-            if (nrChannels == 1)
-            {
-                imageColorFormat = GL_RED;
-                gpuColorFormat = GL_RED;
-            }
-            else if (nrChannels == 3)
-            {
-                imageColorFormat = def.correctGamma ? GL_SRGB8 : GL_RGB8;
-                gpuColorFormat = GL_RGB;
-            }
-            else if (nrChannels == 4)
-            {
-                imageColorFormat = def.correctGamma ? GL_SRGB8_ALPHA8 : GL_RGBA8;
-                gpuColorFormat = GL_RGBA;
-            }
-            else
-            {
-                std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": nrChannels retrieved from " << def.paths[0] << " is not valid: " << nrChannels << std::endl;
-                abort();
-            }
-
-            glTexImage2D(GL_TEXTURE_2D, 0, imageColorFormat, width, height, 0, gpuColorFormat, GL_UNSIGNED_BYTE, data);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glGenerateMipmap(GL_TEXTURE_2D);
+            EngineError("We're not handling monochrome nor bichrome textures!");
         }
-        else // No path for texture means it's a texture being used by a framebuffer.
+        else if (nrChannels == 4)
         {
-            // NOTE: texture used is of same size as our screen.
-            if (def.hdr)
+            EngineError("We're not handling alpha via RGBA! Make a separate alpha map if you want to use transparency and ensure all textures are in RGB!");
+        }
+        else
+        {
+            EngineError("Unexpected number of channels in image being loaded!");
+        }
+
+        glTexImage2D(GL_TEXTURE_2D, 0, def.correctGamma ? GL_SRGB8 : GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        CheckGlError();
+        stbi_image_free(data);
+    }
+    else if (texture.textureType_ == Texture::Type::FRAMEBUFFER)
+    {
+        // NOTE: texture used is of same size as our screen.
+        if (nrOfFramebufferColorAttachments < 1 || nrOfFramebufferColorAttachments > 6) EngineError("Unexpected number of framebuffer color attachments!");
+        for (unsigned int i = 0; i < nrOfFramebufferColorAttachments; i++) // 6 color attachment max.
+        {
+            if (def.useHdr)
             {
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, (GLsizei)SCREEN_RESOLUTION[0], (GLsizei)SCREEN_RESOLUTION[1], 0, GL_RGB, GL_FLOAT, nullptr);
             }
@@ -644,46 +759,37 @@ gl::TextureId gl::ResourceManager::CreateResource(const gl::ResourceManager::Tex
             {
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, (GLsizei)SCREEN_RESOLUTION[0], (GLsizei)SCREEN_RESOLUTION[1], 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
             }
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture.TEX_, 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, texture.TEX_, 0);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            CheckGlError();
         }
 
-        stbi_image_free(data);
-        CheckGlError(__FILE__, __LINE__);
     }
-    else if (def.textureType == GL_TEXTURE_CUBE_MAP)
+    else if (texture.textureType_ == Texture::Type::CUBEMAP)
     {
-        assert(def.paths.size() == 6);
+        if (def.paths.size() != 6) EngineError("Unexpected number of textures for a cubemap!");
+        
         for (unsigned int i = 0; i < 6; i++)
         {
-            data = stbi_load(def.paths[i].c_str(), &width, &height, &nrChannels, 0);
+            data = stbi_load(def.paths[i].data(), &width, &height, &nrChannels, 0);
             assert(data);
 
-            int imageColorFormat, gpuColorFormat = 0;
-            if (nrChannels == 1)
+            if (nrChannels == 1 || nrChannels == 2)
             {
-                imageColorFormat = GL_RED;
-                gpuColorFormat = GL_RED;
-            }
-            else if (nrChannels == 3)
-            {
-                imageColorFormat = def.correctGamma ? GL_SRGB : GL_RGB;
-                gpuColorFormat = GL_RGB;
+                EngineError("We're not handling monochrome nor bichrome textures!");
             }
             else if (nrChannels == 4)
             {
-                imageColorFormat = def.correctGamma ? GL_SRGB8_ALPHA8 : GL_RGBA;
-                gpuColorFormat = GL_RGBA;
+                EngineError("The code is not designed for transparent skyboxes! Ensure the skybox textures are in RGB!");
             }
             else
             {
-                std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": nrChannels retrieved from " << def.paths[0] << " is not valid: " << nrChannels << std::endl;
-                abort();
+                EngineError("Unexpected number of channels in image being loaded!");
             }
 
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, imageColorFormat, width, height, 0, gpuColorFormat, GL_UNSIGNED_BYTE, data);
-            CheckGlError(__FILE__, __LINE__);
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, def.correctGamma ? GL_SRGB : GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+            CheckGlError();
             stbi_image_free(data);
         }
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -691,144 +797,125 @@ gl::TextureId gl::ResourceManager::CreateResource(const gl::ResourceManager::Tex
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-        CheckGlError(__FILE__, __LINE__);
-    }
-    else
-    {
-        std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": Trying to create a Texture with an invalid textureType!" << std::endl;
-        abort();
+        CheckGlError();
     }
 
     glBindTexture(GL_TEXTURE_2D, 0);
-    CheckGlError(__FILE__, __LINE__);
+    CheckGlError();
 
     textures_.insert({ hash, texture });
+
     return hash;
 }
-gl::SkyboxId gl::ResourceManager::CreateResource(const SkyboxDefinition def)
+gl::SkyboxId gl::ResourceManager::CreateResource(const gl::Skybox::Definition def)
 {
     // Accumulate all the relevant data in a single string for hashing.
     std::string accumulatedData = "";
-    accumulatedData += def.paths.right;
-    accumulatedData += def.paths.left;
-    accumulatedData += def.paths.top;
-    accumulatedData += def.paths.bottom;
-    accumulatedData += def.paths.front;
-    accumulatedData += def.paths.back;
-    accumulatedData += std::to_string(def.shader);
+    if (def.paths.size() != 6) EngineError("Skybox::Definition::paths does not contain 6 texture paths!");
+    accumulatedData += def.paths[0];
+    accumulatedData += def.paths[1];
+    accumulatedData += def.paths[2];
+    accumulatedData += def.paths[3];
+    accumulatedData += def.paths[4];
+    accumulatedData += def.paths[5];
+    accumulatedData += def.shader[0];
+    accumulatedData += def.shader[1];
+    accumulatedData += std::to_string(def.correctGamma);
+    accumulatedData += std::to_string(def.flipImages);
 
     const XXH32_hash_t hash = XXH32(accumulatedData.c_str(), sizeof(char) * accumulatedData.size(), HASHING_SEED);
     assert(hash != UINT_MAX); // We aren't handling this issue...
 
-    if (IsFramebufferValid(hash))
+    if (IsSkyboxValid(hash))
     {
         std::cout << "WARNING: attempting to create a new Skybox with data identical to an existing one. Returning the id of the existing one instead." << std::endl;
         return hash;
     }
+
+    VertexBuffer::Definition vbdef;
+    VertexBufferId vbId = DEFAULT_ID;
+    Material::Definition matdef;
+    MaterialId matId = DEFAULT_ID;
+    Mesh::Definition mdef;
+    MeshId meshId = DEFAULT_ID;
+
+    vbdef.data =
+    {
+        // Vertex positions AND 3d tex coords simulataneously since it's a cube centered on origin.
+        -1.0f,  1.0f, -1.0f,
+        -1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+
+        -1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+
+        -1.0f, -1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+
+        -1.0f,  1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f, -1.0f,
+
+        -1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f
+    };
+    vbdef.dataLayout =
+    {
+        3 // Pos / texcoords
+    };
+    vbId = CreateResource(vbdef);
+    
+    matdef.vertexPath = def.paths[0];
+    matdef.fragmentPath = def.paths[1];
+    for (const auto& path : def.paths)
+    {
+        matdef.texturePathsAndTypes.push_back({path, Texture::Type::CUBEMAP});
+    }
+    matdef.correctGamma = def.correctGamma;
+    matdef.flipImages = def.flipImages;
+    matdef.useHdr = false; // No sense in using hdr for a skybox texture.
+    matdef.staticInts.insert({CUBEMAP_SAMPLER_NAME.data(), CUBEMAP_TEXTURE_UNIT});
+    matdef.staticMat4s.insert({PROJECTION_MARIX_NAME, PERSPECTIVE});
+    matdef.dynamicMat4s.insert({VIEW_MARIX_NAME, cameras_[0].GetViewMatrix()}); // NOTE: this means a skybox can only be related to the default camera!
+    matId = CreateResource(matdef);
+    
+    mdef.vertexBuffer = vbId;
+    mdef.material = matId;
+    meshId = CreateResource(mdef);
+
     Skybox skybox;
-
-    {
-        VertexBufferDefinition def;
-        def.data =
-        {
-            -1.0f,  1.0f, -1.0f,
-            -1.0f, -1.0f, -1.0f,
-             1.0f, -1.0f, -1.0f,
-             1.0f, -1.0f, -1.0f,
-             1.0f,  1.0f, -1.0f,
-            -1.0f,  1.0f, -1.0f,
-
-            -1.0f, -1.0f,  1.0f,
-            -1.0f, -1.0f, -1.0f,
-            -1.0f,  1.0f, -1.0f,
-            -1.0f,  1.0f, -1.0f,
-            -1.0f,  1.0f,  1.0f,
-            -1.0f, -1.0f,  1.0f,
-
-             1.0f, -1.0f, -1.0f,
-             1.0f, -1.0f,  1.0f,
-             1.0f,  1.0f,  1.0f,
-             1.0f,  1.0f,  1.0f,
-             1.0f,  1.0f, -1.0f,
-             1.0f, -1.0f, -1.0f,
-
-            -1.0f, -1.0f,  1.0f,
-            -1.0f,  1.0f,  1.0f,
-             1.0f,  1.0f,  1.0f,
-             1.0f,  1.0f,  1.0f,
-             1.0f, -1.0f,  1.0f,
-            -1.0f, -1.0f,  1.0f,
-
-            -1.0f,  1.0f, -1.0f,
-             1.0f,  1.0f, -1.0f,
-             1.0f,  1.0f,  1.0f,
-             1.0f,  1.0f,  1.0f,
-            -1.0f,  1.0f,  1.0f,
-            -1.0f,  1.0f, -1.0f,
-
-            -1.0f, -1.0f, -1.0f,
-            -1.0f, -1.0f,  1.0f,
-             1.0f, -1.0f, -1.0f,
-             1.0f, -1.0f, -1.0f,
-            -1.0f, -1.0f,  1.0f,
-             1.0f, -1.0f,  1.0f
-        };
-        def.dataLayout =
-        {
-            VertexDataTypes::POSITIONS_3D
-        };
-        skybox.vertexBuffer_ = CreateResource(def);
-    }
-
-    {
-        TextureDefinition tdef;
-        tdef.correctGamma = def.correctGamma;
-        tdef.flipImage = def.flipImages;
-        tdef.hdr = def.hdr;
-        tdef.textureType = GL_TEXTURE_CUBE_MAP;
-        tdef.paths =
-        {
-            def.paths.right.data(),
-            def.paths.left.data(),
-            def.paths.top.data(),
-            def.paths.bottom.data(),
-            def.paths.front.data(),
-            def.paths.back.data()
-        };
-        tdef.samplerTextureUnitPair = {CUBEMAP_TEXTURE_NAME.data(), CUBEMAP_SAMPLER_TEXTURE_UNIT};
-        skybox.texture_ = CreateResource(tdef);
-    }
-
-    if (def.shader != DEFAULT_ID)
-    {
-        skybox.shader_ = def.shader;
-    }
-    else // Load default skybox shader.
-    {
-        ShaderDefinition def;
-        def.vertexPath = SKYBOX_SHADER[0];
-        def.fragmentPath = SKYBOX_SHADER[1];
-        def.onInit = [](Shader& shader, const Model& model)->void
-        {
-            shader.SetProjectionMatrix(PERSPECTIVE);
-            shader.SetInt(CUBEMAP_TEXTURE_NAME.data(), CUBEMAP_SAMPLER_TEXTURE_UNIT);
-        };
-        def.onDraw = [](Shader& shader, const Model& model, const Camera& camera)->void
-        {
-            shader.SetViewMatrix(glm::mat4(glm::mat3(camera.GetViewMatrix())));
-        };
-        skybox.shader_ = CreateResource(def);
-    }
-    Shader& shader = shaders_[skybox.shader_];
-    shader.Bind();
-    shader.OnInit(Model{});
-    shader.Unbind();
+    skybox.mesh_ = meshId;
 
     skyboxes_.insert({hash, skybox});
 
     return hash;
 }
-gl::VertexBufferId gl::ResourceManager::CreateResource(const gl::ResourceManager::VertexBufferDefinition def)
+gl::VertexBufferId gl::ResourceManager::CreateResource(const gl::VertexBuffer::Definition def)
 {
     // Hash the data of the buffer and check if it's not loaded already.
     const XXH32_hash_t hash = XXH32(def.data.data(), sizeof(float) * def.data.size(), HASHING_SEED);
@@ -841,72 +928,165 @@ gl::VertexBufferId gl::ResourceManager::CreateResource(const gl::ResourceManager
     }
     // Iterator points to end of the map, meaning no matches were found for this hash, proceed with transfering the data to gpu.
     gl::VertexBuffer buffer;
-    buffer.id_ = hash;
 
-    size_t stride = 0; // Compute stride.
-    for (size_t i = 0; i < def.dataLayout.size(); i++)
-    {
-        switch (def.dataLayout[i])
-        {
-            case gl::ResourceManager::VertexDataTypes::POSITIONS_3D: stride += 3;
-                break;
-            case gl::ResourceManager::VertexDataTypes::POSITIONS_2D: stride += 2;
-                break;
-            case gl::ResourceManager::VertexDataTypes::TEXCOORDS_2D: stride += 2;
-                break;
-            case gl::ResourceManager::VertexDataTypes::TEXCOORDS_3D: stride += 3;
-                break;
-            case gl::ResourceManager::VertexDataTypes::NORMALS: stride += 3;
-                break;
-            default:
-                std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": invalid VertexDataType!" << std::endl;
-                abort();
-        }
-    }
+    const size_t stride = std::accumulate(def.dataLayout.begin(), def.dataLayout.end(), 0);
     buffer.verticesCount_ = (int)(def.data.size() / stride);
 
     // Generate vao/vbo and transfer data to it.
     glGenVertexArrays(1, &buffer.VAO_);
-    CheckGlError(__FILE__, __LINE__);
+    CheckGlError();
     glBindVertexArray(buffer.VAO_);
     glGenBuffers(1, &buffer.VBO_);
-    CheckGlError(__FILE__, __LINE__);
+    CheckGlError();
     glBindBuffer(GL_ARRAY_BUFFER, buffer.VBO_);
     glBufferData(GL_ARRAY_BUFFER, def.data.size() * sizeof(float), def.data.data(), GL_STATIC_DRAW);
-    CheckGlError(__FILE__, __LINE__);
+    CheckGlError();
 
     // Enable the vertex attribute pointers.
     size_t accumulatedOffset = 0;
     for (size_t i = 0; i < def.dataLayout.size(); i++)
     {
-        if (def.dataLayout[i] == VertexDataTypes::POSITIONS_3D ||
-            def.dataLayout[i] == VertexDataTypes::TEXCOORDS_3D ||
-            def.dataLayout[i] == VertexDataTypes::NORMALS)
-        { 
-            glVertexAttribPointer((GLuint)i, 3, GL_FLOAT, GL_FALSE, (GLsizei)(stride * sizeof(float)), (void*)accumulatedOffset);
-            accumulatedOffset += 3 * sizeof(float);
-        }
-        else if (def.dataLayout[i] == VertexDataTypes::POSITIONS_2D ||
-                def.dataLayout[i] == VertexDataTypes::TEXCOORDS_2D)
-        {
-            glVertexAttribPointer((GLuint)i, 2, GL_FLOAT, GL_FALSE, (GLsizei)(stride * sizeof(float)), (void*)accumulatedOffset);
-            accumulatedOffset += 2 * sizeof(float);
-        }
-        else
-        {
-            std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": invalid VertexDataType!" << std::endl;
-            abort();
-        }
+        glVertexAttribPointer((GLuint)i, def.dataLayout[i], GL_FLOAT, GL_FALSE, (GLsizei)(stride * sizeof(float)), (void*)accumulatedOffset);
+        accumulatedOffset += def.dataLayout[i] * sizeof(float);
         glEnableVertexAttribArray((GLuint)i);
-        CheckGlError(__FILE__, __LINE__);
+        CheckGlError();
     }
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
-    CheckGlError(__FILE__, __LINE__);
+    CheckGlError();
 
     vertexBuffers_.insert({ hash, buffer });
     return hash;
+}
+
+std::vector<gl::ResourceManager::ObjData> gl::ResourceManager::ReadObjData(std::string_view path) const
+{
+    std::vector<ObjData> returnVal = {};
+
+    // TODO: currently shaders don't handle normal mapping.
+    // TODO: place transparent meshes last! Right now it's not rendering properly...
+
+    const std::string dir = std::string(path.begin(), path.begin() + path.find_last_of("/") + 1);
+
+    tinyobj::ObjReader reader;
+    tinyobj::ObjReaderConfig config;
+    config.mtl_search_path = dir;
+    config.triangulate = true;
+
+    if (!reader.ParseFromFile(path.data(), config))
+    {
+        std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": could not open obj file at path:\n" << path << "\nAt directory: " << dir << std::endl;
+        abort();
+    }
+    if (!reader.Warning().empty())
+    {
+        std::cout << "WARNING at file: " << __FILE__ << ", line: " << __LINE__ << " : tinyobjloader has raised a warning: " << reader.Warning() << std::endl;
+    }
+
+    const auto& attrib = reader.GetAttrib();
+    const auto& shapes = reader.GetShapes();
+    const auto& materials = reader.GetMaterials();
+    if (materials.size() < 1)
+    {
+        std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": loaded obj has no material!" << std::endl;
+        abort();
+    }
+    returnVal.resize(shapes.size());
+
+    for (size_t i = 0; i < shapes.size(); i++)
+    {
+        const int matId = shapes[i].mesh.material_ids[0]; // 1 mesh = 1 material
+
+        returnVal[i].material.ambientMap = materials[matId].ambient_texname;
+        returnVal[i].material.alphaMap = materials[matId].alpha_texname;
+        returnVal[i].material.diffuseMap = materials[matId].diffuse_texname;
+        returnVal[i].material.specularMap = materials[matId].specular_texname;
+        returnVal[i].material.normalMap = materials[matId].bump_texname;
+        returnVal[i].material.roughnessMap = materials[matId].roughness_texname;
+        returnVal[i].material.metallicMap = materials[matId].metallic_texname;
+        returnVal[i].material.sheenMap = materials[matId].sheen_texname;
+        returnVal[i].material.emissiveMap = materials[matId].emissive_texname;
+        returnVal[i].material.shininess = materials[matId].shininess;
+        returnVal[i].material.ior = materials[matId].ior;
+
+        if (shapes[i].mesh.indices[0].vertex_index < 0 || shapes[i].mesh.indices[0].texcoord_index < 0) EngineError("Obj doesn't contain either position data or texcoord data or both!");
+
+        const size_t numOfFaces = shapes[i].mesh.num_face_vertices.size();
+        for (size_t f = 0; f < (numOfFaces * 3) - 2; f++)
+        {
+            const tinyobj::index_t idx0 = shapes[i].mesh.indices[f + 0];
+            const tinyobj::index_t idx1 = shapes[i].mesh.indices[f + 1];
+            const tinyobj::index_t idx2 = shapes[i].mesh.indices[f + 2];
+
+            // Retrieve pos.
+            const glm::vec3 pos0 =
+            {
+                attrib.vertices[3 * (size_t)idx0.vertex_index + 0],
+                attrib.vertices[3 * (size_t)idx0.vertex_index + 1],
+                attrib.vertices[3 * (size_t)idx0.vertex_index + 2]
+            };
+            const glm::vec3 pos1 =
+            {
+                attrib.vertices[3 * (size_t)idx1.vertex_index + 0],
+                attrib.vertices[3 * (size_t)idx1.vertex_index + 1],
+                attrib.vertices[3 * (size_t)idx1.vertex_index + 2]
+            };
+            const glm::vec3 pos2 =
+            {
+                attrib.vertices[3 * (size_t)idx2.vertex_index + 0],
+                attrib.vertices[3 * (size_t)idx2.vertex_index + 1],
+                attrib.vertices[3 * (size_t)idx2.vertex_index + 2]
+            };
+            const glm::vec3 deltaPos0 = pos1 - pos0;
+            const glm::vec3 deltaPos1 = pos2 - pos1;
+
+            // Retireve uvs.
+            const glm::vec2 uv0 =
+            {
+                attrib.texcoords[2 * (size_t)idx0.texcoord_index + 0],
+                attrib.texcoords[2 * (size_t)idx0.texcoord_index + 1]
+            };
+            const glm::vec2 uv1 =
+            {
+                attrib.texcoords[2 * (size_t)idx1.texcoord_index + 0],
+                attrib.texcoords[2 * (size_t)idx1.texcoord_index + 1]
+            };
+            const glm::vec2 uv2 =
+            {
+                attrib.texcoords[2 * (size_t)idx2.texcoord_index + 0],
+                attrib.texcoords[2 * (size_t)idx2.texcoord_index + 1]
+            };
+            const glm::vec2 deltaUv0 = uv1 - uv0;
+            const glm::vec2 deltaUv1 = uv2 - uv1;
+
+            // Compute normal.
+            const glm::vec3 normal = glm::normalize(glm::cross(deltaPos0, deltaPos1));
+            // Compute tangents.
+            const float F = 1.0f / (deltaUv0.x * deltaUv1.y - deltaUv1.x * deltaUv0.y);
+            const glm::vec3 tangent = // Here be dragons.
+            {
+                F * (deltaUv1.y * deltaPos0.x - deltaUv0.y * deltaPos1.x),
+                F * (deltaUv1.y * deltaPos0.y - deltaUv0.y * deltaPos1.y),
+                F * (deltaUv1.y * deltaPos0.z - deltaUv0.y * deltaPos1.z)
+            };
+
+            // Add the data to the ObjData struct.
+            returnVal[i].positions.push_back(pos0);
+            returnVal[i].positions.push_back(pos1);
+            returnVal[i].positions.push_back(pos2);
+            returnVal[i].texCoords.push_back(uv0);
+            returnVal[i].texCoords.push_back(uv1);
+            returnVal[i].texCoords.push_back(uv2);
+            returnVal[i].normals.push_back(normal);
+            returnVal[i].normals.push_back(normal);
+            returnVal[i].normals.push_back(normal);
+            returnVal[i].tangents.push_back(tangent);
+            returnVal[i].tangents.push_back(tangent);
+            returnVal[i].tangents.push_back(tangent);
+        }
+    }
+    return returnVal;
 }
 
 bool gl::ResourceManager::IsModelIdValid(ModelId id) const
@@ -918,13 +1098,7 @@ bool gl::ResourceManager::IsModelIdValid(ModelId id) const
 bool gl::ResourceManager::IsMeshIdValid(MeshId id) const
 {
     if (id == UINT_MAX) return false;
-    return (meshes_.find(id) != meshes_.end()) ? true : false;
-}
-
-bool gl::ResourceManager::IsShaderIdValid(ShaderId id) const
-{
-    if (id == UINT_MAX) return false;
-    return (shaders_.find(id) != shaders_.end()) ? true : false;
+    return (opaqueMeshes_.find(id) != opaqueMeshes_.end() || transparentMeshes_.find(id) != transparentMeshes_.end()) ? true : false;
 }
 
 bool gl::ResourceManager::IsMaterialIdValid(MaterialId id) const
@@ -933,7 +1107,7 @@ bool gl::ResourceManager::IsMaterialIdValid(MaterialId id) const
     return (materials_.find(id) != materials_.end()) ? true : false;
 }
 
-bool gl::ResourceManager::IsTransform3dIdValid(Transform3dId id) const
+bool gl::ResourceManager::IsTransformIdValid(TransformId id) const
 {
     if (id == UINT_MAX) return false;
     return (id >= 0 && id <= transforms_.size()) ? true : false;
@@ -980,7 +1154,7 @@ void gl::ResourceManager::Shutdown()
     {
         glDeleteTextures(1, &pair.second.TEX_);
     }
-    for (const auto& pair : shaders_)
+    for (const auto& pair : materials_)
     {
         glDeleteShader(pair.second.PROGRAM_);
     }
@@ -989,326 +1163,119 @@ void gl::ResourceManager::Shutdown()
         glDeleteRenderbuffers(1, &pair.second.RBO_);
         glDeleteFramebuffers(1, &pair.second.FBO_);
     }
+    for (const auto& pair : models_)
+    {
+        glDeleteBuffers(1, &pair.second.modelMatricesVBO_);
+    }
 }
 
-std::vector<gl::MeshId> gl::ResourceManager::LoadObj(const std::string_view path, bool flipTextures, bool correctGamma, bool flipUvs)
+// TODO: make this shit more sensible: one obj should not produce multiple ObjDatas....
+gl::ModelId gl::ResourceManager::CreateResource(const std::vector<ObjData> objData, bool flipImages, bool correctGamma)
 {
-    // TODO: currently shaders don't handle normal mapping.
-
-    const std::string dir = std::string(path.begin(), path.begin() + path.find_last_of("/") + 1);
-
-    std::vector<gl::MeshId> returnVal;
-
-    tinyobj::ObjReader reader;
-    tinyobj::ObjReaderConfig config;
-    config.mtl_search_path = dir;
-    config.triangulate = true;
-
-    if (!reader.ParseFromFile(path.data(), config))
+    Model::Definition modef;
+    for (size_t m = 0; m < objData.size(); m++)
     {
-        std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": could not open obj file at path:\n" << path << "\nAt directory: " << dir << std::endl;
-        abort();
+        if (!(objData[m].positions.size() == objData[m].texCoords.size() && objData[m].texCoords.size() == objData[m].normals.size() && objData[m].normals.size() == objData[m].tangents.size())) EngineError("Inconsistent number of vertex components!");
+        if (objData[m].positions.size() < 3 || objData[m].positions.size() % 3 != 0) EngineError("Unexpected number of vertices!"); // % 3 since we're working with triangles.
+
+        // Load vertex data.
+        VertexBuffer::Definition vbdef;
+        Material::Definition matdef;
+        Mesh::Definition mdef;
+
+        // Collapse all the arrays of vertex data into a single array.
+        const size_t sizeOfVerticesData = objData[m].positions.size() * sizeof(glm::vec3) + objData[m].texCoords.size() * sizeof(glm::vec2) + objData[m].normals.size() * sizeof(glm::vec3) + objData[m].tangents.size() * sizeof(glm::vec3);
+        const size_t stride = (objData[m].positions.size() + objData[m].texCoords.size() + objData[m].normals.size() + objData[m].tangents.size()) / sizeOfVerticesData; // TODO: nope
+        std::vector<float> verticesData = std::vector<float>(sizeOfVerticesData);
+        for (size_t startOfVertex = 0; startOfVertex < sizeOfVerticesData; startOfVertex += stride)
+        {
+            // TODO: u sure about this?
+            // Positions.
+            verticesData[startOfVertex + 0] = objData[m].positions[startOfVertex / stride].x;
+            verticesData[startOfVertex + 1] = objData[m].positions[startOfVertex / stride].y;
+            verticesData[startOfVertex + 2] = objData[m].positions[startOfVertex / stride].z;
+            // Texcoords.
+            verticesData[startOfVertex + 3] = objData[m].texCoords[startOfVertex / stride].x;
+            verticesData[startOfVertex + 4] = objData[m].texCoords[startOfVertex / stride].y;
+            // Normals.
+            verticesData[startOfVertex + 5] = objData[m].normals[startOfVertex / stride].x;
+            verticesData[startOfVertex + 6] = objData[m].normals[startOfVertex / stride].y;
+            verticesData[startOfVertex + 7] = objData[m].normals[startOfVertex / stride].z;
+            // Tangents.
+            verticesData[startOfVertex + 8] = objData[m].tangents[startOfVertex / stride].x;
+            verticesData[startOfVertex + 9] = objData[m].tangents[startOfVertex / stride].y;
+            verticesData[startOfVertex + 10] = objData[m].tangents[startOfVertex / stride].z;
+        }
+        vbdef.data = verticesData;
+        vbdef.dataLayout =
+        {
+            3, // pos
+            2, // uv
+            3, // normals
+            3  // tangents
+        };
+
+        matdef.correctGamma = correctGamma;
+        matdef.flipImages = flipImages;
+        matdef.useHdr = false;
+        matdef.vertexPath = ILLUM2_SHADER[0]; // TODO: fix this shit. We need to be able to specify our own shader
+        matdef.fragmentPath = ILLUM2_SHADER[1];
+        if (!objData[m].material.ambientMap.empty())
+        {
+            matdef.texturePathsAndTypes.push_back({ objData[m].material.ambientMap, Texture::Type::AMBIENT });
+            matdef.staticInts.insert({ AMBIENT_SAMPLER_NAME, AMBIENT_TEXTURE_UNIT });
+        }
+        if (!objData[m].material.alphaMap.empty())
+        {
+            matdef.texturePathsAndTypes.push_back({ objData[m].material.alphaMap, Texture::Type::ALPHA });
+            matdef.staticInts.insert({ ALPHA_SAMPLER_NAME, ALPHA_TEXTURE_UNIT });
+        }
+        if (!objData[m].material.diffuseMap.empty())
+        {
+            matdef.texturePathsAndTypes.push_back({ objData[m].material.diffuseMap, Texture::Type::DIFFUSE });
+            matdef.staticInts.insert({ DIFFUSE_SAMPLER_NAME, DIFFUSE_TEXTURE_UNIT });
+        }
+        if (!objData[m].material.specularMap.empty())
+        {
+            matdef.texturePathsAndTypes.push_back({ objData[m].material.specularMap, Texture::Type::SPECULAR });
+            matdef.staticInts.insert({ SPECULAR_SAMPLER_NAME, SPECULAR_TEXTURE_UNIT });
+        }
+        if (!objData[m].material.normalMap.empty())
+        {
+            matdef.texturePathsAndTypes.push_back({ objData[m].material.normalMap, Texture::Type::NORMALMAP });
+            matdef.staticInts.insert({ NORMALMAP_SAMPLER_NAME, NORMALMAP_TEXTURE_UNIT });
+        }
+        if (!objData[m].material.roughnessMap.empty())
+        {
+            matdef.texturePathsAndTypes.push_back({ objData[m].material.roughnessMap, Texture::Type::ROUGHNESS });
+            matdef.staticInts.insert({ ROUGHNESS_SAMPLER_NAME, ROUGHNESS_TEXTURE_UNIT });
+        }
+        if (!objData[m].material.metallicMap.empty())
+        {
+            matdef.texturePathsAndTypes.push_back({ objData[m].material.metallicMap, Texture::Type::METALLIC });
+            matdef.staticInts.insert({ METALLIC_SAMPLER_NAME, METALLIC_TEXTURE_UNIT });
+        }
+        if (!objData[m].material.sheenMap.empty())
+        {
+            matdef.texturePathsAndTypes.push_back({ objData[m].material.sheenMap, Texture::Type::SHEEN });
+            matdef.staticInts.insert({ SHEEN_SAMPLER_NAME, SHEEN_TEXTURE_UNIT });
+        }
+        if (!objData[m].material.emissiveMap.empty())
+        {
+            matdef.texturePathsAndTypes.push_back({ objData[m].material.emissiveMap, Texture::Type::EMISSIVE });
+            matdef.staticInts.insert({ EMISSIVE_SAMPLER_NAME, EMISSIVE_TEXTURE_UNIT });
+        }
+        matdef.staticFloats.insert({ SHININESS_NAME, objData[m].material.shininess });
+        matdef.staticFloats.insert({ IOR_NAME, objData[m].material.ior });
+        matdef.staticMat4s.insert({ PROJECTION_MARIX_NAME, PERSPECTIVE });
+        matdef.dynamicMat4s.insert({ VIEW_MARIX_NAME, cameras_[0].GetViewMatrix() }); // Note: this makes all shaders dependant on the main camera!
+        matdef.dynamicVec3s.insert({ VIEW_POSITION_NAME, cameras_[0].GetPosition() });
+
+        mdef.vertexBuffer = CreateResource(vbdef);
+        mdef.material = CreateResource(matdef);
+        modef.meshes.push_back(CreateResource(mdef));
     }
-    if (!reader.Warning().empty())
-    {
-        std::cout << "WARNING at file: " << __FILE__ << ", line: " << __LINE__ << " : tinyobjloader has raised a warning: " << reader.Warning() << std::endl;
-    }
+    modef.modelMatrices = {IDENTITY_MAT4};
 
-    const auto& attrib = reader.GetAttrib();
-    const auto& shapes = reader.GetShapes();
-    const auto& materials = reader.GetMaterials();
-    if (materials.size() < 1)
-    {
-        std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": loaded obj has no material!" << std::endl;
-        abort();
-    }
-    returnVal.resize(shapes.size());
-
-    for (size_t i = 0; i < shapes.size(); i++)
-    {
-        const int matId = shapes[i].mesh.material_ids[0]; // 1 mesh = 1 material
-
-        TextureId ambientId = DEFAULT_ID;
-        if (!materials[matId].ambient_texname.empty())
-        {
-            TextureDefinition def;
-            def.paths = std::vector<std::string>{ dir + materials[matId].ambient_texname };
-            def.correctGamma = correctGamma;
-            def.flipImage = flipTextures;
-            def.textureType = GL_TEXTURE_2D;
-            def.samplerTextureUnitPair = std::pair<std::string, int>{AMBIENT_MAP_SAMPLER_NAME, AMBIENT_SAMPLER_TEXTURE_UNIT};
-            ambientId = CreateResource(def);
-        }
-        else
-        {
-            std::cout << "WARNING: loaded obj has no ambient map!" << std::endl;
-        }
-
-        TextureId diffuseId = DEFAULT_ID;
-        if (!materials[matId].diffuse_texname.empty())
-        {
-            TextureDefinition def;
-            def.paths = std::vector<std::string>{ dir + "/" + materials[matId].diffuse_texname };
-            def.correctGamma = correctGamma;
-            def.flipImage = flipTextures;
-            def.textureType = GL_TEXTURE_2D;
-            def.samplerTextureUnitPair = std::pair<std::string, int>{ DIFFUSE_MAP_SAMPLER_NAME, DIFFUSE_SAMPLER_TEXTURE_UNIT };
-            diffuseId = CreateResource(def);
-        }
-        else
-        {
-            std::cout << "WARNING: loaded obj has no diffuse map!" << std::endl;
-        }
-
-        TextureId specularId = DEFAULT_ID;
-        if (!materials[matId].specular_texname.empty())
-        {
-            TextureDefinition def;
-            def.paths = std::vector<std::string>{ dir + "/" + materials[matId].specular_texname };
-            def.correctGamma = false;
-            def.flipImage = flipTextures;
-            def.textureType = GL_TEXTURE_2D;
-            def.samplerTextureUnitPair = std::pair<std::string, int>{ SPECULAR_MAP_SAMPLER_NAME, SPECULAR_SAMPLER_TEXTURE_UNIT };
-            specularId = CreateResource(def);
-        }
-        else
-        {
-            std::cout << "WARNING: loaded obj has no specular map!" << std::endl;
-        }
-
-        TextureId normalId = DEFAULT_ID;
-        if (!materials[matId].bump_texname.empty())
-        {
-            TextureDefinition def;
-            def.paths = std::vector<std::string>{ dir + "/" + materials[matId].bump_texname };
-            def.correctGamma = false;
-            def.flipImage = true;
-            def.textureType = GL_TEXTURE_2D;
-            def.samplerTextureUnitPair = std::pair<std::string, int>{ NORMAL_MAP_SAMPLER_NAME, NORMAL_SAMPLER_TEXTURE_UNIT };
-            normalId = CreateResource(def);
-        }
-        else
-        {
-            std::cout << "WARNING: loaded obj has no normal map!" << std::endl;
-        }
-
-        ShaderId shaderId = DEFAULT_ID;
-        {
-            ShaderDefinition def;
-            const auto& mat = materials[matId];
-            switch (mat.illum)
-            {
-                case 0:
-                    {
-                        def.vertexPath = ILLUM0_SHADER[0];
-                        def.fragmentPath = ILLUM0_SHADER[1];
-                        def.onInit = [mat](Shader& shader, const Model& model)->void
-                        {
-                            shader.SetProjectionMatrix(PERSPECTIVE);
-                            shader.SetVec3(AMBIENT_COLOR_NAME.data(), glm::vec3(mat.ambient[0], mat.ambient[1], mat.ambient[2]));
-                        };
-                        def.onDraw = [](Shader& shader, const Model& model, const Camera& camera)->void
-                        {
-                            shader.SetViewMatrix(camera.GetViewMatrix());
-                            shader.SetModelMatrix(model.GetModelMatrix());
-                        };
-                    }break;
-                case 1:
-                    {
-                        def.vertexPath = ILLUM1_SHADER[0];
-                        def.fragmentPath = ILLUM1_SHADER[1];
-                        def.onInit = [mat](Shader& shader, const Model& model)->void
-                        {
-                            shader.SetProjectionMatrix(PERSPECTIVE);
-                            shader.SetInt(AMBIENT_MAP_SAMPLER_NAME.data(), AMBIENT_SAMPLER_TEXTURE_UNIT);
-                            shader.SetVec3(AMBIENT_COLOR_NAME.data(), glm::vec3(mat.ambient[0], mat.ambient[1], mat.ambient[2]));
-                        };
-                        def.onDraw = [](Shader& shader, const Model& model, const Camera& camera)->void
-                        {
-                            shader.SetViewMatrix(camera.GetViewMatrix());
-                            shader.SetModelMatrix(model.GetModelMatrix());
-                        };
-                    }break;
-                case 2:
-                    {
-                        def.vertexPath = ILLUM2_SHADER[0];
-                        def.fragmentPath = ILLUM2_SHADER[1];
-                        def.onInit = [mat](Shader& shader, const Model& model)->void
-                        {
-                            shader.SetProjectionMatrix(PERSPECTIVE);
-                            shader.SetInt(AMBIENT_MAP_SAMPLER_NAME.data(), AMBIENT_SAMPLER_TEXTURE_UNIT);
-                            shader.SetInt(DIFFUSE_MAP_SAMPLER_NAME.data(), DIFFUSE_SAMPLER_TEXTURE_UNIT);
-                            shader.SetInt(SPECULAR_MAP_SAMPLER_NAME.data(), SPECULAR_SAMPLER_TEXTURE_UNIT);
-                            shader.SetVec3(AMBIENT_COLOR_NAME.data(), glm::vec3(mat.ambient[0], mat.ambient[1], mat.ambient[2]));
-                            shader.SetVec3(DIFFUSE_COLOR_NAME.data(), glm::vec3(mat.diffuse[0], mat.diffuse[1], mat.diffuse[2]));
-                            shader.SetVec3(SPECULAR_COLOR_NAME.data(), glm::vec3(mat.specular[0], mat.specular[1], mat.specular[2]));
-                            shader.SetFloat(SHININESS_NAME.data(), mat.shininess);
-                        };
-                        def.onDraw = [](Shader& shader, const Model& model, const Camera& camera)->void
-                        {
-                            shader.SetViewMatrix(camera.GetViewMatrix());
-                            shader.SetModelMatrix(model.GetModelMatrix());
-                            shader.SetVec3(VIEW_POSITION_NAME.data(), camera.GetPosition());
-                        };
-                    }break;
-                default:
-                {
-                    std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": obj's material has an invalid illumination mode: " << materials[matId].illum << std::endl;
-                    abort();
-                }
-            }
-            shaderId = CreateResource(def);
-        }
-
-        bool hasNormalMap = false;
-        MaterialId materialId = DEFAULT_ID;
-        {
-            MaterialDefinition def;
-            def.ambientMap = ambientId;
-            def.diffuseMap = diffuseId;
-            def.specularMap = specularId;
-            def.normalMap = normalId;
-            def.shader = shaderId;
-            hasNormalMap = normalId == DEFAULT_ID ? false : true;
-            def.ambientColor = glm::vec3(materials[matId].ambient[0], materials[matId].ambient[1], materials[matId].ambient[2]);
-            def.diffuseColor = glm::vec3(materials[matId].diffuse[0], materials[matId].diffuse[1], materials[matId].diffuse[2]);
-            def.specularColor = glm::vec3(materials[matId].specular[0], materials[matId].specular[1], materials[matId].specular[2]);
-            def.shininess = (materials[matId].shininess >= 1.0f) ? materials[matId].shininess : 1.0f;
-            materialId = CreateResource(def);
-        }
-
-        VertexBufferId vertexBufferId = DEFAULT_ID;
-        {
-            VertexBufferDefinition def;
-            std::vector<ResourceManager::VertexDataTypes> layout;
-
-            bool hasNormalVertexData = false;
-            bool hasTexCoordVertexData = false;
-
-            // NOTE: Warning: there's no check that every mesh'es vertices in the file have the same layout!
-            tinyobj::index_t meshIndices = shapes[i].mesh.indices[0];
-            if (meshIndices.vertex_index > -1)
-            {
-                layout.push_back(ResourceManager::VertexDataTypes::POSITIONS_3D);
-            }
-            else
-            {
-                std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": obj file doesn't contain any position data!" << std::endl;
-                abort();
-            }
-            if (meshIndices.normal_index > -1)
-            {
-                layout.push_back(ResourceManager::VertexDataTypes::NORMALS);
-                hasNormalVertexData = true;
-            }
-            else if(!hasNormalMap)
-            {
-                std::cout << "WARNING at file: " << __FILE__ << ", line: " << __LINE__ << ": obj file doesn't contain any normals data of any kind!" << std::endl;
-            }
-            if (meshIndices.texcoord_index > -1)
-            {
-                layout.push_back(ResourceManager::VertexDataTypes::TEXCOORDS_2D);
-                hasTexCoordVertexData = true;
-            }
-            else
-            {
-                std::cout << "WARNING at file: " << __FILE__ << ", line: " << __LINE__ << ": obj file doesn't contain any texCoord data!" << std::endl;
-            }
-            def.dataLayout = layout;
-
-            size_t stride = 0; // Compute stride.
-            for (size_t i = 0; i < layout.size(); i++)
-            {
-                switch (def.dataLayout[i])
-                {
-                    case gl::ResourceManager::VertexDataTypes::POSITIONS_3D: stride += 3;
-                        break;
-                    case gl::ResourceManager::VertexDataTypes::POSITIONS_2D: stride += 2;
-                        break;
-                    case gl::ResourceManager::VertexDataTypes::TEXCOORDS_2D: stride += 2;
-                        break;
-                    case gl::ResourceManager::VertexDataTypes::TEXCOORDS_3D: stride += 3;
-                        break;
-                    case gl::ResourceManager::VertexDataTypes::NORMALS: stride += 3;
-                        break;
-                    default:
-                        std::cerr << "ERROR at file: " << __FILE__ << ", line: " << __LINE__ << ": invalid VertexDataType!" << std::endl;
-                        abort();
-                }
-            }
-
-            const size_t numOfFaces = shapes[i].mesh.num_face_vertices.size();
-            std::vector<float> vertexData = std::vector<float>(numOfFaces * 3 * stride);
-            for (size_t f = 0; f < (numOfFaces * 3) - 2; f++)
-            {
-                tinyobj::index_t idx0 = shapes[i].mesh.indices[f + 0];
-                tinyobj::index_t idx1 = shapes[i].mesh.indices[f + 1];
-                tinyobj::index_t idx2 = shapes[i].mesh.indices[f + 2];
-
-                // Retrieve pos.
-                vertexData[stride * f + 0] = attrib.vertices[3 * (size_t)idx0.vertex_index + 0];
-                vertexData[stride * f + 1] = attrib.vertices[3 * (size_t)idx0.vertex_index + 1];
-                vertexData[stride * f + 2] = attrib.vertices[3 * (size_t)idx0.vertex_index + 2];
-
-                vertexData[stride * f + stride * 1 + 0] = attrib.vertices[3 * (size_t)idx1.vertex_index + 0];
-                vertexData[stride * f + stride * 1 + 1] = attrib.vertices[3 * (size_t)idx1.vertex_index + 1];
-                vertexData[stride * f + stride * 1 + 2] = attrib.vertices[3 * (size_t)idx1.vertex_index + 2];
-
-                vertexData[stride * f + stride * 2 + 0] = attrib.vertices[3 * (size_t)idx2.vertex_index + 0];
-                vertexData[stride * f + stride * 2 + 1] = attrib.vertices[3 * (size_t)idx2.vertex_index + 1];
-                vertexData[stride * f + stride * 2 + 2] = attrib.vertices[3 * (size_t)idx2.vertex_index + 2];
-
-                if (hasNormalVertexData) // Retrieve normals.
-                {
-                    vertexData[stride * f + 3] = attrib.normals[3 * (size_t)idx0.normal_index + 0];
-                    vertexData[stride * f + 4] = attrib.normals[3 * (size_t)idx0.normal_index + 1];
-                    vertexData[stride * f + 5] = attrib.normals[3 * (size_t)idx0.normal_index + 2];
-
-                    vertexData[stride * f + stride * 1 + 3] = attrib.normals[3 * (size_t)idx1.normal_index + 0];
-                    vertexData[stride * f + stride * 1 + 4] = attrib.normals[3 * (size_t)idx1.normal_index + 1];
-                    vertexData[stride * f + stride * 1 + 5] = attrib.normals[3 * (size_t)idx1.normal_index + 2];
-
-                    vertexData[stride * f + stride * 2 + 3] = attrib.normals[3 * (size_t)idx2.normal_index + 0];
-                    vertexData[stride * f + stride * 2 + 4] = attrib.normals[3 * (size_t)idx2.normal_index + 1];
-                    vertexData[stride * f + stride * 2 + 5] = attrib.normals[3 * (size_t)idx2.normal_index + 2];
-                }
-                if (hasTexCoordVertexData)
-                {
-                    if (hasNormalVertexData)
-                    {
-                        vertexData[stride * f + 6] = attrib.texcoords[2 * (size_t)idx0.texcoord_index + 0];
-                        vertexData[stride * f + 7] = attrib.texcoords[2 * (size_t)idx0.texcoord_index + 1];
-
-                        vertexData[stride * f + stride * 1 + 6] = attrib.texcoords[2 * (size_t)idx1.texcoord_index + 0];
-                        vertexData[stride * f + stride * 1 + 7] = attrib.texcoords[2 * (size_t)idx1.texcoord_index + 1];
-
-                        vertexData[stride * f + stride * 2 + 6] = attrib.texcoords[2 * (size_t)idx2.texcoord_index + 0];
-                        vertexData[stride * f + stride * 2 + 7] = attrib.texcoords[2 * (size_t)idx2.texcoord_index + 1];
-                    }
-                    else
-                    {
-                        // NOTE: if code gets out of bounds here, check your faces data in the obj. If you don't have texcoords in your file, the faces should look something like "v//vn", not "v/vn".
-                        vertexData[stride * f + 3] = attrib.texcoords[2 * (size_t)idx0.texcoord_index + 0];
-                        vertexData[stride * f + 4] = attrib.texcoords[2 * (size_t)idx0.texcoord_index + 1];
-
-                        vertexData[stride * f + stride * 1 + 3] = attrib.texcoords[2 * (size_t)idx1.texcoord_index + 0];
-                        vertexData[stride * f + stride * 1 + 4] = attrib.texcoords[2 * (size_t)idx1.texcoord_index + 1];
-
-                        vertexData[stride * f + stride * 2 + 3] = attrib.texcoords[2 * (size_t)idx2.texcoord_index + 0];
-                        vertexData[stride * f + stride * 2 + 4] = attrib.texcoords[2 * (size_t)idx2.texcoord_index + 1];
-                    }
-                }
-                
-            }
-            def.data = vertexData;
-            vertexBufferId = CreateResource(def);
-        }
-
-        MeshDefinition def;
-        def.material = materialId;
-        def.vertexBuffer = vertexBufferId;
-        returnVal[i] = CreateResource(def);
-    }
-    
-    return returnVal;
+    return CreateResource(modef);
 }

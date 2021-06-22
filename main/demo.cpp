@@ -61,7 +61,7 @@ namespace gl {
 
             // Obj loading scene.
             {
-                std::vector<MeshId> meshes = resourceManager_.LoadObj("../data/models/spaceship/spaceship.obj", false);
+                std::vector<MeshId> meshes = resourceManager_.LoadObj("../data/models/crate/crate.obj", false);
                 ResourceManager::ModelDefinition def;
                 def.meshes = meshes;
                 def.transform = resourceManager_.CreateResource(ResourceManager::Transform3dDefinition{});
@@ -129,7 +129,7 @@ namespace gl {
                 TextureId textureId = DEFAULT_ID;
                 {
                     ResourceManager::TextureDefinition tdef;
-                    tdef.samplerTextureUnitPair = {AMBIENT_MAP_SAMPLER_NAME.data(), AMBIENT_SAMPLER_TEXTURE_UNIT};
+                    tdef.samplerTextureUnitPair = {AMBIENT_SAMPLER_NAME.data(), AMBIENT_TEXTURE_UNIT};
                     tdef.correctGamma = true;
                     tdef.paths =
                     {
@@ -148,7 +148,7 @@ namespace gl {
                     {
                         shader.SetProjectionMatrix(PERSPECTIVE);
                         shader.SetVec3(AMBIENT_COLOR_NAME.data(), ONE_VEC3);
-                        shader.SetInt(AMBIENT_MAP_SAMPLER_NAME.data(), AMBIENT_SAMPLER_TEXTURE_UNIT);
+                        shader.SetInt(AMBIENT_SAMPLER_NAME.data(), AMBIENT_TEXTURE_UNIT);
                     };
                     sdef.onDraw = [](Shader& shader, const Model& model, const Camera& camera)->void
                     {
@@ -248,7 +248,7 @@ namespace gl {
                 TextureId ambientId = DEFAULT_ID;
                 {
                     ResourceManager::TextureDefinition tdef;
-                    tdef.samplerTextureUnitPair = { AMBIENT_MAP_SAMPLER_NAME.data(), AMBIENT_SAMPLER_TEXTURE_UNIT };
+                    tdef.samplerTextureUnitPair = { AMBIENT_SAMPLER_NAME.data(), AMBIENT_TEXTURE_UNIT };
                     tdef.correctGamma = true;
                     tdef.paths =
                     {
@@ -261,7 +261,7 @@ namespace gl {
                 TextureId diffuseId = DEFAULT_ID;
                 {
                     ResourceManager::TextureDefinition tdef;
-                    tdef.samplerTextureUnitPair = { DIFFUSE_MAP_SAMPLER_NAME.data(), DIFFUSE_SAMPLER_TEXTURE_UNIT };
+                    tdef.samplerTextureUnitPair = { DIFFUSE_SAMPLER_NAME.data(), DIFFUSE_TEXTURE_UNIT };
                     tdef.correctGamma = true;
                     tdef.paths =
                     {
@@ -274,7 +274,7 @@ namespace gl {
                 TextureId specularId = DEFAULT_ID;
                 {
                     ResourceManager::TextureDefinition tdef;
-                    tdef.samplerTextureUnitPair = { SPECULAR_MAP_SAMPLER_NAME.data(), SPECULAR_SAMPLER_TEXTURE_UNIT };
+                    tdef.samplerTextureUnitPair = { SPECULAR_SAMPLER_NAME.data(), SPECULAR_TEXTURE_UNIT };
                     tdef.correctGamma = false;
                     tdef.paths =
                     {
@@ -374,7 +374,7 @@ namespace gl {
                     sdef.fragmentPath = FRAMEBUFFER_HDR_REINHARD_SHADER[1];
                     sdef.onInit = [](Shader& shader, const Model& model)->void
                     {
-                        shader.SetInt(FRAMEBUFFER_SAMPLER_NAME.data(), FRAMEBUFFER_SAMPLER_TEXTURE_UNIT);
+                        shader.SetInt(FRAMEBUFFER_SAMPLER_NAME.data(), FRAMEBUFFER_TEXTURE_UNIT);
                     };
                     shaderId = resourceManager_.CreateResource(sdef);
                 }

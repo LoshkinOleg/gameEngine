@@ -2,24 +2,12 @@
 
 #include <glad/glad.h>
 
-#include "vertex_buffer.h"
-#include "texture.h"
-#include "shader.h"
+#include "mesh.h"
 #include "resource_manager.h"
 
-void gl::Skybox::Draw(CameraId id) const
+void gl::Skybox::Draw() const
 {
-    ResourceManager& resourceManager = ResourceManager::Get();
-    const VertexBuffer& vertexBuffer = resourceManager.GetVertexBuffer(vertexBuffer_);
-    const Texture& texture = resourceManager.GetTexture(texture_);
-    Shader& shader = resourceManager.GetShader(shader_);
-
     glDepthFunc(GL_LEQUAL);
-    shader.Bind();
-    shader.OnDraw(Model{}, resourceManager.GetCamera(id)); // NOTE: currently, a skybox isn't linked to a Model.
-    texture.Bind();
-    vertexBuffer.Draw();
-    texture.Unbind();
-    shader.Unbind();
+    ResourceManager::Get().GetMesh(mesh_).Draw();
     glDepthFunc(GL_LESS);
 }
