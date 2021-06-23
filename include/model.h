@@ -23,6 +23,8 @@ namespace gl
         void Rotate(glm::vec3 cardinalRotation, size_t modelMatrixIndex = 0);
         void Scale(glm::vec3 v, size_t modelMatrixIndex = 0);
 
+        const std::vector<MeshId> GetMesheIds() const;
+
     private:
         friend class ResourceManager;
 

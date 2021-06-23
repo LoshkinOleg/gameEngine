@@ -62,11 +62,11 @@ const std::vector<gl::Texture> gl::ResourceManager::GetTextures(std::vector<Text
     }
     return returnVal;
 }
-const gl::Material& gl::ResourceManager::GetMaterial(gl::MaterialId id) const
+gl::Material& gl::ResourceManager::GetMaterial(gl::MaterialId id)
 {
     assert(id != DEFAULT_ID);
 
-    const auto match = materials_.find(id);
+    auto match = materials_.find(id);
     if (match != materials_.end())
     {
         return match->second;
@@ -383,7 +383,7 @@ gl::MaterialId gl::ResourceManager::CreateResource(const gl::Material::Definitio
     material.dynamicMat4s_ = def.dynamicMat4s;
     material.dynamicVec3s_ = def.dynamicVec3s;
     
-    std::vector<TextureId> texIds = std::vector<TextureId>(def.texturePathsAndTypes.size(), DEFAULT_ID);
+    std::vector<TextureId> texIds = {};
     for (size_t i = 0; i < def.texturePathsAndTypes.size(); i++)
     {
         if (def.texturePathsAndTypes[i].second == Texture::Type::CUBEMAP)
@@ -412,7 +412,8 @@ gl::MaterialId gl::ResourceManager::CreateResource(const gl::Material::Definitio
                     def.texturePathsAndTypes[i + 5].first
                 };
                 tdef.textureType = Texture::Type::CUBEMAP;
-                texIds[i] = CreateResource(tdef);
+                texIds.push_back(CreateResource(tdef));
+                assert(texIds[i] != DEFAULT_ID);
                 i += 6; // Don't try to load the other components of the cubemap again.
                 material.staticInts_.insert({CUBEMAP_SAMPLER_NAME, CUBEMAP_TEXTURE_UNIT});
             }
@@ -425,7 +426,8 @@ gl::MaterialId gl::ResourceManager::CreateResource(const gl::Material::Definitio
             tdef.useHdr = def.useHdr;
             tdef.paths = { def.texturePathsAndTypes[i].first };
             tdef.textureType = def.texturePathsAndTypes[i].second;
-            texIds[i] = CreateResource(tdef);
+            texIds.push_back(CreateResource(tdef));
+            assert(texIds[i] != DEFAULT_ID);
             /*switch (tdef.textureType)
             {
                 case Texture::Type::AMBIENT:
@@ -697,12 +699,13 @@ gl::TextureId gl::ResourceManager::CreateResource(const gl::Texture::Definition 
     accumulatedData += std::to_string(def.useHdr);
 
     const XXH32_hash_t hash = XXH32(accumulatedData.c_str(), sizeof(char) * accumulatedData.size(), HASHING_SEED);
+    // TODO: replace the UINT_MAX with DEFAULT_ID
     assert(hash != UINT_MAX); // We aren't handling this issue...
 
     if (IsTextureIdValid(hash))
     {
         std::cout << "WARNING: attempting to create a new Texture with data identical to an existing one. Returning the id of the existing one instead." << std::endl;
-        return hash;
+        return hash; // TODO: bug: this returns DEFAULT_ID?
     }
     gl::Texture texture;
     texture.textureType_ = def.textureType;
@@ -721,7 +724,12 @@ gl::TextureId gl::ResourceManager::CreateResource(const gl::Texture::Definition 
         if (def.paths.size() < 1) EngineError("No texture paths specified for a non Framebuffer texture!");
         
         data = stbi_load(def.paths[0].data(), &width, &height, &nrChannels, 0);
-        assert(data);
+        // assert(data);
+        if (data == nullptr || data[0] == '\0')
+        {
+            const char* reason = stbi_failure_reason();
+            EngineError(reason);
+        }
 
         if (nrChannels == 1 || nrChannels == 2)
         {
@@ -731,7 +739,7 @@ gl::TextureId gl::ResourceManager::CreateResource(const gl::Texture::Definition 
         {
             EngineError("We're not handling alpha via RGBA! Make a separate alpha map if you want to use transparency and ensure all textures are in RGB!");
         }
-        else
+        else if(nrChannels != 3)
         {
             EngineError("Unexpected number of channels in image being loaded!");
         }
@@ -783,7 +791,7 @@ gl::TextureId gl::ResourceManager::CreateResource(const gl::Texture::Definition 
             {
                 EngineError("The code is not designed for transparent skyboxes! Ensure the skybox textures are in RGB!");
             }
-            else
+            else if(nrChannels != 3)
             {
                 EngineError("Unexpected number of channels in image being loaded!");
             }
@@ -890,8 +898,8 @@ gl::SkyboxId gl::ResourceManager::CreateResource(const gl::Skybox::Definition de
     };
     vbId = CreateResource(vbdef);
     
-    matdef.vertexPath = def.paths[0];
-    matdef.fragmentPath = def.paths[1];
+    matdef.vertexPath = def.shader[0];
+    matdef.fragmentPath = def.shader[1];
     for (const auto& path : def.paths)
     {
         matdef.texturePathsAndTypes.push_back({path, Texture::Type::CUBEMAP});
@@ -901,7 +909,7 @@ gl::SkyboxId gl::ResourceManager::CreateResource(const gl::Skybox::Definition de
     matdef.useHdr = false; // No sense in using hdr for a skybox texture.
     matdef.staticInts.insert({CUBEMAP_SAMPLER_NAME.data(), CUBEMAP_TEXTURE_UNIT});
     matdef.staticMat4s.insert({PROJECTION_MARIX_NAME, PERSPECTIVE});
-    matdef.dynamicMat4s.insert({VIEW_MARIX_NAME, cameras_[0].GetViewMatrix()}); // NOTE: this means a skybox can only be related to the default camera!
+    matdef.dynamicMat4s.insert({VIEW_MARIX_NAME, &cameras_[0].GetViewMatrix()}); // NOTE: this means a skybox can only be related to the default camera!
     matId = CreateResource(matdef);
     
     mdef.vertexBuffer = vbId;
@@ -998,22 +1006,22 @@ std::vector<gl::ResourceManager::ObjData> gl::ResourceManager::ReadObjData(std::
     {
         const int matId = shapes[i].mesh.material_ids[0]; // 1 mesh = 1 material
 
-        returnVal[i].material.ambientMap = materials[matId].ambient_texname;
-        returnVal[i].material.alphaMap = materials[matId].alpha_texname;
-        returnVal[i].material.diffuseMap = materials[matId].diffuse_texname;
-        returnVal[i].material.specularMap = materials[matId].specular_texname;
-        returnVal[i].material.normalMap = materials[matId].bump_texname;
-        returnVal[i].material.roughnessMap = materials[matId].roughness_texname;
-        returnVal[i].material.metallicMap = materials[matId].metallic_texname;
-        returnVal[i].material.sheenMap = materials[matId].sheen_texname;
-        returnVal[i].material.emissiveMap = materials[matId].emissive_texname;
+        returnVal[i].material.ambientMap = (!materials[matId].ambient_texname.empty()) ? dir + materials[matId].ambient_texname : "";
+        returnVal[i].material.alphaMap = (!materials[matId].alpha_texname.empty()) ? dir + materials[matId].alpha_texname : "";
+        returnVal[i].material.diffuseMap = (!materials[matId].diffuse_texname.empty()) ? dir + materials[matId].diffuse_texname : "";
+        returnVal[i].material.specularMap = (!materials[matId].specular_texname.empty()) ? dir + materials[matId].specular_texname : "";
+        returnVal[i].material.normalMap = (!materials[matId].bump_texname.empty()) ? dir + materials[matId].bump_texname : "";
+        returnVal[i].material.roughnessMap = (!materials[matId].roughness_texname.empty()) ? dir + materials[matId].roughness_texname : "";
+        returnVal[i].material.metallicMap = (!materials[matId].metallic_texname.empty()) ? dir + materials[matId].metallic_texname : "";
+        returnVal[i].material.sheenMap = (!materials[matId].sheen_texname.empty()) ? dir + materials[matId].sheen_texname : "";
+        returnVal[i].material.emissiveMap = (!materials[matId].emissive_texname.empty()) ? dir + materials[matId].emissive_texname : "";
         returnVal[i].material.shininess = materials[matId].shininess;
         returnVal[i].material.ior = materials[matId].ior;
 
         if (shapes[i].mesh.indices[0].vertex_index < 0 || shapes[i].mesh.indices[0].texcoord_index < 0) EngineError("Obj doesn't contain either position data or texcoord data or both!");
 
         const size_t numOfFaces = shapes[i].mesh.num_face_vertices.size();
-        for (size_t f = 0; f < (numOfFaces * 3) - 2; f++)
+        for (size_t f = 0; f < (numOfFaces * 3); f += 3)
         {
             const tinyobj::index_t idx0 = shapes[i].mesh.indices[f + 0];
             const tinyobj::index_t idx1 = shapes[i].mesh.indices[f + 1];
@@ -1184,14 +1192,14 @@ gl::ModelId gl::ResourceManager::CreateResource(const std::vector<ObjData> objDa
         Mesh::Definition mdef;
 
         // Collapse all the arrays of vertex data into a single array.
-        const size_t sizeOfVerticesData = objData[m].positions.size() * sizeof(glm::vec3) + objData[m].texCoords.size() * sizeof(glm::vec2) + objData[m].normals.size() * sizeof(glm::vec3) + objData[m].tangents.size() * sizeof(glm::vec3);
-        const size_t stride = (objData[m].positions.size() + objData[m].texCoords.size() + objData[m].normals.size() + objData[m].tangents.size()) / sizeOfVerticesData; // TODO: nope
+        const size_t sizeOfVerticesData = objData[m].positions.size() * 3 * 3 + objData[m].texCoords.size() * 2;
+        const size_t stride = 11;
         std::vector<float> verticesData = std::vector<float>(sizeOfVerticesData);
         for (size_t startOfVertex = 0; startOfVertex < sizeOfVerticesData; startOfVertex += stride)
         {
             // TODO: u sure about this?
             // Positions.
-            verticesData[startOfVertex + 0] = objData[m].positions[startOfVertex / stride].x;
+            verticesData[startOfVertex + 0] = objData[m].positions[startOfVertex / stride].x; // TODO: check we're filling things out properly
             verticesData[startOfVertex + 1] = objData[m].positions[startOfVertex / stride].y;
             verticesData[startOfVertex + 2] = objData[m].positions[startOfVertex / stride].z;
             // Texcoords.
@@ -1268,8 +1276,8 @@ gl::ModelId gl::ResourceManager::CreateResource(const std::vector<ObjData> objDa
         matdef.staticFloats.insert({ SHININESS_NAME, objData[m].material.shininess });
         matdef.staticFloats.insert({ IOR_NAME, objData[m].material.ior });
         matdef.staticMat4s.insert({ PROJECTION_MARIX_NAME, PERSPECTIVE });
-        matdef.dynamicMat4s.insert({ VIEW_MARIX_NAME, cameras_[0].GetViewMatrix() }); // Note: this makes all shaders dependant on the main camera!
-        matdef.dynamicVec3s.insert({ VIEW_POSITION_NAME, cameras_[0].GetPosition() });
+        matdef.dynamicMat4s.insert({ VIEW_MARIX_NAME, cameras_[0].GetViewMatrixPtr() }); // Note: this makes all shaders dependant on the main camera!
+        matdef.dynamicVec3s.insert({ VIEW_POSITION_NAME, cameras_[0].GetPositionPtr() });
 
         mdef.vertexBuffer = CreateResource(vbdef);
         mdef.material = CreateResource(matdef);

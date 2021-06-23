@@ -20,15 +20,16 @@ namespace gl
         {
             struct MaterialData
             {
-                std::string_view ambientMap = "";
-                std::string_view alphaMap = "";
-                std::string_view diffuseMap = "";
-                std::string_view specularMap = "";
-                std::string_view normalMap = "";
-                std::string_view roughnessMap = "";
-                std::string_view metallicMap = "";
-                std::string_view sheenMap = "";
-                std::string_view emissiveMap = "";
+                // Note: this must be strings, if using string_views, the views point to freed data by the time they're accessed by the ResourceManager for creation of a Material.
+                std::string ambientMap = "";
+                std::string alphaMap = "";
+                std::string diffuseMap = "";
+                std::string specularMap = "";
+                std::string normalMap = "";
+                std::string roughnessMap = "";
+                std::string metallicMap = "";
+                std::string sheenMap = "";
+                std::string emissiveMap = "";
                 float shininess = 1.0f;
                 float ior = 1.0f;
                 // NOTE: we won't bother with scalar factors for the textures.
@@ -53,7 +54,7 @@ namespace gl
         Transform& GetTransform(TransformId id);
         const Texture& GetTexture(TextureId id) const;
         const std::vector<Texture> GetTextures(std::vector<TextureId> ids) const;
-        const Material& GetMaterial(MaterialId id) const;
+        Material& GetMaterial(MaterialId id);
         Camera& GetCamera(CameraId id);
         Model& GetModel(ModelId id);
         const Skybox& GetSkybox(SkyboxId id) const;

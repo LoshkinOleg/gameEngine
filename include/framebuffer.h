@@ -4,6 +4,8 @@
 
 #include "defines.h"
 
+// TODO: add shadow buffer support, add an interpret framebuffer error func
+
 namespace gl
 {
     using FramebufferId = unsigned int;
@@ -32,6 +34,7 @@ public:
             "../data/shaders/fb.vert",
             "../data/shaders/fb_hdr_reinhard.frag"
         };
+        // TODO: add resolution var
     };
 
     void Bind() const;

@@ -17,6 +17,8 @@ void gl::Framebuffer::Draw() const
 }
 void gl::Framebuffer::Bind() const
 {
+    // TODO: adjust viewport size to resolution of framebuffer, then reset it
+
     glBindFramebuffer(GL_FRAMEBUFFER, FBO_);
     glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
 

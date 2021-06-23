@@ -18,6 +18,7 @@ namespace gl
         };
 
         void Draw() const;
+        MaterialId GetMaterialId() const;
     private:
         friend class ResourceManager;
 

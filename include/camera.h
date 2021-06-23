@@ -4,6 +4,8 @@
 
 #include "defines.h"
 
+// TODO: simplify camera to view and perspective matrices
+
 namespace gl {
 
     using CameraId = unsigned int;
@@ -41,6 +43,8 @@ namespace gl {
         // These get functions return read-only references, allowing the Material class to update dynamic(ie: the ones that change on every frame) shader uniforms.
         const glm::mat4& GetViewMatrix();
         const glm::vec3& GetPosition() const;
+        const glm::mat4* GetViewMatrixPtr();
+        const glm::vec3* GetPositionPtr() const;
         const glm::vec3& GetFront() const;
         const glm::vec3& GetRight() const;
         const glm::vec3& GetUp() const;
@@ -49,6 +53,7 @@ namespace gl {
         friend class ResourceManager;
 
         void UpdateCameraVectors();
+        void UpdateViewModel();
 
         State state_ = {};
         glm::mat4 view_ = IDENTITY_MAT4;

@@ -29,7 +29,7 @@ public:
     void Init() override
     {
         glEnable(GL_DEPTH_TEST);
-        glEnable(GL_CULL_FACE);
+        // glEnable(GL_CULL_FACE);
         glEnable(GL_FRAMEBUFFER_SRGB_EXT);
 
         {
@@ -38,8 +38,17 @@ public:
         }
 
         // Model creation.
-        const ModelId id = resourceManager_.CreateResource(resourceManager_.ReadObjData("../data/models/crate/crate.obj"));
+        const auto objData = resourceManager_.ReadObjData("../data/models/earth/earth.obj");
+        const ModelId id = resourceManager_.CreateResource(objData);
         model_ = resourceManager_.GetModel(id);
+        const auto meshIds = model_.GetMesheIds();
+        for (size_t i = 0; i < meshIds.size(); i++)
+        {
+            const auto mesh = resourceManager_.GetMesh(meshIds[i]);
+            const auto matId = mesh.GetMaterialId();
+            auto& mat = resourceManager_.GetMaterial(matId);
+            mat.AddDynamicUniformPair(std::pair<std::string_view, const glm::vec3*>{"lightDir", &lightDir_});
+        }
 
         // Skybox creation.
         {
@@ -65,8 +74,10 @@ public:
         glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        lightDir_ = glm::vec3(glm::cos(timer_) * 1.5f, 1.5f, glm::sin(timer_) * 1.5f);
+
+        // skybox_.Draw();
         model_.Draw();
-        skybox_.Draw();
     }
     void Destroy() override
     {
@@ -133,6 +144,7 @@ private:
     CameraId camera_ = DEFAULT_ID;
     Model model_;
     Skybox skybox_;
+    glm::vec3 lightDir_ = -ONE_VEC3;
     ResourceManager& resourceManager_ = ResourceManager::Get();
 };
 

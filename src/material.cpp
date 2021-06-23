@@ -28,10 +28,23 @@ void gl::Material::Unbind() const
 	glUseProgram(0);
 }
 
+void gl::Material::AddDynamicUniformPair(std::pair<std::string_view, const glm::vec3*> pair)
+{
+	dynamicVec3s_.insert(pair);
+}
+
 void gl::Material::SetInt(const std::pair<std::string_view, int> pair) const
 {
 	glUseProgram(PROGRAM_);
 	glUniform1i(ResourceManager::Get().GetUniformName(pair.first, PROGRAM_), pair.second);
+	glUseProgram(0);
+	CheckGlError();
+}
+
+void gl::Material::SetInt(const std::pair<std::string_view, const int*> pair) const
+{
+	glUseProgram(PROGRAM_);
+	glUniform1i(ResourceManager::Get().GetUniformName(pair.first, PROGRAM_), *(pair.second));
 	glUseProgram(0);
 	CheckGlError();
 }
@@ -44,6 +57,14 @@ void gl::Material::SetVec3(const std::pair<std::string_view, glm::vec3> pair) co
 	CheckGlError();
 }
 
+void gl::Material::SetVec3(const std::pair<std::string_view, const glm::vec3*> pair) const
+{
+	glUseProgram(PROGRAM_);
+	glUniform3fv(ResourceManager::Get().GetUniformName(pair.first, PROGRAM_), 1, &(*pair.second)[0]);
+	glUseProgram(0);
+	CheckGlError();
+}
+
 void gl::Material::SetMat4(const std::pair<std::string_view, glm::mat4> pair) const
 {
 	glUseProgram(PROGRAM_);
@@ -52,10 +73,28 @@ void gl::Material::SetMat4(const std::pair<std::string_view, glm::mat4> pair) co
 	CheckGlError();
 }
 
+void gl::Material::SetMat4(const std::pair<std::string_view, const glm::mat4*> pair) const
+{
+	glUseProgram(PROGRAM_);
+	// const glm::vec3 value = *pair.second;
+	// glUniformMatrix4fv(ResourceManager::Get().GetUniformName(pair.first, PROGRAM_), 1, GL_FALSE, &value[0][0]);
+	glUniformMatrix4fv(ResourceManager::Get().GetUniformName(pair.first, PROGRAM_), 1, GL_FALSE, &(*pair.second)[0][0]);
+	glUseProgram(0);
+	CheckGlError();
+}
+
 void gl::Material::SetFloat(const std::pair<std::string_view, float> pair) const
 {
 	glUseProgram(PROGRAM_);
 	glUniform1f(ResourceManager::Get().GetUniformName(pair.first, PROGRAM_), pair.second);
+	glUseProgram(0);
+	CheckGlError();
+}
+
+void gl::Material::SetFloat(const std::pair<std::string_view, const float*> pair) const
+{
+	glUseProgram(PROGRAM_);
+	glUniform1f(ResourceManager::Get().GetUniformName(pair.first, PROGRAM_), *pair.second);
 	glUseProgram(0);
 	CheckGlError();
 }

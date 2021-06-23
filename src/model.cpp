@@ -29,3 +29,8 @@ void gl::Model::Scale(glm::vec3 v, size_t modelMatrixIndex)
 {
     modelMatrices_[modelMatrixIndex] = glm::scale(modelMatrices_[modelMatrixIndex], v);
 }
+
+const std::vector<gl::MeshId> gl::Model::GetMesheIds() const
+{
+    return meshes_;
+}

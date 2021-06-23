@@ -8,6 +8,7 @@ void gl::Camera::ProcessKeyboard(const glm::vec3 direction)
     state_.position += state_.right * nDirection.x * CAMERA_MOV_SPEED;
     state_.position += state_.up * nDirection.y * CAMERA_MOV_SPEED;
     state_.position += state_.front * nDirection.z * CAMERA_MOV_SPEED;
+    UpdateViewModel();
 }
 void gl::Camera::ProcessMouseMovement(int x, int y)
 {
@@ -16,10 +17,20 @@ void gl::Camera::ProcessMouseMovement(int x, int y)
     if (state_.pitch > glm::radians(89.0f)) state_.pitch = glm::radians(89.0f);
     if (state_.pitch < glm::radians(-89.0f)) state_.pitch = glm::radians(-89.0f);
     UpdateCameraVectors();
+    UpdateViewModel();
 }
 const glm::vec3& gl::Camera::GetPosition() const
 {
     return state_.position;
+}
+const glm::mat4* gl::Camera::GetViewMatrixPtr()
+{
+    UpdateViewModel();
+    return &view_;
+}
+const glm::vec3* gl::Camera::GetPositionPtr() const
+{
+    return &state_.position;
 }
 const glm::vec3& gl::Camera::GetFront() const
 {
@@ -35,7 +46,7 @@ const glm::vec3& gl::Camera::GetUp() const
 }
 const glm::mat4& gl::Camera::GetViewMatrix()
 {
-    view_ = glm::lookAt(state_.position, state_.position + state_.front, state_.up); // pos + front as 2nd arg to have camera always face something right in front of it.
+    UpdateViewModel();
     return view_;
 }
 gl::Camera::State gl::Camera::GetCameraState() const
@@ -87,4 +98,9 @@ void gl::Camera::UpdateCameraVectors()
     // Update right and up.
     state_.right = glm::normalize(glm::cross(state_.front, glm::vec3(0.0f, 1.0f, 0.0f))); // 0.0,1.0,0.0 is world UP.
     state_.up = glm::normalize(glm::cross(state_.right, state_.front));
+}
+
+void gl::Camera::UpdateViewModel()
+{
+    view_ = glm::lookAt(state_.position, state_.position + state_.front, state_.up); // pos + front as 2nd arg to have camera always face something right in front of it.
 }
