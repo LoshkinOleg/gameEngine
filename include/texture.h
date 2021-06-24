@@ -36,6 +36,7 @@ namespace gl
             bool flipImage = false;
             bool correctGamma = false;
             bool useHdr = false;
+            std::array<size_t, 2> resolution = { (size_t)SCREEN_RESOLUTION[0], (size_t)SCREEN_RESOLUTION[1] };
         };
 
         void Bind() const;

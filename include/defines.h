@@ -82,8 +82,6 @@ namespace gl
 	const int MODEL_MATRIX_LOCATION = 4;
 
 	// Default obj shaders.
-	const std::string_view ILLUM0_SHADER[2] = {"../data/shaders/illum0.vert", "../data/shaders/illum0.frag" };
-	const std::string_view ILLUM1_SHADER[2] = {"../data/shaders/illum1.vert", "../data/shaders/illum1.frag" };
 	const std::string_view ILLUM2_SHADER[2] = {"../data/shaders/illum2.vert", "../data/shaders/illum2.frag" };
 	const std::string_view FRAMEBUFFER_RGB_SHADER[2] = {"../data/shaders/fb.vert", "../data/shaders/fb_rgb.frag" };
 	const std::string_view FRAMEBUFFER_HDR_REINHARD_SHADER[2] = {"../data/shaders/fb.vert", "../data/shaders/fb_hdr_reinhard.frag" };

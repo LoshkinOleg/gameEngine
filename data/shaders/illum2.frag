@@ -35,10 +35,12 @@ void main()
     normal = normalize(normal * 2.0 - 1.0);  // this normal is in tangent space
    
     // ambient
-    vec4 ambient = vec4((0.1 * texture(material.ambientMap, fs_in.TexCoords).rgb) , texture(material.alphaMap, fs_in.TexCoords).r);
+    const float ambientIntensity = 0.1;
+    vec4 ambient = vec4((ambientIntensity * texture(material.ambientMap, fs_in.TexCoords).rgb) , texture(material.alphaMap, fs_in.TexCoords).r);
     // diffuse
     float diffuseIntensity = max(dot(-fs_in.TangentLightDir, normal), 0.0);
     vec4 diffuse = vec4((diffuseIntensity * texture(material.diffuseMap, fs_in.TexCoords).rgb), texture(material.alphaMap, fs_in.TexCoords).r);
+
     // specular
     vec3 viewDir = normalize(fs_in.TangentViewPos - fs_in.TangentFragPos);
     vec3 reflectDir = reflect(fs_in.TangentLightDir, normal);

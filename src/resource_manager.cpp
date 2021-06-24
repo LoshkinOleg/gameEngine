@@ -17,6 +17,9 @@
 #include "camera.h"
 #include "utility.h"
 
+// TODO: rewrite the texture class...
+// TODO: problem with badly orgalized texture creation! Tex creation is involved in: 2D tex for mesh (rgb / rgba?), cubemaps, framebuffer (color / colors / shadowmap / color + depth + stencil)
+
 gl::ResourceManager::~ResourceManager()
 {
     std::cout << "WARNING at file: " << __FILE__ << ", line: " << __LINE__ << ": ResourceManager has been destroyed. This message should only appear when you close the program!" << std::endl;
@@ -107,7 +110,7 @@ gl::Model& gl::ResourceManager::GetModel(gl::ModelId id)
         abort();
     }
 }
-const gl::Skybox& gl::ResourceManager::GetSkybox(SkyboxId id) const
+gl::Skybox& gl::ResourceManager::GetSkybox(SkyboxId id)
 {
     assert(id != DEFAULT_ID);
 
@@ -156,7 +159,7 @@ const gl::VertexBuffer& gl::ResourceManager::GetVertexBuffer(gl::VertexBufferId 
         abort();
     }
 }
-const gl::Framebuffer& gl::ResourceManager::GetFramebuffer(gl::FramebufferId id) const
+gl::Framebuffer& gl::ResourceManager::GetFramebuffer(gl::FramebufferId id)
 {
     assert(id != DEFAULT_ID);
 
@@ -426,6 +429,7 @@ gl::MaterialId gl::ResourceManager::CreateResource(const gl::Material::Definitio
             tdef.useHdr = def.useHdr;
             tdef.paths = { def.texturePathsAndTypes[i].first };
             tdef.textureType = def.texturePathsAndTypes[i].second;
+            tdef.resolution = def.shadowMapResolution;
             texIds.push_back(CreateResource(tdef));
             assert(texIds[i] != DEFAULT_ID);
             /*switch (tdef.textureType)
@@ -577,7 +581,7 @@ gl::TransformId gl::ResourceManager::CreateResource(const gl::Transform::Definit
 }
 gl::FramebufferId gl::ResourceManager::CreateResource(const gl::Framebuffer::Definition def)
 {
-    if (!((int)def.attachments & (int)Framebuffer::AttachmentMask::COLOR0)) EngineError("Framebuffer needs at the very least one color attachment!");
+    // if (!((int)def.attachments & (int)Framebuffer::AttachmentMask::COLOR0)) EngineError("Framebuffer needs at the very least one color attachment!");
 
     std::string accumulatedData = "";
     accumulatedData += std::to_string((int)def.attachments);
@@ -623,6 +627,7 @@ gl::FramebufferId gl::ResourceManager::CreateResource(const gl::Framebuffer::Def
     matdef.texturePathsAndTypes.push_back({"", Texture::Type::FRAMEBUFFER}); // A framebuffer doesn't have any images to load.
     matdef.vertexPath = def.shaderPaths[0];
     matdef.fragmentPath = def.shaderPaths[1];
+    // TODO: a framebuffer should be able to draw to multiple targets! color0, color1, etc.
     matdef.staticInts.insert({FRAMEBUFFER_SAMPLER_NAME, FRAMEBUFFER_TEXTURE_UNIT}); // To init fbTexture sampler
 
     glGenFramebuffers(1, &framebuffer.FBO_);
@@ -655,6 +660,7 @@ gl::FramebufferId gl::ResourceManager::CreateResource(const gl::Framebuffer::Def
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, framebuffer.RBO_);
     }
 
+    // TODO: make an InterpretFramebufferStatus func
     assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -761,11 +767,12 @@ gl::TextureId gl::ResourceManager::CreateResource(const gl::Texture::Definition 
         {
             if (def.useHdr)
             {
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, (GLsizei)SCREEN_RESOLUTION[0], (GLsizei)SCREEN_RESOLUTION[1], 0, GL_RGB, GL_FLOAT, nullptr);
+                // TODO: resolution must be passed as arguments
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, def.resolution[0], def.resolution[1], 0, GL_RGB, GL_FLOAT, nullptr);
             }
             else
             {
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, (GLsizei)SCREEN_RESOLUTION[0], (GLsizei)SCREEN_RESOLUTION[1], 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, def.resolution[0], def.resolution[1], 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
             }
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, texture.TEX_, 0);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -1094,6 +1101,12 @@ std::vector<gl::ResourceManager::ObjData> gl::ResourceManager::ReadObjData(std::
         }
     }
     return returnVal;
+}
+
+void gl::ResourceManager::DeleteFramebuffer(FramebufferId id)
+{
+    // TODO
+    throw;
 }
 
 bool gl::ResourceManager::IsModelIdValid(ModelId id) const

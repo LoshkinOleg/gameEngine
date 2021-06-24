@@ -1,15 +1,20 @@
 // Checklist: use textureType where appropriate, make a separate cubemap class?, make sure there CheckGlError() at key points
 // make sure we're using "const auto match" everywhere, not a & version, make sure we're not fucking up where we're passing & in arguments, replace all generic errors with descriptive ones: throw() assert()
 // make sure we unbind everything once we're done using it, see where the code could fail for every function
+// on creation of a resource, check the validity of ids, check on draw that the asset is valid
+// Refactor shaders.
 // TODO: rename any <baseClass> variables into <baseClassId> variables where appropriate to better reflect the type of the variable.
+// TODO: remove all the old commented code.
 // TODO: rename files names to use CamelCase
+// TODO: remove id_ from classes, it's useless
+// TODO: make a define for lambda with value of <Shader& shader, const Model& model> and <Shader& shader, const Model& model, const Camera& camera>
 // TODO: make sure whenever we bind shit, we unbind it afterwards
+// TODO: add normalsmaps support
 // TODO: add transparency
 // TODO: add frustrum culling
 // TODO: handle resizing of window? glViewport and framebuffer too
 
 // TODO: Do all the above crap, rebuild the demo scene.
-// TODO: try to instanciate a multi mesh model
 
 #include <glad/glad.h>
 

@@ -29,7 +29,7 @@ namespace gl
         friend class ResourceManager;
 
         std::vector<MeshId> meshes_ = {};
-        std::vector<glm::mat4> modelMatrices_ = {};
+        std::vector<glm::mat4> modelMatrices_ = {}; // TODO: update these GPU side on Draw()
         unsigned int modelMatricesVBO_ = 0;
     };
 }//!gl

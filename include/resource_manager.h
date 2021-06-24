@@ -57,9 +57,9 @@ namespace gl
         Material& GetMaterial(MaterialId id);
         Camera& GetCamera(CameraId id);
         Model& GetModel(ModelId id);
-        const Skybox& GetSkybox(SkyboxId id) const;
+        Skybox& GetSkybox(SkyboxId id);
         int GetUniformName(std::string_view strName, unsigned int gpuProgramName);
-        const Framebuffer& GetFramebuffer(FramebufferId id) const;
+        Framebuffer& GetFramebuffer(FramebufferId id);
         const VertexBuffer& GetVertexBuffer(VertexBufferId id) const;
         const Mesh GetMesh(MeshId id) const;
         const std::vector<Mesh> GetMeshes(const std::vector<MeshId>& ids) const;
@@ -77,6 +77,8 @@ namespace gl
 
         std::vector<ObjData> ReadObjData(std::string_view path, bool flipNormals = false, bool reverseWindingOrder = false) const;
 
+        void DeleteFramebuffer(FramebufferId id);
+
         bool IsModelIdValid(ModelId id) const;
         bool IsMeshIdValid(MeshId id) const;
         bool IsMaterialIdValid(MaterialId id) const;
@@ -91,7 +93,7 @@ namespace gl
     private:
         std::map<ModelId, Model> models_ = {};
         std::map<MeshId, Mesh> opaqueMeshes_ = {};
-        std::map<MeshId, Mesh> transparentMeshes_ = {};
+        std::map<MeshId, Mesh> transparentMeshes_ = {}; // TODO: Not used currently.
         std::map<MaterialId, Material> materials_ = {};
         std::map<TransformId, Transform> transforms_ = {}; // Can't use vectors because of some obscure .find() related error.
         std::map<TextureId, Texture> textures_ = {};

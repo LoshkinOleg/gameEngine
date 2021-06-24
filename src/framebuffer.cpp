@@ -15,6 +15,20 @@ void gl::Framebuffer::Draw() const
     glEnable(GL_DEPTH_TEST);
     CheckGlError();
 }
+gl::FramebufferId gl::Framebuffer::Recreate(FramebufferId id, std::array<size_t, 2> newResolution)
+{
+    ResourceManager& rm = ResourceManager::Get();
+    Framebuffer& oldFb = rm.GetFramebuffer(id);
+
+    Definition def;
+    def.attachments = oldFb.attachments_;
+    def.shaderPaths = oldFb.shaderPaths_;
+    def.resolution = newResolution;
+
+    rm.DeleteFramebuffer(id);
+
+    return rm.CreateResource(def);
+}
 void gl::Framebuffer::Bind() const
 {
     // TODO: adjust viewport size to resolution of framebuffer, then reset it

@@ -36,6 +36,8 @@ namespace gl
 
             std::string_view vertexPath = "";
             std::string_view fragmentPath = "";
+
+            std::array<size_t, 2> shadowMapResolution = {1024, 1024};
         };
 
         void Bind() const;

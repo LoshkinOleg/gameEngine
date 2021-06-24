@@ -34,8 +34,10 @@ public:
             "../data/shaders/fb.vert",
             "../data/shaders/fb_hdr_reinhard.frag"
         };
-        // TODO: add resolution var
+        std::array<size_t, 2> resolution = { (size_t)SCREEN_RESOLUTION[0], (size_t)SCREEN_RESOLUTION[1] };
     };
+
+    static FramebufferId Recreate(FramebufferId id, std::array<size_t, 2> newResolution);
 
     void Bind() const;
     static void UnBind();
@@ -46,6 +48,8 @@ private:
     unsigned int FBO_ = 0, RBO_ = 0;
     MeshId mesh_ = DEFAULT_ID;
     AttachmentMask attachments_ = AttachmentMask::COLOR0;
+    std::array<size_t, 2> resolution_ = { (size_t)SCREEN_RESOLUTION[0], (size_t)SCREEN_RESOLUTION[1] };
+    std::array<std::string_view, 2> shaderPaths_ = { "../data/shaders/fb.vert", "../data/shaders/fb_hdr_reinhard.frag" };
 };
 
 }//!gl
