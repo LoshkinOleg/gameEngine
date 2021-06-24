@@ -9,7 +9,7 @@ void gl::Model::Draw() const
 
     for (size_t i = 0; i < meshes.size(); i++)
     {
-        meshes[i].Draw();
+        meshes[i].Draw((int)modelMatrices_.size());
     }
 }
 

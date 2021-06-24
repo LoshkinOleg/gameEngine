@@ -20,7 +20,7 @@ namespace gl
 
         void Bind() const;
         static void Unbind();
-        void Draw() const;
+        void Draw(int nrOfInstances = 1) const;
     private:
         friend class ResourceManager;
 

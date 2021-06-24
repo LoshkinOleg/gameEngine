@@ -230,7 +230,7 @@ gl::ModelId gl::ResourceManager::CreateResource(const gl::Model::Definition def)
     // Create a vbo for the model matrices.
     glGenBuffers(1, &model.modelMatricesVBO_);
     glBindBuffer(GL_ARRAY_BUFFER, model.modelMatricesVBO_);
-    glBufferData(GL_ARRAY_BUFFER, model.modelMatrices_.size() * sizeof(glm::mat4), &model.modelMatrices_[0], GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, model.modelMatrices_.size() * sizeof(glm::mat4), &model.modelMatrices_[0][0][0], GL_DYNAMIC_DRAW);
 
     const auto& meshes = GetMeshes(model.meshes_);
     for (size_t i = 0; i < meshes.size(); i++)
@@ -1177,7 +1177,7 @@ void gl::ResourceManager::Shutdown()
 }
 
 // TODO: make this shit more sensible: one obj should not produce multiple ObjDatas....
-gl::ModelId gl::ResourceManager::CreateResource(const std::vector<ObjData> objData, const Material::Definition matdef, bool flipImages, bool correctGamma)
+gl::ModelId gl::ResourceManager::CreateResource(const std::vector<ObjData> objData, const std::vector<glm::mat4> modelMatrices, const Material::Definition matdef, bool flipImages, bool correctGamma)
 {
     Model::Definition modef;
     for (size_t m = 0; m < objData.size(); m++)
@@ -1227,7 +1227,7 @@ gl::ModelId gl::ResourceManager::CreateResource(const std::vector<ObjData> objDa
             localmatdef.correctGamma = correctGamma;
             localmatdef.flipImages = flipImages;
             localmatdef.useHdr = false;
-            localmatdef.vertexPath = ILLUM2_SHADER[0]; // TODO: fix this shit. We need to be able to specify our own shader
+            localmatdef.vertexPath = ILLUM2_SHADER[0];
             localmatdef.fragmentPath = ILLUM2_SHADER[1];
             if (!objData[m].material.ambientMap.empty())
             {
@@ -1291,7 +1291,7 @@ gl::ModelId gl::ResourceManager::CreateResource(const std::vector<ObjData> objDa
             modef.meshes.push_back(CreateResource(mdef));
         }
     }
-    modef.modelMatrices = {IDENTITY_MAT4};
+    modef.modelMatrices = modelMatrices;
 
     return CreateResource(modef);
 }

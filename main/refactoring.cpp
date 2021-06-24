@@ -56,7 +56,30 @@ public:
         // matdef.staticInts.insert({CUBEMAP_SAMPLER_NAME.data(), CUBEMAP_TEXTURE_UNIT});
         // matdef.dynamicMat4s.insert({VIEW_MARIX_NAME, resourceManager_.GetCamera(camera_).GetViewMatrixPtr()});
         // matdef.dynamicVec3s.insert({ VIEW_POSITION_NAME, resourceManager_.GetCamera(camera_).GetPositionPtr() });
-        const ModelId id = resourceManager_.CreateResource(objData/*, matdef*/);
+        // const ModelId id = resourceManager_.CreateResource(objData/*, matdef*/);
+        std::vector<glm::mat4> modelMatrices = std::vector<glm::mat4>(10, IDENTITY_MAT4);
+        for (size_t i = 0; i < 10; i++)
+        {
+            glm::vec3 position, cardinalRotation, scale;
+
+            position.x = glm::cos(i * 0.1f) * 5.0f;
+            position.y = glm::sin(i * 0.1f) * 5.0f;
+            position.z = 0.0f;
+            modelMatrices[i] = glm::translate(modelMatrices[i], position);
+
+            cardinalRotation.x = glm::cos(i * 0.1f);
+            cardinalRotation.y = glm::cos(i * 0.1f);
+            cardinalRotation.z = glm::cos(i * 0.1f);
+            modelMatrices[i] = glm::rotate(modelMatrices[i], cardinalRotation.x, RIGHT_VEC3);
+            modelMatrices[i] = glm::rotate(modelMatrices[i], cardinalRotation.y, UP_VEC3);
+            modelMatrices[i] = glm::rotate(modelMatrices[i], cardinalRotation.z, FRONT_VEC3);
+
+            scale.x = glm::cos(i * 0.1f + 0.5f);
+            scale.y = glm::sin(i * 0.1f + 0.5f);
+            scale.z = glm::cos(i * 0.1f + 0.5f);
+            modelMatrices[i] = glm::scale(modelMatrices[i], scale);
+        }
+        const ModelId id = resourceManager_.CreateResource(objData/*, modelMatrices*/);
         model_ = resourceManager_.GetModel(id);
 
         // Skybox creation.

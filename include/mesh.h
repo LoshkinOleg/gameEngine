@@ -17,7 +17,7 @@ namespace gl
             gl::MaterialId material = DEFAULT_ID;
         };
 
-        void Draw() const;
+        void Draw(int nrOfInstances = 1) const;
         MaterialId GetMaterialId() const;
     private:
         friend class ResourceManager;

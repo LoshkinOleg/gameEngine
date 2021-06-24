@@ -7,18 +7,18 @@
 void gl::VertexBuffer::Bind() const
 {
     glBindVertexArray(VAO_);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_);
+    // glBindBuffer(GL_ARRAY_BUFFER, VBO_);
     CheckGlError();
 }
 
 void gl::VertexBuffer::Unbind()
 {
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    // glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
     CheckGlError();
 }
 
-void gl::VertexBuffer::Draw() const
+void gl::VertexBuffer::Draw(int nrOfInstances) const
 {
     if (VAO_ == 0 || VBO_ == 0)
     {
@@ -26,7 +26,8 @@ void gl::VertexBuffer::Draw() const
     }
 
     Bind();
-    glDrawArrays(GL_TRIANGLES, 0, verticesCount_);
+    // glDrawArrays(GL_TRIANGLES, 0, verticesCount_);
+    glDrawArraysInstanced(GL_TRIANGLES, 0, verticesCount_, nrOfInstances);
     CheckGlError();
     Unbind();
 }
