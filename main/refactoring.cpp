@@ -29,7 +29,7 @@ public:
     void Init() override
     {
         glEnable(GL_DEPTH_TEST);
-        // glEnable(GL_CULL_FACE);
+        glEnable(GL_CULL_FACE);
         glEnable(GL_FRAMEBUFFER_SRGB_EXT);
 
         {
@@ -38,17 +38,26 @@ public:
         }
 
         // Model creation.
-        const auto objData = resourceManager_.ReadObjData("../data/models/earth/earth.obj");
-        const ModelId id = resourceManager_.CreateResource(objData);
+        const auto objData = resourceManager_.ReadObjData("../data/models/brickSphere/brickSphere.obj");
+        // Material::Definition matdef;
+        // matdef.vertexPath = "../data/shaders/environmentmap.vert";
+        // matdef.fragmentPath = "../data/shaders/environmentmap.frag";
+        // matdef.correctGamma = true;
+        // matdef.flipImages = false;
+        // matdef.useHdr = false;
+        // matdef.texturePathsAndTypes.push_back({ "../data/textures/skybox/right.jpg" , Texture::Type::CUBEMAP});
+        // matdef.texturePathsAndTypes.push_back({ "../data/textures/skybox/left.jpg" , Texture::Type::CUBEMAP});
+        // matdef.texturePathsAndTypes.push_back({ "../data/textures/skybox/top.jpg" , Texture::Type::CUBEMAP});
+        // matdef.texturePathsAndTypes.push_back({ "../data/textures/skybox/bottom.jpg" , Texture::Type::CUBEMAP});
+        // matdef.texturePathsAndTypes.push_back({ "../data/textures/skybox/front.jpg" , Texture::Type::CUBEMAP});
+        // matdef.texturePathsAndTypes.push_back({ "../data/textures/skybox/back.jpg" , Texture::Type::CUBEMAP});
+        // matdef.staticMat4s.insert({PROJECTION_MARIX_NAME.data(), PERSPECTIVE});
+        // matdef.staticMat4s.insert({"model", IDENTITY_MAT4});
+        // matdef.staticInts.insert({CUBEMAP_SAMPLER_NAME.data(), CUBEMAP_TEXTURE_UNIT});
+        // matdef.dynamicMat4s.insert({VIEW_MARIX_NAME, resourceManager_.GetCamera(camera_).GetViewMatrixPtr()});
+        // matdef.dynamicVec3s.insert({ VIEW_POSITION_NAME, resourceManager_.GetCamera(camera_).GetPositionPtr() });
+        const ModelId id = resourceManager_.CreateResource(objData/*, matdef*/);
         model_ = resourceManager_.GetModel(id);
-        const auto meshIds = model_.GetMesheIds();
-        for (size_t i = 0; i < meshIds.size(); i++)
-        {
-            const auto mesh = resourceManager_.GetMesh(meshIds[i]);
-            const auto matId = mesh.GetMaterialId();
-            auto& mat = resourceManager_.GetMaterial(matId);
-            mat.AddDynamicUniformPair(std::pair<std::string_view, const glm::vec3*>{"lightDir", &lightDir_});
-        }
 
         // Skybox creation.
         {
@@ -74,9 +83,9 @@ public:
         glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        lightDir_ = glm::vec3(glm::cos(timer_) * 1.5f, 1.5f, glm::sin(timer_) * 1.5f);
+        // lightDir_ = glm::vec3(glm::cos(timer_) * 1.5f, 1.5f, glm::sin(timer_) * 1.5f);
 
-        // skybox_.Draw();
+        skybox_.Draw();
         model_.Draw();
     }
     void Destroy() override
@@ -144,7 +153,7 @@ private:
     CameraId camera_ = DEFAULT_ID;
     Model model_;
     Skybox skybox_;
-    glm::vec3 lightDir_ = -ONE_VEC3;
+    // glm::vec3 lightDir_ = -ONE_VEC3;
     ResourceManager& resourceManager_ = ResourceManager::Get();
 };
 

@@ -34,8 +34,8 @@ namespace gl
             bool correctGamma = true;
             bool useHdr = false;
 
-            std::string_view vertexPath;
-            std::string_view fragmentPath;
+            std::string_view vertexPath = "";
+            std::string_view fragmentPath = "";
         };
 
         void Bind() const;

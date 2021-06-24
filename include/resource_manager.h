@@ -73,9 +73,9 @@ namespace gl
         VertexBufferId CreateResource(const VertexBuffer::Definition def);
         FramebufferId CreateResource(const Framebuffer::Definition def);
         CameraId CreateResource(const Camera::Definition def);
-        ModelId CreateResource(const std::vector<ObjData> objData, bool flipImages = true, bool correctGamma = true);
+        ModelId CreateResource(const std::vector<ObjData> objData, const Material::Definition matdef = Material::Definition(), bool flipImages = true, bool correctGamma = true);
 
-        std::vector<ObjData> ReadObjData(std::string_view path) const;
+        std::vector<ObjData> ReadObjData(std::string_view path, bool flipNormals = false, bool reverseWindingOrder = false) const;
 
         bool IsModelIdValid(ModelId id) const;
         bool IsMeshIdValid(MeshId id) const;

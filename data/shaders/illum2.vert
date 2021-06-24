@@ -9,7 +9,6 @@ layout (location = 4) in mat4 aModel;
 out VS_OUT {
     vec3 FragPos;
     vec2 TexCoords;
-    vec3 TangentFaceNormal;
     vec3 TangentLightDir;
     vec3 TangentViewPos;
     vec3 TangentFragPos;
@@ -19,7 +18,7 @@ uniform mat4 projection;
 uniform mat4 view;
 uniform vec3 viewPos;
 
-uniform vec3 lightDir;
+const vec3 lightDir = normalize(vec3(-1.0, -1.0, -1.0));
 
 void main()
 {
@@ -36,7 +35,6 @@ void main()
     vs_out.TangentLightDir = TBN * lightDir;
     vs_out.TangentViewPos  = TBN * viewPos;
     vs_out.TangentFragPos  = TBN * vs_out.FragPos;
-    vs_out.TangentFaceNormal = TBN * aNormal;
         
     gl_Position = projection * view * aModel * vec4(aPos, 1.0);
 }

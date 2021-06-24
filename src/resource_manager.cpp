@@ -415,7 +415,7 @@ gl::MaterialId gl::ResourceManager::CreateResource(const gl::Material::Definitio
                 texIds.push_back(CreateResource(tdef));
                 assert(texIds[i] != DEFAULT_ID);
                 i += 6; // Don't try to load the other components of the cubemap again.
-                material.staticInts_.insert({CUBEMAP_SAMPLER_NAME, CUBEMAP_TEXTURE_UNIT});
+                // material.staticInts_.insert({CUBEMAP_SAMPLER_NAME, CUBEMAP_TEXTURE_UNIT});
             }
         }
         else
@@ -968,11 +968,10 @@ gl::VertexBufferId gl::ResourceManager::CreateResource(const gl::VertexBuffer::D
     return hash;
 }
 
-std::vector<gl::ResourceManager::ObjData> gl::ResourceManager::ReadObjData(std::string_view path) const
+std::vector<gl::ResourceManager::ObjData> gl::ResourceManager::ReadObjData(std::string_view path, bool flipNormals, bool reverseWindingOrder) const
 {
     std::vector<ObjData> returnVal = {};
 
-    // TODO: currently shaders don't handle normal mapping.
     // TODO: place transparent meshes last! Right now it's not rendering properly...
 
     const std::string dir = std::string(path.begin(), path.begin() + path.find_last_of("/") + 1);
@@ -1080,15 +1079,15 @@ std::vector<gl::ResourceManager::ObjData> gl::ResourceManager::ReadObjData(std::
             };
 
             // Add the data to the ObjData struct.
-            returnVal[i].positions.push_back(pos0);
+            returnVal[i].positions.push_back(reverseWindingOrder ? pos2 : pos0);
             returnVal[i].positions.push_back(pos1);
-            returnVal[i].positions.push_back(pos2);
-            returnVal[i].texCoords.push_back(uv0);
+            returnVal[i].positions.push_back(reverseWindingOrder ? pos0 : pos2);
+            returnVal[i].texCoords.push_back(reverseWindingOrder ? uv2 : uv0);
             returnVal[i].texCoords.push_back(uv1);
-            returnVal[i].texCoords.push_back(uv2);
-            returnVal[i].normals.push_back(normal);
-            returnVal[i].normals.push_back(normal);
-            returnVal[i].normals.push_back(normal);
+            returnVal[i].texCoords.push_back(reverseWindingOrder ? uv0 : uv2);
+            returnVal[i].normals.push_back(flipNormals ? -normal : normal);
+            returnVal[i].normals.push_back(flipNormals ? -normal : normal);
+            returnVal[i].normals.push_back(flipNormals ? -normal : normal);
             returnVal[i].tangents.push_back(tangent);
             returnVal[i].tangents.push_back(tangent);
             returnVal[i].tangents.push_back(tangent);
@@ -1178,7 +1177,7 @@ void gl::ResourceManager::Shutdown()
 }
 
 // TODO: make this shit more sensible: one obj should not produce multiple ObjDatas....
-gl::ModelId gl::ResourceManager::CreateResource(const std::vector<ObjData> objData, bool flipImages, bool correctGamma)
+gl::ModelId gl::ResourceManager::CreateResource(const std::vector<ObjData> objData, const Material::Definition matdef, bool flipImages, bool correctGamma)
 {
     Model::Definition modef;
     for (size_t m = 0; m < objData.size(); m++)
@@ -1188,7 +1187,7 @@ gl::ModelId gl::ResourceManager::CreateResource(const std::vector<ObjData> objDa
 
         // Load vertex data.
         VertexBuffer::Definition vbdef;
-        Material::Definition matdef;
+        Material::Definition localmatdef;
         Mesh::Definition mdef;
 
         // Collapse all the arrays of vertex data into a single array.
@@ -1223,65 +1222,74 @@ gl::ModelId gl::ResourceManager::CreateResource(const std::vector<ObjData> objDa
             3  // tangents
         };
 
-        matdef.correctGamma = correctGamma;
-        matdef.flipImages = flipImages;
-        matdef.useHdr = false;
-        matdef.vertexPath = ILLUM2_SHADER[0]; // TODO: fix this shit. We need to be able to specify our own shader
-        matdef.fragmentPath = ILLUM2_SHADER[1];
-        if (!objData[m].material.ambientMap.empty())
+        if (matdef.vertexPath.empty()) // No material manually specified.
         {
-            matdef.texturePathsAndTypes.push_back({ objData[m].material.ambientMap, Texture::Type::AMBIENT });
-            matdef.staticInts.insert({ AMBIENT_SAMPLER_NAME, AMBIENT_TEXTURE_UNIT });
-        }
-        if (!objData[m].material.alphaMap.empty())
-        {
-            matdef.texturePathsAndTypes.push_back({ objData[m].material.alphaMap, Texture::Type::ALPHA });
-            matdef.staticInts.insert({ ALPHA_SAMPLER_NAME, ALPHA_TEXTURE_UNIT });
-        }
-        if (!objData[m].material.diffuseMap.empty())
-        {
-            matdef.texturePathsAndTypes.push_back({ objData[m].material.diffuseMap, Texture::Type::DIFFUSE });
-            matdef.staticInts.insert({ DIFFUSE_SAMPLER_NAME, DIFFUSE_TEXTURE_UNIT });
-        }
-        if (!objData[m].material.specularMap.empty())
-        {
-            matdef.texturePathsAndTypes.push_back({ objData[m].material.specularMap, Texture::Type::SPECULAR });
-            matdef.staticInts.insert({ SPECULAR_SAMPLER_NAME, SPECULAR_TEXTURE_UNIT });
-        }
-        if (!objData[m].material.normalMap.empty())
-        {
-            matdef.texturePathsAndTypes.push_back({ objData[m].material.normalMap, Texture::Type::NORMALMAP });
-            matdef.staticInts.insert({ NORMALMAP_SAMPLER_NAME, NORMALMAP_TEXTURE_UNIT });
-        }
-        if (!objData[m].material.roughnessMap.empty())
-        {
-            matdef.texturePathsAndTypes.push_back({ objData[m].material.roughnessMap, Texture::Type::ROUGHNESS });
-            matdef.staticInts.insert({ ROUGHNESS_SAMPLER_NAME, ROUGHNESS_TEXTURE_UNIT });
-        }
-        if (!objData[m].material.metallicMap.empty())
-        {
-            matdef.texturePathsAndTypes.push_back({ objData[m].material.metallicMap, Texture::Type::METALLIC });
-            matdef.staticInts.insert({ METALLIC_SAMPLER_NAME, METALLIC_TEXTURE_UNIT });
-        }
-        if (!objData[m].material.sheenMap.empty())
-        {
-            matdef.texturePathsAndTypes.push_back({ objData[m].material.sheenMap, Texture::Type::SHEEN });
-            matdef.staticInts.insert({ SHEEN_SAMPLER_NAME, SHEEN_TEXTURE_UNIT });
-        }
-        if (!objData[m].material.emissiveMap.empty())
-        {
-            matdef.texturePathsAndTypes.push_back({ objData[m].material.emissiveMap, Texture::Type::EMISSIVE });
-            matdef.staticInts.insert({ EMISSIVE_SAMPLER_NAME, EMISSIVE_TEXTURE_UNIT });
-        }
-        matdef.staticFloats.insert({ SHININESS_NAME, objData[m].material.shininess });
-        matdef.staticFloats.insert({ IOR_NAME, objData[m].material.ior });
-        matdef.staticMat4s.insert({ PROJECTION_MARIX_NAME, PERSPECTIVE });
-        matdef.dynamicMat4s.insert({ VIEW_MARIX_NAME, cameras_[0].GetViewMatrixPtr() }); // Note: this makes all shaders dependant on the main camera!
-        matdef.dynamicVec3s.insert({ VIEW_POSITION_NAME, cameras_[0].GetPositionPtr() });
+            localmatdef.correctGamma = correctGamma;
+            localmatdef.flipImages = flipImages;
+            localmatdef.useHdr = false;
+            localmatdef.vertexPath = ILLUM2_SHADER[0]; // TODO: fix this shit. We need to be able to specify our own shader
+            localmatdef.fragmentPath = ILLUM2_SHADER[1];
+            if (!objData[m].material.ambientMap.empty())
+            {
+                localmatdef.texturePathsAndTypes.push_back({ objData[m].material.ambientMap, Texture::Type::AMBIENT });
+                localmatdef.staticInts.insert({ AMBIENT_SAMPLER_NAME, AMBIENT_TEXTURE_UNIT });
+            }
+            if (!objData[m].material.alphaMap.empty())
+            {
+                localmatdef.texturePathsAndTypes.push_back({ objData[m].material.alphaMap, Texture::Type::ALPHA });
+                localmatdef.staticInts.insert({ ALPHA_SAMPLER_NAME, ALPHA_TEXTURE_UNIT });
+            }
+            if (!objData[m].material.diffuseMap.empty())
+            {
+                localmatdef.texturePathsAndTypes.push_back({ objData[m].material.diffuseMap, Texture::Type::DIFFUSE });
+                localmatdef.staticInts.insert({ DIFFUSE_SAMPLER_NAME, DIFFUSE_TEXTURE_UNIT });
+            }
+            if (!objData[m].material.specularMap.empty())
+            {
+                localmatdef.texturePathsAndTypes.push_back({ objData[m].material.specularMap, Texture::Type::SPECULAR });
+                localmatdef.staticInts.insert({ SPECULAR_SAMPLER_NAME, SPECULAR_TEXTURE_UNIT });
+            }
+            if (!objData[m].material.normalMap.empty())
+            {
+                localmatdef.texturePathsAndTypes.push_back({ objData[m].material.normalMap, Texture::Type::NORMALMAP });
+                localmatdef.staticInts.insert({ NORMALMAP_SAMPLER_NAME, NORMALMAP_TEXTURE_UNIT });
+            }
+            if (!objData[m].material.roughnessMap.empty())
+            {
+                localmatdef.texturePathsAndTypes.push_back({ objData[m].material.roughnessMap, Texture::Type::ROUGHNESS });
+                localmatdef.staticInts.insert({ ROUGHNESS_SAMPLER_NAME, ROUGHNESS_TEXTURE_UNIT });
+            }
+            if (!objData[m].material.metallicMap.empty())
+            {
+                localmatdef.texturePathsAndTypes.push_back({ objData[m].material.metallicMap, Texture::Type::METALLIC });
+                localmatdef.staticInts.insert({ METALLIC_SAMPLER_NAME, METALLIC_TEXTURE_UNIT });
+            }
+            if (!objData[m].material.sheenMap.empty())
+            {
+                localmatdef.texturePathsAndTypes.push_back({ objData[m].material.sheenMap, Texture::Type::SHEEN });
+                localmatdef.staticInts.insert({ SHEEN_SAMPLER_NAME, SHEEN_TEXTURE_UNIT });
+            }
+            if (!objData[m].material.emissiveMap.empty())
+            {
+                localmatdef.texturePathsAndTypes.push_back({ objData[m].material.emissiveMap, Texture::Type::EMISSIVE });
+                localmatdef.staticInts.insert({ EMISSIVE_SAMPLER_NAME, EMISSIVE_TEXTURE_UNIT });
+            }
+            localmatdef.staticFloats.insert({ SHININESS_NAME, objData[m].material.shininess });
+            localmatdef.staticFloats.insert({ IOR_NAME, objData[m].material.ior });
+            localmatdef.staticMat4s.insert({ PROJECTION_MARIX_NAME, PERSPECTIVE });
+            localmatdef.dynamicMat4s.insert({ VIEW_MARIX_NAME, cameras_[0].GetViewMatrixPtr() }); // Note: this makes all shaders dependant on the main camera!
+            localmatdef.dynamicVec3s.insert({ VIEW_POSITION_NAME, cameras_[0].GetPositionPtr() });
 
-        mdef.vertexBuffer = CreateResource(vbdef);
-        mdef.material = CreateResource(matdef);
-        modef.meshes.push_back(CreateResource(mdef));
+            mdef.vertexBuffer = CreateResource(vbdef);
+            mdef.material = CreateResource(localmatdef);
+            modef.meshes.push_back(CreateResource(mdef));
+        }
+        else // A material has been specified by the user.
+        {
+            mdef.vertexBuffer = CreateResource(vbdef);
+            mdef.material = CreateResource(matdef);
+            modef.meshes.push_back(CreateResource(mdef));
+        }
     }
     modef.modelMatrices = {IDENTITY_MAT4};
 
