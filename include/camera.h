@@ -31,6 +31,8 @@ namespace gl {
             float pitch = 0.0f;
         };
 
+        void Create(Definition def);
+
         void Translate(glm::vec3 dir);
         void SetPosition(glm::vec3 v);
         void LookAt(const glm::vec3 pos, const glm::vec3 up = UP_VEC3);
@@ -50,7 +52,6 @@ namespace gl {
         const glm::vec3& GetUp() const;
 
 	private:
-        friend class ResourceManager;
 
         void UpdateCameraVectors();
         void UpdateViewModel();

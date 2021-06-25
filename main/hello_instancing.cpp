@@ -80,7 +80,7 @@ public:
                 vb = resourceManager_.CreateResource(def);
             }
             // tex
-            TextureId tex = DEFAULT_ID;
+            Texture2DId tex = DEFAULT_ID;
             {
                 ResourceManager::TextureDefinition def;
                 def.correctGamma = true;

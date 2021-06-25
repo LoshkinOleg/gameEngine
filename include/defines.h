@@ -22,6 +22,9 @@ namespace gl
 #ifndef glCheckGlErrorGuard
 #define CheckGlError() gl::CheckGlError(__FILE__, __LINE__)
 #endif //!glCheckGlErrorGuard
+#ifndef glCheckFramebufferStatusGuard
+#define CheckFramebufferStatus() gl::CheckFramebufferStatus(__FILE__, __LINE__)
+#endif //!glCheckFramebufferStatusGuard
 
 	// Camera parameters.
 	const float CAMERA_MOV_SPEED = 0.1f;
@@ -40,14 +43,15 @@ namespace gl
 
 	// Hashing parameters.
 	const uint32_t HASHING_SEED = 0xFFFF1337;
-	const unsigned int DEFAULT_ID = 0xFFFFFFFF;
 
 	// GL parameters.
-	const int DEFAULT_TEX_TYPE = 0x0DE1; // Corresponds to GL_TEXTURE_2D
 	const float CLEAR_SCREEN_COLOR[4] = { 0.0f, 0.0f, 0.3f, 1.0f };
+	const bool DEFAULT_FLIP_IMAGES = true;
+	const bool DEFAULT_CORRECT_GAMMA = false;
+	const bool DEFAULT_GENERATE_MIPMAPS = true;
 
-	// Common shader variable names.
-	const std::string_view AMBIENT_SAMPLER_NAME = "material.ambientMap"; // TODO: make sure this is mirrored in shaders!
+	// Common shader variables.
+	const std::string_view AMBIENT_SAMPLER_NAME = "material.ambientMap";
 	const int AMBIENT_TEXTURE_UNIT = 0;
 	const std::string_view ALPHA_SAMPLER_NAME = "material.alphaMap";
 	const int ALPHA_TEXTURE_UNIT = 1;
@@ -74,6 +78,7 @@ namespace gl
 	const std::string_view VIEW_POSITION_NAME = "viewPos";
 	const std::string_view PROJECTION_MARIX_NAME = "projection";
 	const std::string_view VIEW_MARIX_NAME = "view";
+	const std::string_view HDR_EXPOSURE_NAME = "exposure";
 
 	const int POSITION_LOCATION = 0;
 	const int TEXCOORD_LOCATION = 1;
@@ -81,7 +86,7 @@ namespace gl
 	const int TANGENT_LOCATION = 3;
 	const int MODEL_MATRIX_LOCATION = 4;
 
-	// Default obj shaders.
+	// Default shaders.
 	const std::string_view ILLUM2_SHADER[2] = {"../data/shaders/illum2.vert", "../data/shaders/illum2.frag" };
 	const std::string_view FRAMEBUFFER_RGB_SHADER[2] = {"../data/shaders/fb.vert", "../data/shaders/fb_rgb.frag" };
 	const std::string_view FRAMEBUFFER_HDR_REINHARD_SHADER[2] = {"../data/shaders/fb.vert", "../data/shaders/fb_hdr_reinhard.frag" };

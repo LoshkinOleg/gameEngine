@@ -18,11 +18,13 @@ namespace gl
             std::vector<float> data = {};
         };
 
+        void Create(Definition def);
+
         void Bind() const;
         static void Unbind();
         void Draw(int nrOfInstances = 1) const;
     private:
-        friend class ResourceManager;
+        friend class Model;
 
         unsigned int VAO_ = 0, VBO_ = 0;
         int verticesCount_ = 0;

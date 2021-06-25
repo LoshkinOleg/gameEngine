@@ -1,55 +1,72 @@
 #pragma once
 #include <array>
 #include <vector>
+#include <map>
 
+#include "texture.h"
+#include "shader.h"
+#include "vertex_buffer.h"
 #include "defines.h"
-
-// TODO: add shadow buffer support, add an interpret framebuffer error func
 
 namespace gl
 {
-    using FramebufferId = unsigned int;
-    using MeshId = unsigned int;
-
 class Framebuffer
 {
 public:
-    enum class AttachmentMask
+    enum class Type
     {
-        DEPTH24 =   1 << 0, // 0000 0001
-        STENCIL8 =  1 << 1, // 0000 0010
-        COLOR0 =    1 << 2, // 0000 0100
-        COLOR1 =    1 << 3, // 0000 1000
+        INVALID = 0,
+        RBO_DEPTH24 =   1 << 0, // 0000 0000 0001
+        // Note: stencil rbo not implemented
+        // RBO_STENCIL8 =  1 << 1, // 0000 0000 0010
+        FBO_RGBA0 =     1 << 2, // 0000 0000 0100
+        FBO_RGBA1 =     1 << 3, // 0000 0000 1000
+         
+        FBO_RGBA2 =     1 << 4, // 0000 0001 0000
+        FBO_RGBA3 =     1 << 5, // 0000 0010 0000
+        FBO_RGBA4 =     1 << 6, // 0000 0100 0000
+        FBO_RGBA5 =     1 << 7, // 0000 1000 0000
 
-        COLOR2 =    1 << 4, // 0001 0000
-        COLOR3 =    1 << 5, // 0010 0000
-        COLOR4 =    1 << 6, // 0100 0000
-        COLOR5 =    1 << 7, // 1000 0000
+        HDR =           1 << 8, // 0001 0000 0000
+        FBO_DEPTH0 =    1 << 9, // 0010 0000 0000
+        NO_DRAW =       1 << 10,// 0100 0000 0000
+        DEFAULT = FBO_RGBA0 | RBO_DEPTH24 /*| RBO_STENCIL8*/ | HDR // 0001 0000 0111
     };
     struct Definition
     {
-        AttachmentMask attachments = AttachmentMask::COLOR0;
+        Type type = Type::DEFAULT;
         std::array<std::string_view, 2> shaderPaths =
         {
             "../data/shaders/fb.vert",
             "../data/shaders/fb_hdr_reinhard.frag"
         };
         std::array<size_t, 2> resolution = { (size_t)SCREEN_RESOLUTION[0], (size_t)SCREEN_RESOLUTION[1] };
+
+        std::map<std::string_view, int> staticInts = { {FRAMEBUFFER_SAMPLER_NAME, FRAMEBUFFER_TEXTURE_UNIT} };
+        std::map<std::string_view, glm::vec3> staticVec3s = {};
+        std::map<std::string_view, glm::mat4> staticMat4s = {};
+        std::map<std::string_view, float> staticFloats = {};
+
+        // NOTE: const* since those value are read only.
+        std::map<std::string_view, const int*> dynamicInts = {};
+        std::map<std::string_view, const glm::vec3*> dynamicVec3s = {};
+        std::map<std::string_view, const glm::mat4*> dynamicMat4s = {};
+        std::map<std::string_view, const float*> dynamicFloats = {};
     };
 
-    static FramebufferId Recreate(FramebufferId id, std::array<size_t, 2> newResolution);
+    void Create(Definition def);
+    void Resize(std::array<size_t, 2> newResolution);
 
     void Bind() const;
-    static void UnBind();
+    void UnBind(const std::array<size_t, 2> screenResolution = { (size_t)SCREEN_RESOLUTION[0], (size_t)SCREEN_RESOLUTION[1] }) const;
     void Draw() const;
 private:
-    friend class ResourceManager;
 
     unsigned int FBO_ = 0, RBO_ = 0;
-    MeshId mesh_ = DEFAULT_ID;
-    AttachmentMask attachments_ = AttachmentMask::COLOR0;
-    std::array<size_t, 2> resolution_ = { (size_t)SCREEN_RESOLUTION[0], (size_t)SCREEN_RESOLUTION[1] };
-    std::array<std::string_view, 2> shaderPaths_ = { "../data/shaders/fb.vert", "../data/shaders/fb_hdr_reinhard.frag" };
+    Shader shader_ = {};
+    VertexBuffer vb_ = {};
+    std::vector<Texture> textures_ = {};
+    Definition defCopy_ = {}; // To be able to easilly recreate the a resized framebuffer.
 };
 
 }//!gl

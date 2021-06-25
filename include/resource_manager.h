@@ -1,108 +1,45 @@
 #pragma once
+#include <string_view>
 #include <map>
 
-#include "vertex_buffer.h"
-#include "texture.h"
-#include "material.h"
-#include "mesh.h"
-#include "transform.h"
-#include "model.h"
-#include "framebuffer.h"
-#include "skybox.h"
-#include "camera.h"
+using XXH32_hash_t = uint32_t;
+using GLuint = unsigned int;
 
 namespace gl
 {
     class ResourceManager
     {
     public:
-        struct ObjData
-        {
-            struct MaterialData
-            {
-                // Note: this must be strings, if using string_views, the views point to freed data by the time they're accessed by the ResourceManager for creation of a Material.
-                std::string ambientMap = "";
-                std::string alphaMap = "";
-                std::string diffuseMap = "";
-                std::string specularMap = "";
-                std::string normalMap = "";
-                std::string roughnessMap = "";
-                std::string metallicMap = "";
-                std::string sheenMap = "";
-                std::string emissiveMap = "";
-                float shininess = 1.0f;
-                float ior = 1.0f;
-                // NOTE: we won't bother with scalar factors for the textures.
-            };
-
-            std::vector<glm::vec3> positions = {};
-            std::vector<glm::vec2> texCoords = {}; // NOTE: vec2 because the obj format does not support cubemaps.
-            std::vector<glm::vec3> normals = {};
-            std::vector<glm::vec3> tangents = {};
-            MaterialData material = {};
-        };
-
         ResourceManager() = default;
         ~ResourceManager();
         ResourceManager(const ResourceManager&) = delete; // Disallow things like ResourceManager r = ResourceManager::Get(), only allow ResourceManager& r = ResourceManager::Get() .
-        static inline ResourceManager& Get()
+        static ResourceManager& Get()
         {
             static gl::ResourceManager instance;
             return instance;
         }
 
-        Transform& GetTransform(TransformId id);
-        const Texture& GetTexture(TextureId id) const;
-        const std::vector<Texture> GetTextures(std::vector<TextureId> ids) const;
-        Material& GetMaterial(MaterialId id);
-        Camera& GetCamera(CameraId id);
-        Model& GetModel(ModelId id);
-        Skybox& GetSkybox(SkyboxId id);
+        // These functions return the gpu name of the data structure if the hashed data is identical to some instance that has been previously created. Else it returns 0.
+        GLuint RequestVAO(XXH32_hash_t hash) const;
+        void AppendNewVAO(GLuint gpuName, XXH32_hash_t hash = 0);
+        GLuint RequestVBO(XXH32_hash_t hash) const;
+        void AppendNewVBO(GLuint gpuName, XXH32_hash_t hash = 0);
+        GLuint RequestTEX(XXH32_hash_t hash) const;
+        void AppendNewTEX(GLuint gpuName, XXH32_hash_t hash = 0);
+        GLuint RequestPROGRAM(XXH32_hash_t hash) const;
+        void AppendNewPROGRAM(GLuint gpuName, XXH32_hash_t hash = 0);
+
         int GetUniformName(std::string_view strName, unsigned int gpuProgramName);
-        Framebuffer& GetFramebuffer(FramebufferId id);
-        const VertexBuffer& GetVertexBuffer(VertexBufferId id) const;
-        const Mesh GetMesh(MeshId id) const;
-        const std::vector<Mesh> GetMeshes(const std::vector<MeshId>& ids) const;
 
-        ModelId CreateResource(const Model::Definition def);
-        MeshId CreateResource(const Mesh::Definition def);
-        MaterialId CreateResource(const Material::Definition def);
-        TransformId CreateResource(const Transform::Definition def);
-        TextureId CreateResource(const Texture::Definition def, unsigned int nrOfFramebufferColorAttachments = 1);
-        SkyboxId CreateResource(const Skybox::Definition def);
-        VertexBufferId CreateResource(const VertexBuffer::Definition def);
-        FramebufferId CreateResource(const Framebuffer::Definition def);
-        CameraId CreateResource(const Camera::Definition def);
-        ModelId CreateResource(const std::vector<ObjData> objData, const std::vector<glm::mat4> modelMatrices = {IDENTITY_MAT4}, const Material::Definition matdef = Material::Definition(), bool flipImages = true, bool correctGamma = true);
-
-        std::vector<ObjData> ReadObjData(std::string_view path, bool flipNormals = false, bool reverseWindingOrder = false) const;
-
-        void DeleteFramebuffer(FramebufferId id);
-
-        bool IsModelIdValid(ModelId id) const;
-        bool IsMeshIdValid(MeshId id) const;
-        bool IsMaterialIdValid(MaterialId id) const;
-        bool IsTransformIdValid(TransformId id) const;
-        bool IsTextureIdValid(TextureId id) const;
-        bool IsVertexBufferIdValid(VertexBufferId id) const;
-        bool IsFramebufferValid(FramebufferId id) const;
-        bool IsSkyboxValid(SkyboxId id) const;
-        bool IsCameraValid(CameraId id) const;
-        void Shutdown();
+        void Shutdown() const;
 
     private:
-        std::map<ModelId, Model> models_ = {};
-        std::map<MeshId, Mesh> opaqueMeshes_ = {};
-        std::map<MeshId, Mesh> transparentMeshes_ = {}; // TODO: Not used currently.
-        std::map<MaterialId, Material> materials_ = {};
-        std::map<TransformId, Transform> transforms_ = {}; // Can't use vectors because of some obscure .find() related error.
-        std::map<TextureId, Texture> textures_ = {};
-        std::map<VertexBufferId, VertexBuffer> vertexBuffers_ = {};
-        std::map<FramebufferId, Framebuffer> framebuffers_ = {};
-        std::map<SkyboxId, Skybox> skyboxes_ = {}; // Does it make sense to have multiple skyboxes?... Multi-layered ones maybe?
-        std::map<CameraId, Camera> cameras_ = {}; // Can't use vectors because of some obscure .find() related error.
+        std::map<XXH32_hash_t, GLuint> VAOs_ = {};
+        std::map<XXH32_hash_t, GLuint> VBOs_ = {};
+        std::map<XXH32_hash_t, GLuint> TEXs_ = {};
+        std::map<XXH32_hash_t, GLuint> PROGRAMs_ = {};
 
-        std::map<std::string, int> uniformNames_ = {};
+        std::map<std::string_view, int> uniformNames_ = {};
     };
 
 }//!gl

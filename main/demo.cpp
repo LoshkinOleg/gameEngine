@@ -126,7 +126,7 @@ namespace gl {
                     vertexBufferId = resourceManager_.CreateResource(vbdef);
                 }
 
-                TextureId textureId = DEFAULT_ID;
+                Texture2DId textureId = DEFAULT_ID;
                 {
                     ResourceManager::TextureDefinition tdef;
                     tdef.samplerTextureUnitPair = {AMBIENT_SAMPLER_NAME.data(), AMBIENT_TEXTURE_UNIT};
@@ -245,7 +245,7 @@ namespace gl {
                     vertexBufferId = resourceManager_.CreateResource(vbdef);
                 }
 
-                TextureId ambientId = DEFAULT_ID;
+                Texture2DId ambientId = DEFAULT_ID;
                 {
                     ResourceManager::TextureDefinition tdef;
                     tdef.samplerTextureUnitPair = { AMBIENT_SAMPLER_NAME.data(), AMBIENT_TEXTURE_UNIT };
@@ -258,7 +258,7 @@ namespace gl {
                     ambientId = resourceManager_.CreateResource(tdef);
                 }
 
-                TextureId diffuseId = DEFAULT_ID;
+                Texture2DId diffuseId = DEFAULT_ID;
                 {
                     ResourceManager::TextureDefinition tdef;
                     tdef.samplerTextureUnitPair = { DIFFUSE_SAMPLER_NAME.data(), DIFFUSE_TEXTURE_UNIT };
@@ -271,7 +271,7 @@ namespace gl {
                     diffuseId = resourceManager_.CreateResource(tdef);
                 }
 
-                TextureId specularId = DEFAULT_ID;
+                Texture2DId specularId = DEFAULT_ID;
                 {
                     ResourceManager::TextureDefinition tdef;
                     tdef.samplerTextureUnitPair = { SPECULAR_SAMPLER_NAME.data(), SPECULAR_TEXTURE_UNIT };

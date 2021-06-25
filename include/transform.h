@@ -17,6 +17,8 @@ namespace gl
             glm::vec3 scale = ONE_VEC3;
         };
 
+        void Create(Definition def);
+
         const glm::mat4 GetModelMatrix() const;
 
         void Translate(glm::vec3 v);

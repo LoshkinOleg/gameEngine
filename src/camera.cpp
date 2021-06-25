@@ -57,6 +57,16 @@ void gl::Camera::SetCameraState(const State& state)
 {
     state_ = state;
 }
+void gl::Camera::Create(Definition def)
+{
+    // NOTE: no checking for duplicates of cameras, we don't mind them having identical data.
+    state_.position = def.position;
+    state_.front = def.front;
+    state_.up = def.up;
+    state_.yaw = glm::radians(-90.0f); // We want the camera facing -Z.
+    state_.pitch = def.pitch;
+    UpdateCameraVectors();
+}
 void gl::Camera::Translate(glm::vec3 dir)
 {
     state_.position += dir;

@@ -97,7 +97,7 @@ public:
                 vb = resourceManager_.CreateResource(def);
             }
             // tex
-            TextureId diffuseTex = DEFAULT_ID;
+            Texture2DId diffuseTex = DEFAULT_ID;
             {
                 ResourceManager::TextureDefinition def;
                 def.correctGamma = true;
@@ -114,7 +114,7 @@ public:
                 def.textureType = DEFAULT_TEX_TYPE;
                 diffuseTex = resourceManager_.CreateResource(def);
             }
-            TextureId normalTex = DEFAULT_ID;
+            Texture2DId normalTex = DEFAULT_ID;
             {
                 ResourceManager::TextureDefinition def;
                 def.correctGamma = false;

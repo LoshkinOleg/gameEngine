@@ -1,13 +1,12 @@
 #pragma once
-#include <vector>
+#include <array>
 #include <string_view>
 
+#include "framebuffer.h"
 #include "defines.h"
 
 namespace gl
 {
-    using TextureId = unsigned int;
-
     class Texture
     {
     public:
@@ -23,29 +22,20 @@ namespace gl
             SHEEN = SHEEN_TEXTURE_UNIT, // 7
             EMISSIVE = EMISSIVE_TEXTURE_UNIT, // 8
             FRAMEBUFFER = FRAMEBUFFER_TEXTURE_UNIT, // 9
-            CUBEMAP = CUBEMAP_TEXTURE_UNIT // 10
+            CUBEMAP = CUBEMAP_TEXTURE_UNIT, // 10
+            INVALID = CUBEMAP_TEXTURE_UNIT + 1
         };
 
-        struct Definition
-        {
-            Type textureType = Type::AMBIENT;
-            std::vector<std::string_view> paths = // If there's more than one path here, it's a cubemap.
-            {
-                "../data/textures/blank2x2.png"
-            };
-            bool flipImage = false;
-            bool correctGamma = false;
-            bool useHdr = false;
-            std::array<size_t, 2> resolution = { (size_t)SCREEN_RESOLUTION[0], (size_t)SCREEN_RESOLUTION[1] };
-        };
+        void Create(Type textureType, std::string_view path, bool flipImage = DEFAULT_FLIP_IMAGES, bool correctGamma = DEFAULT_CORRECT_GAMMA, bool generateMipMaps = DEFAULT_GENERATE_MIPMAPS);
+        void Create(std::array<std::string_view, 6> paths, bool flipImages = DEFAULT_FLIP_IMAGES, bool correctGamma = DEFAULT_CORRECT_GAMMA);
+        void Create(std::array<size_t, 2> resolution, Framebuffer::Type type);
 
         void Bind() const;
         void Unbind() const;
     private:
-        friend class ResourceManager;
 
         unsigned int TEX_ = 0;
-        Type textureType_ = Type::AMBIENT;
+        Texture::Type type_ = Type::INVALID;
     };
 
 }//!gl

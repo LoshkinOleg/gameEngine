@@ -1,32 +1,80 @@
 #include "vertex_buffer.h"
 
-#include <glad/glad.h>
+#include <string>
+#include <numeric>
 
+#include <glad/glad.h>
+#ifndef XXH_INLINE_ALL
+#define XXH_INLINE_ALL
+#endif // !XXH_INLINE_ALL
+#include "xxhash.h"
+
+#include "resource_manager.h"
 #include "defines.h"
+
+void gl::VertexBuffer::Create(Definition def)
+{
+    assert(def.data.size() > 0 && def.dataLayout.size() > 0 && def.dataLayout.size() < MODEL_MATRIX_LOCATION);
+
+    // Hash the data of the buffer and check if it's not loaded already.
+    std::string accumulatedData = std::to_string(XXH32(def.data.data(), sizeof(float) * def.data.size(), HASHING_SEED));
+    for (const auto& layout : def.dataLayout)
+    {
+        accumulatedData += std::to_string(layout); // The same data interpreted differently is still different data.
+    }
+    const XXH32_hash_t hash = XXH32(accumulatedData.c_str(), sizeof(char) * accumulatedData.size(), HASHING_SEED);
+
+    VBO_ = ResourceManager::Get().RequestVBO(hash);
+    VAO_ = ResourceManager::Get().RequestVAO(hash);
+    const size_t stride = std::accumulate(def.dataLayout.begin(), def.dataLayout.end(), 0);
+    verticesCount_ = def.data.size() / stride;
+    if (VBO_ != 0)
+    {
+        return;
+    }
+
+    glGenVertexArrays(1, &VAO_);
+    glBindVertexArray(VAO_);
+    glGenBuffers(1, &VBO_);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_);
+    glBufferData(GL_ARRAY_BUFFER, def.data.size() * sizeof(float), def.data.data(), GL_STATIC_DRAW);
+    CheckGlError();
+
+    // Enable the vertex attribute pointers.
+    size_t accumulatedOffset = 0;
+    for (size_t i = 0; i < def.dataLayout.size(); i++)
+    {
+        glEnableVertexAttribArray((GLuint)i);
+        glVertexAttribPointer((GLuint)i, def.dataLayout[i], GL_FLOAT, GL_FALSE, (GLsizei)(stride * sizeof(float)), (void*)accumulatedOffset);
+        accumulatedOffset += def.dataLayout[i] * sizeof(float);
+        CheckGlError();
+    }
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+    CheckGlError();
+
+    ResourceManager::Get().AppendNewVAO(VAO_, hash);
+    ResourceManager::Get().AppendNewVBO(VBO_, hash);
+}
 
 void gl::VertexBuffer::Bind() const
 {
     glBindVertexArray(VAO_);
-    // glBindBuffer(GL_ARRAY_BUFFER, VBO_);
     CheckGlError();
 }
 
 void gl::VertexBuffer::Unbind()
 {
-    // glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
     CheckGlError();
 }
 
 void gl::VertexBuffer::Draw(int nrOfInstances) const
 {
-    if (VAO_ == 0 || VBO_ == 0)
-    {
-        EngineError("Trying to draw an uninitialized VertexBuffer!");
-    }
+    assert(VAO_ != 0 && VBO_ != 0);
 
     Bind();
-    // glDrawArrays(GL_TRIANGLES, 0, verticesCount_);
     glDrawArraysInstanced(GL_TRIANGLES, 0, verticesCount_, nrOfInstances);
     CheckGlError();
     Unbind();

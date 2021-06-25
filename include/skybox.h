@@ -7,7 +7,6 @@
 namespace gl
 {
     using SkyboxId = unsigned int;
-    using MeshId = unsigned int;
 
 class Skybox
 {
@@ -28,14 +27,16 @@ public:
             "../data/shaders/skybox.vert",
             "../data/shaders/skybox.frag"
         };
-        bool flipImages = true;
-        bool correctGamma = true;
+        bool flipImages = DEFAULT_FLIP_IMAGES;
+        bool correctGamma = DEFAULT_CORRECT_GAMMA;
     };
+
+    void Create(Definition def);
 
     void Draw() const;
 private:
     friend class ResourceManager;
 
-    MeshId mesh_ = DEFAULT_ID;
+    unsigned int PROGRAM_ = 0, VAO_ = 0, VBO_ = 0, TEX_ = 0;
 };
 }//!gl

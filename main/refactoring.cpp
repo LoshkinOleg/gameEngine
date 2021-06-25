@@ -33,54 +33,14 @@ public:
         }
 
         // Model creation.
-        const auto objData = resourceManager_.ReadObjData("../data/models/brickSphere/brickSphere.obj");
-        // Material::Definition matdef;
-        // matdef.vertexPath = "../data/shaders/environmentmap.vert";
-        // matdef.fragmentPath = "../data/shaders/environmentmap.frag";
-        // matdef.correctGamma = true;
-        // matdef.flipImages = false;
-        // matdef.useHdr = false;
-        // matdef.texturePathsAndTypes.push_back({ "../data/textures/skybox/right.jpg" , Texture::Type::CUBEMAP});
-        // matdef.texturePathsAndTypes.push_back({ "../data/textures/skybox/left.jpg" , Texture::Type::CUBEMAP});
-        // matdef.texturePathsAndTypes.push_back({ "../data/textures/skybox/top.jpg" , Texture::Type::CUBEMAP});
-        // matdef.texturePathsAndTypes.push_back({ "../data/textures/skybox/bottom.jpg" , Texture::Type::CUBEMAP});
-        // matdef.texturePathsAndTypes.push_back({ "../data/textures/skybox/front.jpg" , Texture::Type::CUBEMAP});
-        // matdef.texturePathsAndTypes.push_back({ "../data/textures/skybox/back.jpg" , Texture::Type::CUBEMAP});
-        // matdef.staticMat4s.insert({PROJECTION_MARIX_NAME.data(), PERSPECTIVE});
-        // matdef.staticMat4s.insert({"model", IDENTITY_MAT4});
-        // matdef.staticInts.insert({CUBEMAP_SAMPLER_NAME.data(), CUBEMAP_TEXTURE_UNIT});
-        // matdef.dynamicMat4s.insert({VIEW_MARIX_NAME, resourceManager_.GetCamera(camera_).GetViewMatrixPtr()});
-        // matdef.dynamicVec3s.insert({ VIEW_POSITION_NAME, resourceManager_.GetCamera(camera_).GetPositionPtr() });
-        // const ModelId id = resourceManager_.CreateResource(objData/*, matdef*/);
-        std::vector<glm::mat4> modelMatrices = std::vector<glm::mat4>(10, IDENTITY_MAT4);
-        for (size_t i = 0; i < 10; i++)
-        {
-            glm::vec3 position, cardinalRotation, scale;
-
-            position.x = glm::cos(i * 0.1f) * 5.0f;
-            position.y = glm::sin(i * 0.1f) * 5.0f;
-            position.z = 0.0f;
-            modelMatrices[i] = glm::translate(modelMatrices[i], position);
-
-            cardinalRotation.x = glm::cos(i * 0.1f);
-            cardinalRotation.y = glm::cos(i * 0.1f);
-            cardinalRotation.z = glm::cos(i * 0.1f);
-            modelMatrices[i] = glm::rotate(modelMatrices[i], cardinalRotation.x, RIGHT_VEC3);
-            modelMatrices[i] = glm::rotate(modelMatrices[i], cardinalRotation.y, UP_VEC3);
-            modelMatrices[i] = glm::rotate(modelMatrices[i], cardinalRotation.z, FRONT_VEC3);
-
-            scale.x = glm::cos(i * 0.1f + 0.5f);
-            scale.y = glm::sin(i * 0.1f + 0.5f);
-            scale.z = glm::cos(i * 0.1f + 0.5f);
-            modelMatrices[i] = glm::scale(modelMatrices[i], scale);
-        }
-        const ModelId id = resourceManager_.CreateResource(objData/*, modelMatrices*/);
+        const auto objData = resourceManager_.ReadObjData("../data/models/camera/camera.obj");
+        const ModelId id = resourceManager_.CreateResource(objData/*, modelMatrices, {}, false, false */ );
         model_ = resourceManager_.GetModel(id);
 
         // Skybox creation.
         {
             Skybox::Definition def;
-            def.correctGamma = true;
+            def.correctGamma = false;
             def.flipImages = false;
             def.shader = {SKYBOX_SHADER[0], SKYBOX_SHADER[1]};
             def.paths =
@@ -100,8 +60,6 @@ public:
         timer_ += dt.count();
         glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        // lightDir_ = glm::vec3(glm::cos(timer_) * 1.5f, 1.5f, glm::sin(timer_) * 1.5f);
 
         skybox_.Draw();
         model_.Draw();
@@ -171,7 +129,6 @@ private:
     CameraId camera_ = DEFAULT_ID;
     Model model_;
     Skybox skybox_;
-    // glm::vec3 lightDir_ = -ONE_VEC3;
     ResourceManager& resourceManager_ = ResourceManager::Get();
 };
 
