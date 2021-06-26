@@ -16,6 +16,11 @@
 
 void gl::Texture::Create(Type textureType, std::string_view path, bool flipImage, bool correctGamma, bool generateMipMaps)
 {
+    if (TEX_ != 0)
+    {
+        EngineError("Calling Create() a second time...");
+    }
+
     assert((int)textureType < (int)Type::FRAMEBUFFER && (int)textureType > -1 && !path.empty());
 
     stbi_set_flip_vertically_on_load(flipImage);
@@ -33,12 +38,12 @@ void gl::Texture::Create(Type textureType, std::string_view path, bool flipImage
     const XXH32_hash_t hash = XXH32(accumulatedData.c_str(), sizeof(char) * accumulatedData.size(), HASHING_SEED);
 
     TEX_ = ResourceManager::Get().RequestTEX(hash);
+    type_ = textureType;
     if (TEX_ != 0) // This means the data has been already loaded. Just use the returned gpu name.
     {
         stbi_image_free(data);
         return;
     }
-    type_ = textureType;
 
     glGenTextures(1, &TEX_);
     glBindTexture(GL_TEXTURE_2D, TEX_);
@@ -62,6 +67,11 @@ void gl::Texture::Create(Type textureType, std::string_view path, bool flipImage
 
 void gl::Texture::Create(std::array<std::string_view, 6> paths, bool flipImages, bool correctGamma)
 {
+    if (TEX_ != 0)
+    {
+        EngineError("Calling Create() a second time...");
+    }
+
     stbi_set_flip_vertically_on_load(flipImages);
     int width[6], height[6], nrChannels[6];
     unsigned char* data[6];
@@ -78,6 +88,7 @@ void gl::Texture::Create(std::array<std::string_view, 6> paths, bool flipImages,
     const XXH32_hash_t hash = XXH32(accumulatedData.c_str(), sizeof(char) * accumulatedData.size(), HASHING_SEED);
 
     TEX_ = ResourceManager::Get().RequestTEX(hash);
+    type_ = Type::CUBEMAP;
     if (TEX_ != 0) // This means the data has been already loaded. Just use the returned gpu name.
     {
         for (size_t i = 0; i < 6; i++)
@@ -86,14 +97,14 @@ void gl::Texture::Create(std::array<std::string_view, 6> paths, bool flipImages,
         }
         return;
     }
-    type_ = Type::CUBEMAP;
 
     glGenTextures(1, &TEX_);
+    CheckGlError();
     glBindTexture(GL_TEXTURE_CUBE_MAP, TEX_);
-    for (size_t i = 0; i < 6; i++)
+    CheckGlError();
+    for (unsigned int i = 0; i < 6; i++)
     {
-
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, correctGamma ? GL_SRGB : GL_RGB, width[i], height[i], 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, correctGamma ? GL_SRGB : GL_RGB, width[i], height[i], 0, GL_RGB, GL_UNSIGNED_BYTE, data[i]);
         CheckGlError();
     }
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -113,10 +124,16 @@ void gl::Texture::Create(std::array<std::string_view, 6> paths, bool flipImages,
     }
 }
 
-void gl::Texture::Create(std::array<size_t, 2> resolution, Framebuffer::Type type)
+// Warning: textures created this way don't get hashed, so delete them everytime you drop their gpuNames, else you'll get a gpu memory leak.
+void gl::Texture::Create(std::array<size_t, 2> resolution, FramebufferAttachment type)
 {
+    if (TEX_ != 0)
+    {
+        EngineError("Calling Create() a second time...");
+    }
+
     // Note: type should only have at most 2 bits set: the Type you with to create and optionally the HDR bit.
-    if ((int)type & (int)Framebuffer::Type::FBO_DEPTH0)
+    if ((int)type & (int)FramebufferAttachment::FBO_DEPTH0)
     {
         glGenTextures(1, &TEX_);
         glBindTexture(GL_TEXTURE_2D, TEX_);
@@ -126,16 +143,16 @@ void gl::Texture::Create(std::array<size_t, 2> resolution, Framebuffer::Type typ
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     }
-    else if ((int)type & (int)Framebuffer::Type::FBO_RGBA0 ||
-             (int)type & (int)Framebuffer::Type::FBO_RGBA1 ||
-             (int)type & (int)Framebuffer::Type::FBO_RGBA2 ||
-             (int)type & (int)Framebuffer::Type::FBO_RGBA3 ||
-             (int)type & (int)Framebuffer::Type::FBO_RGBA4 ||
-             (int)type & (int)Framebuffer::Type::FBO_RGBA5 )
+    else if ((int)type & (int)FramebufferAttachment::FBO_RGBA0 ||
+             (int)type & (int)FramebufferAttachment::FBO_RGBA1 ||
+             (int)type & (int)FramebufferAttachment::FBO_RGBA2 ||
+             (int)type & (int)FramebufferAttachment::FBO_RGBA3 ||
+             (int)type & (int)FramebufferAttachment::FBO_RGBA4 ||
+             (int)type & (int)FramebufferAttachment::FBO_RGBA5 )
     {
         glGenTextures(1, &TEX_);
         glBindTexture(GL_TEXTURE_2D, TEX_);
-        glTexImage2D(GL_TEXTURE_2D, 0, (int)type & (int)Framebuffer::Type::HDR ? GL_RGB16F : GL_RGB8, resolution[0], resolution[1], 0, GL_RGB, (int)type & (int)Framebuffer::Type::HDR ? GL_FLOAT : GL_UNSIGNED_BYTE, nullptr);
+        glTexImage2D(GL_TEXTURE_2D, 0, (int)type & (int)FramebufferAttachment::HDR ? GL_RGB16F : GL_RGB8, resolution[0], resolution[1], 0, GL_RGB, (int)type & (int)FramebufferAttachment::HDR ? GL_FLOAT : GL_UNSIGNED_BYTE, nullptr);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     }
@@ -143,6 +160,11 @@ void gl::Texture::Create(std::array<size_t, 2> resolution, Framebuffer::Type typ
     glBindTexture(GL_TEXTURE_2D, 0);
 
     ResourceManager::Get().AppendNewTEX(TEX_);
+}
+
+GLuint gl::Texture::GetTEX() const
+{
+    return TEX_;
 }
 
 void gl::Texture::Bind() const

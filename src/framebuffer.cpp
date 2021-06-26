@@ -5,7 +5,7 @@
 #include "defines.h"
 #include "resource_manager.h"
 
-void gl::Framebuffer::Draw() const
+void gl::Framebuffer::Draw()
 {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glDisable(GL_DEPTH_TEST);
@@ -25,6 +25,11 @@ void gl::Framebuffer::Draw() const
 }
 void gl::Framebuffer::Create(Definition def)
 {
+    if (FBO_ != 0)
+    {
+        EngineWarning("Recreating the Framebuffer!");
+    }
+
     // Note: we want to be able to create identical framebuffers, so no hashing.
     defCopy_ = def;
 
@@ -68,7 +73,7 @@ void gl::Framebuffer::Create(Definition def)
     {
         assert((int)def.type & (int)Type::NO_DRAW);
         Texture tex;
-        tex.Create(def.resolution, Type::FBO_DEPTH0);
+        tex.Create(def.resolution, (Texture::FramebufferAttachment)Type::FBO_DEPTH0); // TODO: this is ugly as sheit, fix it.
         textures_.push_back(tex);
         tex.Bind();
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, FBO_, 0);
@@ -78,7 +83,7 @@ void gl::Framebuffer::Create(Definition def)
     if ((int)def.type & (int)Type::FBO_RGBA0)
     {
         Texture tex;
-        tex.Create(def.resolution, Type::FBO_RGBA0);
+        tex.Create(def.resolution, (Texture::FramebufferAttachment)Type::FBO_RGBA0);
         textures_.push_back(tex);
         tex.Bind();
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, FBO_, 0);
@@ -88,7 +93,7 @@ void gl::Framebuffer::Create(Definition def)
     if ((int)def.type & (int)Type::FBO_RGBA1)
     {
         Texture tex;
-        tex.Create(def.resolution, Type::FBO_RGBA1);
+        tex.Create(def.resolution, (Texture::FramebufferAttachment)Type::FBO_RGBA1);
         textures_.push_back(tex);
         tex.Bind();
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, FBO_, 0);
@@ -98,7 +103,7 @@ void gl::Framebuffer::Create(Definition def)
     if ((int)def.type & (int)Type::FBO_RGBA2)
     {
         Texture tex;
-        tex.Create(def.resolution, Type::FBO_RGBA2);
+        tex.Create(def.resolution, (Texture::FramebufferAttachment)Type::FBO_RGBA2);
         textures_.push_back(tex);
         tex.Bind();
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, FBO_, 0);
@@ -108,7 +113,7 @@ void gl::Framebuffer::Create(Definition def)
     if ((int)def.type & (int)Type::FBO_RGBA3)
     {
         Texture tex;
-        tex.Create(def.resolution, Type::FBO_RGBA3);
+        tex.Create(def.resolution, (Texture::FramebufferAttachment)Type::FBO_RGBA3);
         textures_.push_back(tex);
         tex.Bind();
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, FBO_, 0);
@@ -118,7 +123,7 @@ void gl::Framebuffer::Create(Definition def)
     if ((int)def.type & (int)Type::FBO_RGBA4)
     {
         Texture tex;
-        tex.Create(def.resolution, Type::FBO_RGBA4);
+        tex.Create(def.resolution, (Texture::FramebufferAttachment)Type::FBO_RGBA4);
         textures_.push_back(tex);
         tex.Bind();
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT4, GL_TEXTURE_2D, FBO_, 0);
@@ -128,7 +133,7 @@ void gl::Framebuffer::Create(Definition def)
     if ((int)def.type & (int)Type::FBO_RGBA5)
     {
         Texture tex;
-        tex.Create(def.resolution, Type::FBO_RGBA5);
+        tex.Create(def.resolution, (Texture::FramebufferAttachment)Type::FBO_RGBA5);
         textures_.push_back(tex);
         tex.Bind();
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT5, GL_TEXTURE_2D, FBO_, 0);
@@ -159,10 +164,16 @@ void gl::Framebuffer::Create(Definition def)
 void gl::Framebuffer::Resize(std::array<size_t, 2> newResolution)
 {
     defCopy_.resolution = newResolution;
-    glDeleteRenderbuffers(1, &RBO_);
-    glDeleteFramebuffers(1, &FBO_);
-    // Note, vb, shader and textures should all return the existing gpu names when Create() is called.
-    Create(defCopy_); // TODO: Textures are NOT being resued, memory leak!!!
+    auto& rm = ResourceManager::Get();
+    const auto vaoAndVbo = vb_.GetVAOandVBO();
+    rm.DeleteVAO(vaoAndVbo[0]); // Just to be sure. Technically the ResourceManager should return the existing gpuNames but let's be paranoid.
+    rm.DeleteVBO(vaoAndVbo[1]);
+    rm.DeletePROGRAM(shader_.GetPROGRAM());
+    for (const auto& tex : textures_) // Annoying but necessary as framebuffer textures aren't hashed.
+    {
+        rm.DeleteTEX(tex.GetTEX());
+    }
+    Create(defCopy_);
 }
 
 void gl::Framebuffer::Bind() const

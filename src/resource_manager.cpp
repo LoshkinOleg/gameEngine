@@ -1,6 +1,7 @@
 #include "resource_manager.h"
 
 #include <string>
+#include <numeric>
 
 #include <glad/glad.h>
 #ifndef XXH_INLINE_ALL
@@ -49,6 +50,10 @@ void gl::ResourceManager::Shutdown() const
     {
         glDeleteVertexArrays(1, &pair.second);
     }
+    for (const auto& vbo : transformModelVBOs_)
+    {
+        glDeleteBuffers(1, &vbo);
+    }
 }
 
 GLuint gl::ResourceManager::RequestVAO(XXH32_hash_t hash) const
@@ -89,12 +94,19 @@ void gl::ResourceManager::AppendNewVBO(GLuint gpuName, XXH32_hash_t hash)
     VBOs_.insert({ hash, gpuName });
 }
 
+void gl::ResourceManager::AppendNewTransformModelVBO(GLuint gpuName)
+{
+    const auto match = std::find(transformModelVBOs_.begin(), transformModelVBOs_.end(), gpuName);
+    assert(match == transformModelVBOs_.end());
+    transformModelVBOs_.push_back(gpuName);
+}
+
 GLuint gl::ResourceManager::RequestTEX(XXH32_hash_t hash) const
 {
     const auto match = TEXs_.find(hash);
     if (match != TEXs_.end())
     {
-        EngineWarning("TEX hash already in the map. Returning existing gpu name.");
+        // EngineWarning("TEX hash already in the map. Returning existing gpu name.");
         return match->second;
     }
     else return 0;
@@ -125,4 +137,72 @@ void gl::ResourceManager::AppendNewPROGRAM(GLuint gpuName, XXH32_hash_t hash)
     assert(PROGRAMs_.find(hash) == PROGRAMs_.end());
 
     PROGRAMs_.insert({ hash, gpuName });
+}
+
+void gl::ResourceManager::DeleteVAO(GLuint gpuName)
+{
+    for (const auto& pair : VAOs_)
+    {
+        if (pair.second == gpuName)
+        {
+            glDeleteVertexArrays(1, &gpuName);
+            VAOs_.erase(pair.first);
+            return;
+        }
+    }
+    EngineError("Trying to delete a non existent VAO!");
+}
+
+void gl::ResourceManager::DeleteVBO(GLuint gpuName)
+{
+    for (const auto& pair : VBOs_)
+    {
+        if (pair.second == gpuName)
+        {
+            glDeleteBuffers(1, &gpuName);
+            VBOs_.erase(pair.first);
+            return;
+        }
+    }
+    EngineError("Trying to delete a non existent VBO!");
+}
+
+void gl::ResourceManager::DeleteTransformModelVBO(GLuint gpuName)
+{
+    const auto match = std::find(transformModelVBOs_.begin(), transformModelVBOs_.end(), gpuName);
+    assert(match != transformModelVBOs_.end());
+    glDeleteBuffers(1, &gpuName);
+}
+
+void gl::ResourceManager::DeleteTEX(GLuint gpuName)
+{
+    for (const auto& pair : TEXs_)
+    {
+        if (pair.second == gpuName)
+        {
+            glDeleteTextures(1, &gpuName);
+            TEXs_.erase(pair.first);
+            return;
+        }
+    }
+    EngineError("Trying to delete a non existent TEX!");
+}
+
+void gl::ResourceManager::DeletePROGRAM(GLuint gpuName)
+{
+    for (const auto& pair : PROGRAMs_)
+    {
+        if (pair.second == gpuName)
+        {
+            glDeleteProgram(gpuName);
+            PROGRAMs_.erase(pair.first);
+            return;
+        }
+    }
+    EngineError("Trying to delete a non existent PROGRAMs_!");
+}
+
+gl::Camera& gl::ResourceManager::GetCamera()
+{
+    return camera_;
 }

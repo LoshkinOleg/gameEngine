@@ -4,6 +4,11 @@
 
 void gl::Material::Create(Definition def)
 {
+    if (shader_.GetPROGRAM() != 0)
+    {
+        EngineError("Calling Create() a second time...");
+    }
+
     assert(def.texturePathsAndTypes.size() > 0);
     for (const auto& pair : def.texturePathsAndTypes)
     {
@@ -38,7 +43,7 @@ void gl::Material::Create(Definition def)
     shader_.Create(def.shader);
 }
 
-void gl::Material::Bind() const
+void gl::Material::Bind()
 {
 	for (const auto& texture : textures_)
 	{
@@ -46,7 +51,7 @@ void gl::Material::Bind() const
 	}
     shader_.Bind();
 }
-void gl::Material::Unbind() const
+void gl::Material::Unbind()
 {
 	for (const auto& texture : textures_)
 	{

@@ -1,7 +1,8 @@
 #pragma once
 
+#include <vector>
 #include <utility>
-#include <string_view>
+#include <string>
 
 #include "texture.h"
 #include "shader.h"
@@ -16,15 +17,15 @@ namespace gl
         struct Definition
         {
             Shader::Definition shader = {};
-            std::vector<std::pair<std::string_view, Texture::Type>> texturePathsAndTypes = {};
+            std::vector<std::pair<std::string, Texture::Type>> texturePathsAndTypes = {};
             bool flipImages = DEFAULT_FLIP_IMAGES;
             bool correctGamma = DEFAULT_CORRECT_GAMMA;
         };
 
         void Create(Definition def);
 
-        void Bind() const;
-        void Unbind() const;
+        void Bind();
+        void Unbind();
     private:
 
         Shader shader_ = {};

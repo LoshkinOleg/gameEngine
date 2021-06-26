@@ -1,10 +1,11 @@
 #pragma once
 
+#include <array>
 #include <vector>
 
 namespace gl
 {
-    using VertexBufferId = unsigned int;
+    using GLuint = unsigned int;
 
     class VertexBuffer
     {
@@ -19,6 +20,8 @@ namespace gl
         };
 
         void Create(Definition def);
+
+        std::array<GLuint, 2> GetVAOandVBO() const;
 
         void Bind() const;
         static void Unbind();

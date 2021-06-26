@@ -14,6 +14,8 @@
 #include <glad/glad.h>
 
 #include "engine.h"
+#include "model.h"
+#include "skybox.h"
 #include "resource_manager.h"
 
 namespace gl {
@@ -25,35 +27,13 @@ public:
     {
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
-        glEnable(GL_FRAMEBUFFER_SRGB_EXT); // Gamma correct manually, not automatically
-
-        {
-            Camera::Definition def;
-            camera_ = resourceManager_.CreateResource(def);
-        }
 
         // Model creation.
-        const auto objData = resourceManager_.ReadObjData("../data/models/camera/camera.obj");
-        const ModelId id = resourceManager_.CreateResource(objData/*, modelMatrices, {}, false, false */ );
-        model_ = resourceManager_.GetModel(id);
+        model_.Create("../data/models/brickSphere/brickSphere.obj");
 
-        // Skybox creation.
-        {
-            Skybox::Definition def;
-            def.correctGamma = false;
-            def.flipImages = false;
-            def.shader = {SKYBOX_SHADER[0], SKYBOX_SHADER[1]};
-            def.paths =
-            {
-                "../data/textures/skybox/right.jpg",
-                "../data/textures/skybox/left.jpg",
-                "../data/textures/skybox/top.jpg",
-                "../data/textures/skybox/bottom.jpg",
-                "../data/textures/skybox/front.jpg",
-                "../data/textures/skybox/back.jpg"
-            };
-            skybox_ = resourceManager_.GetSkybox(resourceManager_.CreateResource(def));
-        }
+        Skybox::Definition skdef;
+        skdef.flipImages = false;
+        skybox_.Create(skdef);
     }
     void Update(seconds dt) override
     {
@@ -61,8 +41,8 @@ public:
         glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        skybox_.Draw();
         model_.Draw();
+        skybox_.Draw();
     }
     void Destroy() override
     {
@@ -76,7 +56,7 @@ public:
             exit(0);
         }
 
-        Camera& camera = resourceManager_.GetCamera(camera_);
+        Camera& camera = resourceManager_.GetCamera();
         switch (event.type)
         {
         case SDL_KEYDOWN:
@@ -126,7 +106,6 @@ public:
 private:
     float timer_ = 0.0f;
     bool mouseButtonDown_ = false;
-    CameraId camera_ = DEFAULT_ID;
     Model model_;
     Skybox skybox_;
     ResourceManager& resourceManager_ = ResourceManager::Get();

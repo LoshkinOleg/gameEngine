@@ -14,7 +14,12 @@
 
 void gl::VertexBuffer::Create(Definition def)
 {
-    assert(def.data.size() > 0 && def.dataLayout.size() > 0 && def.dataLayout.size() < MODEL_MATRIX_LOCATION);
+    if (VAO_ != 0)
+    {
+        EngineError("Calling Create() a second time...");
+    }
+
+    assert(def.data.size() > 0 && def.dataLayout.size() > 0 && def.dataLayout.size() <= MODEL_MATRIX_LOCATION);
 
     // Hash the data of the buffer and check if it's not loaded already.
     std::string accumulatedData = std::to_string(XXH32(def.data.data(), sizeof(float) * def.data.size(), HASHING_SEED));
@@ -56,6 +61,11 @@ void gl::VertexBuffer::Create(Definition def)
 
     ResourceManager::Get().AppendNewVAO(VAO_, hash);
     ResourceManager::Get().AppendNewVBO(VBO_, hash);
+}
+
+std::array<GLuint, 2> gl::VertexBuffer::GetVAOandVBO() const
+{
+    return std::array<GLuint, 2>{VAO_, VBO_};
 }
 
 void gl::VertexBuffer::Bind() const

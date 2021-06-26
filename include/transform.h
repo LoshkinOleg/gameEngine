@@ -5,19 +5,10 @@
 
 namespace gl
 {
-    using TransformId = unsigned int;
-
     class Transform
     {
     public:
-        struct Definition
-        {
-            glm::vec3 position = ZERO_VEC3;
-            glm::vec3 cardinalsRotation = ZERO_VEC3;
-            glm::vec3 scale = ONE_VEC3;
-        };
-
-        void Create(Definition def);
+        void Create(glm::vec3 position = ZERO_VEC3, glm::vec3 cardinalsRotation = ZERO_VEC3, glm::vec3 scale = ONE_VEC3);
 
         const glm::mat4 GetModelMatrix() const;
 

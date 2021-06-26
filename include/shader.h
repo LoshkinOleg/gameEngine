@@ -1,3 +1,4 @@
+#pragma once
 #include <map>
 #include <string_view>
 
@@ -28,12 +29,13 @@ namespace gl
         };
 
         void Create(Definition def);
-        unsigned int GetProgramId() const;
+        unsigned int GetPROGRAM() const;
 
-        void Bind() const;
-        void Unbind() const;
+        void Bind();
+        void Unbind();
     private:
         unsigned int PROGRAM_ = 0;
+        bool isBound_ = false;
 
         void SetInt(const std::pair<std::string_view, int> pair) const;
         void SetVec3(const std::pair<std::string_view, glm::vec3> pair) const;

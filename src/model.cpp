@@ -1,194 +1,224 @@
 #include "model.h"
 
+#ifndef TINYOBJLOADER_IMPLEMENTATION
+#define TINYOBJLOADER_IMPLEMENTATION
+#endif // !TINYOBJLOADER_IMPLEMENTATION
+#include "tiny_obj_loader.h"
+#include <glad/glad.h>
+
 #include "resource_manager.h"
 
-void gl::Model::Create(const std::string_view path)
+void gl::Model::Create(const std::string_view path, std::vector<glm::mat4> modelMatrices)
 {
-    Model::Definition modef;
-    for (size_t m = 0; m < objData.size(); m++)
+    if (modelMatricesVBO_ != 0)
     {
-        if (!(objData[m].positions.size() == objData[m].texCoords.size() && objData[m].texCoords.size() == objData[m].normals.size() && objData[m].normals.size() == objData[m].tangents.size())) EngineError("Inconsistent number of vertex components!");
-        if (objData[m].positions.size() < 3 || objData[m].positions.size() % 3 != 0) EngineError("Unexpected number of vertices!"); // % 3 since we're working with triangles.
+        EngineError("Calling Create() a second time...");
+    }
 
-        // Load vertex data.
-        VertexBuffer::Definition vbdef;
-        Material::Definition localmatdef;
-        Mesh::Definition mdef;
+    tinyobj::ObjReaderConfig reader_config;
+    std::string dir = std::string(path.begin(), path.begin() + path.find_last_of('/') + 1);
+    reader_config.mtl_search_path = dir;
+    tinyobj::ObjReader reader;
 
-        // Collapse all the arrays of vertex data into a single array.
-        const size_t sizeOfVerticesData = objData[m].positions.size() * 3 * 3 + objData[m].texCoords.size() * 2;
-        const size_t stride = 11;
-        std::vector<float> verticesData = std::vector<float>(sizeOfVerticesData);
-        for (size_t startOfVertex = 0; startOfVertex < sizeOfVerticesData; startOfVertex += stride)
+    if (!reader.ParseFromFile(path.data(), reader_config))
+    {
+        if (!reader.Error().empty())
         {
-            // TODO: u sure about this?
-            // Positions.
-            verticesData[startOfVertex + 0] = objData[m].positions[startOfVertex / stride].x; // TODO: check we're filling things out properly
-            verticesData[startOfVertex + 1] = objData[m].positions[startOfVertex / stride].y;
-            verticesData[startOfVertex + 2] = objData[m].positions[startOfVertex / stride].z;
-            // Texcoords.
-            verticesData[startOfVertex + 3] = objData[m].texCoords[startOfVertex / stride].x;
-            verticesData[startOfVertex + 4] = objData[m].texCoords[startOfVertex / stride].y;
-            // Normals.
-            verticesData[startOfVertex + 5] = objData[m].normals[startOfVertex / stride].x;
-            verticesData[startOfVertex + 6] = objData[m].normals[startOfVertex / stride].y;
-            verticesData[startOfVertex + 7] = objData[m].normals[startOfVertex / stride].z;
-            // Tangents.
-            verticesData[startOfVertex + 8] = objData[m].tangents[startOfVertex / stride].x;
-            verticesData[startOfVertex + 9] = objData[m].tangents[startOfVertex / stride].y;
-            verticesData[startOfVertex + 10] = objData[m].tangents[startOfVertex / stride].z;
+            EngineError(reader.Error().c_str());
         }
-        vbdef.data = verticesData;
+        else
+        {
+            // TODO: refactor EngineError func to avoid this kind of horror...
+            std::string msg = "Failed to load file at path: ";
+            msg += path.data();
+            msg += ", at directory: ";
+            msg += dir.c_str();
+            EngineError(msg.c_str());
+        }
+    }
+
+    if (!reader.Warning().empty())
+    {
+        EngineError(reader.Warning().c_str());
+    }
+    
+    const auto& attrib = reader.GetAttrib();
+    const auto& shapes = reader.GetShapes();
+    const auto& materials = reader.GetMaterials();
+
+    modelMatrices_ = modelMatrices;
+    glGenBuffers(1, &modelMatricesVBO_);
+    glBindBuffer(GL_ARRAY_BUFFER, modelMatricesVBO_);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::mat4) * modelMatrices_.size(), &modelMatrices[0][0][0], GL_DYNAMIC_DRAW);
+    ResourceManager::Get().AppendNewTransformModelVBO(modelMatricesVBO_);
+
+    for (size_t shape = 0; shape < shapes.size(); shape++)
+    {
+        size_t index_offset = 0;
+        std::vector<glm::vec3> positions, normals, tangents;
+        std::vector<glm::vec2> texcoords;
+
+        const auto& mesh = shapes[shape].mesh;
+        for (size_t face = 0; face < mesh.num_face_vertices.size(); face++)
+        {
+            tinyobj::index_t idx0 = mesh.indices[index_offset + 0];
+            tinyobj::index_t idx1 = mesh.indices[index_offset + 1];
+            tinyobj::index_t idx2 = mesh.indices[index_offset + 2];
+            index_offset += 3;
+
+            const glm::vec3 pos0 =
+            {
+                attrib.vertices[3 * size_t(idx0.vertex_index) + 0],
+                attrib.vertices[3 * size_t(idx0.vertex_index) + 1],
+                attrib.vertices[3 * size_t(idx0.vertex_index) + 2]
+            };
+            const glm::vec3 pos1 =
+            {
+                attrib.vertices[3 * size_t(idx1.vertex_index) + 0],
+                attrib.vertices[3 * size_t(idx1.vertex_index) + 1],
+                attrib.vertices[3 * size_t(idx1.vertex_index) + 2]
+            };
+            const glm::vec3 pos2 =
+            {
+                attrib.vertices[3 * size_t(idx2.vertex_index) + 0],
+                attrib.vertices[3 * size_t(idx2.vertex_index) + 1],
+                attrib.vertices[3 * size_t(idx2.vertex_index) + 2]
+            };
+            const glm::vec3 deltaPos0 = pos1 - pos0;
+            const glm::vec3 deltaPos1 = pos2 - pos1;
+
+            const glm::vec2 uv0 =
+            {
+                attrib.texcoords[2 * size_t(idx0.texcoord_index) + 0],
+                attrib.texcoords[2 * size_t(idx0.texcoord_index) + 1]
+            };
+            const glm::vec2 uv1 =
+            {
+                attrib.texcoords[2 * size_t(idx1.texcoord_index) + 0],
+                attrib.texcoords[2 * size_t(idx1.texcoord_index) + 1]
+            };
+            const glm::vec2 uv2 =
+            {
+                attrib.texcoords[2 * size_t(idx2.texcoord_index) + 0],
+                attrib.texcoords[2 * size_t(idx2.texcoord_index) + 1]
+            };
+            const glm::vec2 deltaUv0 = uv1 - uv0;
+            const glm::vec2 deltaUv1 = uv2 - uv1;
+
+            const float F = 1.0f / (deltaUv0.x * deltaUv1.y - deltaUv1.x * deltaUv0.y);
+            const glm::vec3 tangent = glm::normalize(glm::vec3
+            (
+                F* (deltaUv1.y * deltaPos0.x - deltaUv0.y * deltaPos1.x),
+                F* (deltaUv1.y * deltaPos0.y - deltaUv0.y * deltaPos1.y),
+                F* (deltaUv1.y * deltaPos0.z - deltaUv0.y * deltaPos1.z)
+            ));
+
+            const glm::vec3 normal = glm::normalize(glm::cross(deltaPos0, deltaPos1));
+
+            positions.push_back(pos0);
+            positions.push_back(pos1);
+            positions.push_back(pos2);
+            texcoords.push_back(uv0);
+            texcoords.push_back(uv1);
+            texcoords.push_back(uv2);
+            normals.push_back(normal);
+            normals.push_back(normal);
+            normals.push_back(normal);
+            tangents.push_back(tangent);
+            tangents.push_back(tangent);
+            tangents.push_back(tangent);
+        }
+
+        VertexBuffer::Definition vbdef;
+        vbdef.data.resize(positions.size() * 3 * 3 + texcoords.size() * 2);
+        for (size_t vertexStart = 0; vertexStart < positions.size(); vertexStart++)
+        {
+            vbdef.data[vertexStart * 11 + 0] = positions[vertexStart].x; // 11 is the stride.
+            vbdef.data[vertexStart * 11 + 1] = positions[vertexStart].y;
+            vbdef.data[vertexStart * 11 + 2] = positions[vertexStart].z;
+            vbdef.data[vertexStart * 11 + 3] = texcoords[vertexStart].x;
+            vbdef.data[vertexStart * 11 + 4] = texcoords[vertexStart].y;
+            vbdef.data[vertexStart * 11 + 5] = normals[vertexStart].x;
+            vbdef.data[vertexStart * 11 + 6] = normals[vertexStart].y;
+            vbdef.data[vertexStart * 11 + 7] = normals[vertexStart].z;
+            vbdef.data[vertexStart * 11 + 8] = tangents[vertexStart].x;
+            vbdef.data[vertexStart * 11 + 9] = tangents[vertexStart].y;
+            vbdef.data[vertexStart * 11 + 10] = tangents[vertexStart].z;
+        }
         vbdef.dataLayout =
         {
             3, // pos
             2, // uv
-            3, // normals
-            3  // tangents
+            3, // normal
+            3 // tan
         };
-
-        if (matdef.vertexPath.empty()) // No material manually specified.
-        {
-            localmatdef.correctGamma = correctGamma;
-            localmatdef.flipImages = flipImages;
-            localmatdef.useHdr = false;
-            localmatdef.vertexPath = ILLUM2_SHADER[0];
-            localmatdef.fragmentPath = ILLUM2_SHADER[1];
-            if (!objData[m].material.ambientMap.empty())
-            {
-                localmatdef.texturePathsAndTypes.push_back({ objData[m].material.ambientMap, Texture2D::Type::AMBIENT });
-                localmatdef.staticInts.insert({ AMBIENT_SAMPLER_NAME, AMBIENT_TEXTURE_UNIT });
-            }
-            if (!objData[m].material.alphaMap.empty())
-            {
-                localmatdef.texturePathsAndTypes.push_back({ objData[m].material.alphaMap, Texture2D::Type::ALPHA });
-                localmatdef.staticInts.insert({ ALPHA_SAMPLER_NAME, ALPHA_TEXTURE_UNIT });
-            }
-            if (!objData[m].material.diffuseMap.empty())
-            {
-                localmatdef.texturePathsAndTypes.push_back({ objData[m].material.diffuseMap, Texture2D::Type::DIFFUSE });
-                localmatdef.staticInts.insert({ DIFFUSE_SAMPLER_NAME, DIFFUSE_TEXTURE_UNIT });
-            }
-            if (!objData[m].material.specularMap.empty())
-            {
-                localmatdef.texturePathsAndTypes.push_back({ objData[m].material.specularMap, Texture2D::Type::SPECULAR });
-                localmatdef.staticInts.insert({ SPECULAR_SAMPLER_NAME, SPECULAR_TEXTURE_UNIT });
-            }
-            if (!objData[m].material.normalMap.empty())
-            {
-                localmatdef.texturePathsAndTypes.push_back({ objData[m].material.normalMap, Texture2D::Type::NORMALMAP });
-                localmatdef.staticInts.insert({ NORMALMAP_SAMPLER_NAME, NORMALMAP_TEXTURE_UNIT });
-            }
-            if (!objData[m].material.roughnessMap.empty())
-            {
-                localmatdef.texturePathsAndTypes.push_back({ objData[m].material.roughnessMap, Texture2D::Type::ROUGHNESS });
-                localmatdef.staticInts.insert({ ROUGHNESS_SAMPLER_NAME, ROUGHNESS_TEXTURE_UNIT });
-            }
-            if (!objData[m].material.metallicMap.empty())
-            {
-                localmatdef.texturePathsAndTypes.push_back({ objData[m].material.metallicMap, Texture2D::Type::METALLIC });
-                localmatdef.staticInts.insert({ METALLIC_SAMPLER_NAME, METALLIC_TEXTURE_UNIT });
-            }
-            if (!objData[m].material.sheenMap.empty())
-            {
-                localmatdef.texturePathsAndTypes.push_back({ objData[m].material.sheenMap, Texture2D::Type::SHEEN });
-                localmatdef.staticInts.insert({ SHEEN_SAMPLER_NAME, SHEEN_TEXTURE_UNIT });
-            }
-            if (!objData[m].material.emissiveMap.empty())
-            {
-                localmatdef.texturePathsAndTypes.push_back({ objData[m].material.emissiveMap, Texture2D::Type::EMISSIVE });
-                localmatdef.staticInts.insert({ EMISSIVE_SAMPLER_NAME, EMISSIVE_TEXTURE_UNIT });
-            }
-            localmatdef.staticFloats.insert({ SHININESS_NAME, objData[m].material.shininess });
-            localmatdef.staticFloats.insert({ IOR_NAME, objData[m].material.ior });
-            localmatdef.staticMat4s.insert({ PROJECTION_MARIX_NAME, PERSPECTIVE });
-            localmatdef.dynamicMat4s.insert({ VIEW_MARIX_NAME, cameras_[0].GetViewMatrixPtr() }); // Note: this makes all shaders dependant on the main camera!
-            localmatdef.dynamicVec3s.insert({ VIEW_POSITION_NAME, cameras_[0].GetPositionPtr() });
-
-            mdef.vertexBuffer = CreateResource(vbdef);
-            mdef.material = CreateResource(localmatdef);
-            modef.meshes.push_back(CreateResource(mdef));
-        }
-        else // A material has been specified by the user.
-        {
-            mdef.vertexBuffer = CreateResource(vbdef);
-            mdef.material = CreateResource(matdef);
-            modef.meshes.push_back(CreateResource(mdef));
-        }
-    }
-    modef.modelMatrices = modelMatrices;
-
-    return CreateResource(modef);
-}
-
-void gl::Model::Create(Definition def)
-{
-    
-
-    // Accumulate relevant data into a string for hashing.
-    std::string accumulatedData = "";
-    for (const auto& id : def.meshes)
-    {
-        accumulatedData += std::to_string(id);
-    }
-    // Note: we don't take into account the transform models.
-
-    const XXH32_hash_t hash = XXH32(accumulatedData.c_str(), sizeof(char) * accumulatedData.size(), HASHING_SEED);
-    assert(hash != DEFAULT_ID); // We aren't handling this issue...
-
-    if (IsModelIdValid(hash))
-    {
-        EngineWarning("WARNING: attempting to create a new Model with data identical to an existing one. Returning the id of the existing one instead.");
-        return hash;
-    }
-
-    gl::Model model;
-    model.meshes_ = def.meshes;
-    model.modelMatrices_ = def.modelMatrices;
-
-    // Create a vbo for the model matrices.
-    glGenBuffers(1, &model.modelMatricesVBO_);
-    glBindBuffer(GL_ARRAY_BUFFER, model.modelMatricesVBO_);
-    glBufferData(GL_ARRAY_BUFFER, model.modelMatrices_.size() * sizeof(glm::mat4), &model.modelMatrices_[0][0][0], GL_DYNAMIC_DRAW);
-
-    const auto& meshes = GetMeshes(model.meshes_);
-    for (size_t i = 0; i < meshes.size(); i++)
-    {
-        const VertexBuffer& vb = GetVertexBuffer(meshes[i].vertexBuffer_);
-        glBindVertexArray(vb.VAO_);
-        CheckGlError();
-        const size_t vec4Size = sizeof(glm::vec4);
+        VertexBuffer vb;
+        vb.Create(vbdef);
+        glBindBuffer(GL_ARRAY_BUFFER, modelMatricesVBO_);
+        const auto& vaoAndVbo = vb.GetVAOandVBO();
+        glBindVertexArray(vaoAndVbo[0]);
         glEnableVertexAttribArray(MODEL_MATRIX_LOCATION);
-        glVertexAttribPointer(MODEL_MATRIX_LOCATION, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)0);
+        glVertexAttribPointer(MODEL_MATRIX_LOCATION, 4, GL_FLOAT, GL_FALSE, 4 * 4 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(MODEL_MATRIX_LOCATION + 1);
-        glVertexAttribPointer(MODEL_MATRIX_LOCATION + 1, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)vec4Size);
+        glVertexAttribPointer(MODEL_MATRIX_LOCATION + 1, 4, GL_FLOAT, GL_FALSE, 4 * 4 * sizeof(float), (void*)(4 * sizeof(float)));
         glEnableVertexAttribArray(MODEL_MATRIX_LOCATION + 2);
-        glVertexAttribPointer(MODEL_MATRIX_LOCATION + 2, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(2 * vec4Size));
+        glVertexAttribPointer(MODEL_MATRIX_LOCATION + 2, 4, GL_FLOAT, GL_FALSE, 4 * 4 * sizeof(float), (void*)(2 * 4 * sizeof(float)));
         glEnableVertexAttribArray(MODEL_MATRIX_LOCATION + 3);
-        glVertexAttribPointer(MODEL_MATRIX_LOCATION + 3, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(3 * vec4Size));
-        CheckGlError();
+        glVertexAttribPointer(MODEL_MATRIX_LOCATION + 3, 4, GL_FLOAT, GL_FALSE, 4 * 4 * sizeof(float), (void*)(3 * 4 * sizeof(float)));
         glVertexAttribDivisor(MODEL_MATRIX_LOCATION, 1);
         glVertexAttribDivisor(MODEL_MATRIX_LOCATION + 1, 1);
         glVertexAttribDivisor(MODEL_MATRIX_LOCATION + 2, 1);
         glVertexAttribDivisor(MODEL_MATRIX_LOCATION + 3, 1);
-        CheckGlError();
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
-        CheckGlError();
+
+        Material::Definition matdef;
+        matdef.shader.vertexPath = ILLUM2_SHADER[0]; // TODO: modify this, we want to be able to specify the shader to use on function call.
+        matdef.shader.fragmentPath = ILLUM2_SHADER[1];
+        if (!materials[mesh.material_ids[0]].ambient_texname.empty())
+        {
+            matdef.texturePathsAndTypes.push_back({ dir + materials[mesh.material_ids[0]].ambient_texname, Texture::Type::AMBIENT });
+            matdef.shader.staticInts.insert({AMBIENT_SAMPLER_NAME, AMBIENT_TEXTURE_UNIT});
+        }
+        if (!materials[mesh.material_ids[0]].alpha_texname.empty())
+        {
+            matdef.texturePathsAndTypes.push_back({ dir + materials[mesh.material_ids[0]].alpha_texname, Texture::Type::ALPHA });
+            matdef.shader.staticInts.insert({ ALPHA_SAMPLER_NAME, ALPHA_TEXTURE_UNIT });
+        }
+        if (!materials[mesh.material_ids[0]].diffuse_texname.empty())
+        {
+            matdef.texturePathsAndTypes.push_back({ dir + materials[mesh.material_ids[0]].diffuse_texname, Texture::Type::DIFFUSE });
+            matdef.shader.staticInts.insert({ DIFFUSE_SAMPLER_NAME, DIFFUSE_TEXTURE_UNIT });
+        }
+        if (!materials[mesh.material_ids[0]].specular_texname.empty())
+        {
+            matdef.texturePathsAndTypes.push_back({ dir + materials[mesh.material_ids[0]].specular_texname, Texture::Type::SPECULAR });
+            matdef.shader.staticInts.insert({ SPECULAR_SAMPLER_NAME, SPECULAR_TEXTURE_UNIT });
+        }
+        if (!materials[mesh.material_ids[0]].bump_texname.empty())
+        {
+            matdef.texturePathsAndTypes.push_back({ dir + materials[mesh.material_ids[0]].bump_texname, Texture::Type::NORMALMAP });
+            matdef.shader.staticInts.insert({ NORMALMAP_SAMPLER_NAME, NORMALMAP_TEXTURE_UNIT });
+        }
+        matdef.shader.staticFloats.insert({SHININESS_NAME, materials[mesh.material_ids[0]].shininess});
+        matdef.shader.staticMat4s.insert({PROJECTION_MARIX_NAME, PERSPECTIVE});
+        matdef.shader.dynamicMat4s.insert({VIEW_MARIX_NAME, ResourceManager::Get().GetCamera().GetViewMatrixPtr()});
+        matdef.shader.dynamicVec3s.insert({VIEW_POSITION_NAME, ResourceManager::Get().GetCamera().GetPositionPtr()});
+        // TODO: add pbr textures and ior
+        Material mat;
+        mat.Create(matdef);
+
+        meshes_.push_back(Mesh());
+        meshes_.back().Create(vb, mat);
     }
-
-    models_.insert({ hash, model });
-
-    return hash;
 }
 
-void gl::Model::Draw() const
+void gl::Model::Draw()
 {
-    ResourceManager& resourceManager = ResourceManager::Get();
-    const std::vector<Mesh> meshes = resourceManager.GetMeshes(meshes_);
-
-    for (size_t i = 0; i < meshes.size(); i++)
+    // TODO: fix the issue of inappropriate use of aModel in shader when there's more than 1 mesh in a model.
+    for (size_t i = 0; i < meshes_.size(); i++)
     {
-        meshes[i].Draw((int)modelMatrices_.size());
+        meshes_[i].Draw((int)modelMatrices_.size());
     }
 }
 
@@ -207,128 +237,4 @@ void gl::Model::Rotate(glm::vec3 cardinalRotation, size_t modelMatrixIndex)
 void gl::Model::Scale(glm::vec3 v, size_t modelMatrixIndex)
 {
     modelMatrices_[modelMatrixIndex] = glm::scale(modelMatrices_[modelMatrixIndex], v);
-}
-
-const std::vector<gl::MeshId> gl::Model::GetMesheIds() const
-{
-    return meshes_;
-}
-
-std::vector<gl::ResourceManager::ObjData> gl::Model::ReadObj(const std::string_view path)
-{
-    Model::Definition modef;
-    for (size_t m = 0; m < objData.size(); m++)
-    {
-        if (!(objData[m].positions.size() == objData[m].texCoords.size() && objData[m].texCoords.size() == objData[m].normals.size() && objData[m].normals.size() == objData[m].tangents.size())) EngineError("Inconsistent number of vertex components!");
-        if (objData[m].positions.size() < 3 || objData[m].positions.size() % 3 != 0) EngineError("Unexpected number of vertices!"); // % 3 since we're working with triangles.
-
-        // Load vertex data.
-        VertexBuffer::Definition vbdef;
-        Material::Definition localmatdef;
-        Mesh::Definition mdef;
-
-        // Collapse all the arrays of vertex data into a single array.
-        const size_t sizeOfVerticesData = objData[m].positions.size() * 3 * 3 + objData[m].texCoords.size() * 2;
-        const size_t stride = 11;
-        std::vector<float> verticesData = std::vector<float>(sizeOfVerticesData);
-        for (size_t startOfVertex = 0; startOfVertex < sizeOfVerticesData; startOfVertex += stride)
-        {
-            // TODO: u sure about this?
-            // Positions.
-            verticesData[startOfVertex + 0] = objData[m].positions[startOfVertex / stride].x; // TODO: check we're filling things out properly
-            verticesData[startOfVertex + 1] = objData[m].positions[startOfVertex / stride].y;
-            verticesData[startOfVertex + 2] = objData[m].positions[startOfVertex / stride].z;
-            // Texcoords.
-            verticesData[startOfVertex + 3] = objData[m].texCoords[startOfVertex / stride].x;
-            verticesData[startOfVertex + 4] = objData[m].texCoords[startOfVertex / stride].y;
-            // Normals.
-            verticesData[startOfVertex + 5] = objData[m].normals[startOfVertex / stride].x;
-            verticesData[startOfVertex + 6] = objData[m].normals[startOfVertex / stride].y;
-            verticesData[startOfVertex + 7] = objData[m].normals[startOfVertex / stride].z;
-            // Tangents.
-            verticesData[startOfVertex + 8] = objData[m].tangents[startOfVertex / stride].x;
-            verticesData[startOfVertex + 9] = objData[m].tangents[startOfVertex / stride].y;
-            verticesData[startOfVertex + 10] = objData[m].tangents[startOfVertex / stride].z;
-        }
-        vbdef.data = verticesData;
-        vbdef.dataLayout =
-        {
-            3, // pos
-            2, // uv
-            3, // normals
-            3  // tangents
-        };
-
-        if (matdef.vertexPath.empty()) // No material manually specified.
-        {
-            localmatdef.correctGamma = correctGamma;
-            localmatdef.flipImages = flipImages;
-            localmatdef.useHdr = false;
-            localmatdef.vertexPath = ILLUM2_SHADER[0];
-            localmatdef.fragmentPath = ILLUM2_SHADER[1];
-            if (!objData[m].material.ambientMap.empty())
-            {
-                localmatdef.texturePathsAndTypes.push_back({ objData[m].material.ambientMap, Texture2D::Type::AMBIENT });
-                localmatdef.staticInts.insert({ AMBIENT_SAMPLER_NAME, AMBIENT_TEXTURE_UNIT });
-            }
-            if (!objData[m].material.alphaMap.empty())
-            {
-                localmatdef.texturePathsAndTypes.push_back({ objData[m].material.alphaMap, Texture2D::Type::ALPHA });
-                localmatdef.staticInts.insert({ ALPHA_SAMPLER_NAME, ALPHA_TEXTURE_UNIT });
-            }
-            if (!objData[m].material.diffuseMap.empty())
-            {
-                localmatdef.texturePathsAndTypes.push_back({ objData[m].material.diffuseMap, Texture2D::Type::DIFFUSE });
-                localmatdef.staticInts.insert({ DIFFUSE_SAMPLER_NAME, DIFFUSE_TEXTURE_UNIT });
-            }
-            if (!objData[m].material.specularMap.empty())
-            {
-                localmatdef.texturePathsAndTypes.push_back({ objData[m].material.specularMap, Texture2D::Type::SPECULAR });
-                localmatdef.staticInts.insert({ SPECULAR_SAMPLER_NAME, SPECULAR_TEXTURE_UNIT });
-            }
-            if (!objData[m].material.normalMap.empty())
-            {
-                localmatdef.texturePathsAndTypes.push_back({ objData[m].material.normalMap, Texture2D::Type::NORMALMAP });
-                localmatdef.staticInts.insert({ NORMALMAP_SAMPLER_NAME, NORMALMAP_TEXTURE_UNIT });
-            }
-            if (!objData[m].material.roughnessMap.empty())
-            {
-                localmatdef.texturePathsAndTypes.push_back({ objData[m].material.roughnessMap, Texture2D::Type::ROUGHNESS });
-                localmatdef.staticInts.insert({ ROUGHNESS_SAMPLER_NAME, ROUGHNESS_TEXTURE_UNIT });
-            }
-            if (!objData[m].material.metallicMap.empty())
-            {
-                localmatdef.texturePathsAndTypes.push_back({ objData[m].material.metallicMap, Texture2D::Type::METALLIC });
-                localmatdef.staticInts.insert({ METALLIC_SAMPLER_NAME, METALLIC_TEXTURE_UNIT });
-            }
-            if (!objData[m].material.sheenMap.empty())
-            {
-                localmatdef.texturePathsAndTypes.push_back({ objData[m].material.sheenMap, Texture2D::Type::SHEEN });
-                localmatdef.staticInts.insert({ SHEEN_SAMPLER_NAME, SHEEN_TEXTURE_UNIT });
-            }
-            if (!objData[m].material.emissiveMap.empty())
-            {
-                localmatdef.texturePathsAndTypes.push_back({ objData[m].material.emissiveMap, Texture2D::Type::EMISSIVE });
-                localmatdef.staticInts.insert({ EMISSIVE_SAMPLER_NAME, EMISSIVE_TEXTURE_UNIT });
-            }
-            localmatdef.staticFloats.insert({ SHININESS_NAME, objData[m].material.shininess });
-            localmatdef.staticFloats.insert({ IOR_NAME, objData[m].material.ior });
-            localmatdef.staticMat4s.insert({ PROJECTION_MARIX_NAME, PERSPECTIVE });
-            localmatdef.dynamicMat4s.insert({ VIEW_MARIX_NAME, cameras_[0].GetViewMatrixPtr() }); // Note: this makes all shaders dependant on the main camera!
-            localmatdef.dynamicVec3s.insert({ VIEW_POSITION_NAME, cameras_[0].GetPositionPtr() });
-
-            mdef.vertexBuffer = CreateResource(vbdef);
-            mdef.material = CreateResource(localmatdef);
-            modef.meshes.push_back(CreateResource(mdef));
-        }
-        else // A material has been specified by the user.
-        {
-            mdef.vertexBuffer = CreateResource(vbdef);
-            mdef.material = CreateResource(matdef);
-            modef.meshes.push_back(CreateResource(mdef));
-        }
-    }
-    modef.modelMatrices = modelMatrices;
-
-    return CreateResource(modef);
 }

@@ -1,7 +1,6 @@
 #pragma once
 
-// TODO: Refactor this shit
-// TODO: Separate different classes into their own headers, namely the transforms!
+// THIS HEADER IS OLD CODE I INTEND TO REUSE AT SOME POINT, DON'T TOUCH IT.
 
 #include <array>
 #include <functional>

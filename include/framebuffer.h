@@ -59,7 +59,7 @@ public:
 
     void Bind() const;
     void UnBind(const std::array<size_t, 2> screenResolution = { (size_t)SCREEN_RESOLUTION[0], (size_t)SCREEN_RESOLUTION[1] }) const;
-    void Draw() const;
+    void Draw();
 private:
 
     unsigned int FBO_ = 0, RBO_ = 0;

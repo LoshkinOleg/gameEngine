@@ -1,22 +1,11 @@
 #include "transform.h"
 
-void gl::Transform::Create(Definition def)
+void gl::Transform::Create(glm::vec3 position, glm::vec3 cardinalsRotation, glm::vec3 scale)
 {
-    // NOTE: we want transforms to be able to have identical data, so no hashing.
-    gl::Transform transform;
-    transform.position_ = def.position;
-    transform.cardinalsRotation_ = def.cardinalsRotation;
-    transform.scale_ = def.scale;
-    transform.model_ = glm::translate(IDENTITY_MAT4, def.position);
-    transform.model_ = glm::rotate(transform.model_, transform.cardinalsRotation_.x, RIGHT_VEC3);
-    transform.model_ = glm::rotate(transform.model_, transform.cardinalsRotation_.y, UP_VEC3);
-    transform.model_ = glm::rotate(transform.model_, transform.cardinalsRotation_.z, FRONT_VEC3);
-    transform.model_ = glm::scale(transform.model_, transform.scale_);
-
-    unsigned int id = (unsigned int)transforms_.size();
-    transforms_.insert({ id, transform });
-
-    return id;
+    position_ = position;
+    cardinalsRotation_ = cardinalsRotation;
+    scale_ = scale;
+    UpdateModel();
 }
 
 const glm::mat4 gl::Transform::GetModelMatrix() const

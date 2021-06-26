@@ -1,18 +1,11 @@
 #pragma once
 #include <vector>
-
-#ifndef TINYOBJLOADER_IMPLEMENTATION
-#define TINYOBJLOADER_IMPLEMENTATION
-#endif // !TINYOBJLOADER_IMPLEMENTATION
-#include "tiny_obj_loader.h"
-
 #include <glm/glm.hpp>
+
+#include "mesh.h"
 
 namespace gl
 {
-    using ModelId = unsigned int;
-    using MeshId = unsigned int;
-
     class Model
     {
     public:
@@ -41,27 +34,18 @@ namespace gl
             std::vector<glm::vec3> tangents = {};
             MaterialData material = {};
         };
-        struct Definition
-        {
-            std::vector<MeshId> meshes = {};
-            std::vector<glm::mat4> modelMatrices = {};
-        };
 
-        void Create(const std::string_view path);
-        void Create(Definition def);
+        void Create(const std::string_view path, std::vector<glm::mat4> modelMatrices = {IDENTITY_MAT4});
 
-        void Draw() const;
+        void Draw();
 
         void Translate(glm::vec3 v, size_t modelMatrixIndex = 0);
         void Rotate(glm::vec3 cardinalRotation, size_t modelMatrixIndex = 0);
         void Scale(glm::vec3 v, size_t modelMatrixIndex = 0);
 
-        const std::vector<MeshId> GetMesheIds() const;
-
     private:
-        std::vector<gl::ResourceManager::ObjData> ReadObj(const std::string_view path);
 
-        std::vector<MeshId> meshes_ = {};
+        std::vector<Mesh> meshes_ = {};
         std::vector<glm::mat4> modelMatrices_ = {}; // TODO: update these GPU side on Draw()
         unsigned int modelMatricesVBO_ = 0;
     };

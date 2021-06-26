@@ -16,72 +16,69 @@
 
 void gl::Shader::SetInt(const std::pair<std::string_view, int> pair) const
 {
-    glUseProgram(PROGRAM_);
+    assert(isBound_);
     glUniform1i(ResourceManager::Get().GetUniformName(pair.first, PROGRAM_), pair.second);
-    glUseProgram(0);
     CheckGlError();
 }
 
 void gl::Shader::SetInt(const std::pair<std::string_view, const int*> pair) const
 {
-    glUseProgram(PROGRAM_);
+    assert(isBound_);
     glUniform1i(ResourceManager::Get().GetUniformName(pair.first, PROGRAM_), *(pair.second));
-    glUseProgram(0);
     CheckGlError();
 }
 
 void gl::Shader::SetVec3(const std::pair<std::string_view, glm::vec3> pair) const
 {
-    glUseProgram(PROGRAM_);
+    assert(isBound_);
     glUniform3fv(ResourceManager::Get().GetUniformName(pair.first, PROGRAM_), 1, &pair.second[0]);
-    glUseProgram(0);
     CheckGlError();
 }
 
 void gl::Shader::SetVec3(const std::pair<std::string_view, const glm::vec3*> pair) const
 {
-    glUseProgram(PROGRAM_);
+    assert(isBound_);
     glUniform3fv(ResourceManager::Get().GetUniformName(pair.first, PROGRAM_), 1, &(*pair.second)[0]);
-    glUseProgram(0);
     CheckGlError();
 }
 
 void gl::Shader::SetMat4(const std::pair<std::string_view, glm::mat4> pair) const
 {
-    glUseProgram(PROGRAM_);
+    assert(isBound_);
     glUniformMatrix4fv(ResourceManager::Get().GetUniformName(pair.first, PROGRAM_), 1, GL_FALSE, &pair.second[0][0]);
-    glUseProgram(0);
     CheckGlError();
 }
 
 void gl::Shader::SetMat4(const std::pair<std::string_view, const glm::mat4*> pair) const
 {
-    glUseProgram(PROGRAM_);
+    assert(isBound_);
     // const glm::vec3 value = *pair.second;
     // glUniformMatrix4fv(ResourceManager::Get().GetUniformName(pair.first, PROGRAM_), 1, GL_FALSE, &value[0][0]);
     glUniformMatrix4fv(ResourceManager::Get().GetUniformName(pair.first, PROGRAM_), 1, GL_FALSE, &(*pair.second)[0][0]);
-    glUseProgram(0);
     CheckGlError();
 }
 
 void gl::Shader::SetFloat(const std::pair<std::string_view, float> pair) const
 {
-    glUseProgram(PROGRAM_);
+    assert(isBound_);
     glUniform1f(ResourceManager::Get().GetUniformName(pair.first, PROGRAM_), pair.second);
-    glUseProgram(0);
     CheckGlError();
 }
 
 void gl::Shader::SetFloat(const std::pair<std::string_view, const float*> pair) const
 {
-    glUseProgram(PROGRAM_);
+    assert(isBound_);
     glUniform1f(ResourceManager::Get().GetUniformName(pair.first, PROGRAM_), *pair.second);
-    glUseProgram(0);
     CheckGlError();
 }
 
 void gl::Shader::Create(Definition def)
 {
+    if (PROGRAM_ != 0)
+    {
+        EngineError("Calling Create() a second time...");
+    }
+
     // Note: this manner of hashing differenciates between identical shader sources if they're in different directories! Shouldn't be a problem since all shaders are in the same folder anyways.
     std::string accumulatedData = std::to_string(def.GetHash());
     const XXH32_hash_t hash = XXH32(accumulatedData.c_str(), sizeof(char) * accumulatedData.size(), HASHING_SEED);
@@ -174,6 +171,8 @@ void gl::Shader::Create(Definition def)
     }
 
     // Set up static uniforms.
+    glUseProgram(PROGRAM_);
+    isBound_ = true;
     for (const auto& pair : staticFloats_)
     {
         SetFloat(pair);
@@ -194,19 +193,21 @@ void gl::Shader::Create(Definition def)
     glDeleteShader(vertex);
     glDeleteShader(fragment);
     glUseProgram(0);
+    isBound_ = false;
     CheckGlError();
 
     ResourceManager::Get().AppendNewPROGRAM(PROGRAM_, hash);
 }
 
-unsigned int gl::Shader::GetProgramId() const
+unsigned int gl::Shader::GetPROGRAM() const
 {
     return PROGRAM_;
 }
 
-void gl::Shader::Bind() const
+void gl::Shader::Bind()
 {
     glUseProgram(PROGRAM_);
+    isBound_ = true;
     // Update dynamic uniforms.
     for (const auto& pair : dynamicFloats_)
     {
@@ -226,9 +227,10 @@ void gl::Shader::Bind() const
     }
 }
 
-void gl::Shader::Unbind() const
+void gl::Shader::Unbind()
 {
     glUseProgram(0);
+    isBound_ = false;
 }
 
 uint32_t gl::Shader::Definition::GetHash() const
