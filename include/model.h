@@ -3,6 +3,7 @@
 #include <glm/glm.hpp>
 
 #include "mesh.h"
+#include "material.h"
 
 namespace gl
 {
@@ -35,7 +36,7 @@ namespace gl
             MaterialData material = {};
         };
 
-        void Create(const std::string_view path, std::vector<glm::mat4> modelMatrices = {IDENTITY_MAT4});
+        void Create(const std::string_view path, std::vector<glm::mat4> modelMatrices = { IDENTITY_MAT4 }, Material::Definition material = {});
 
         void Draw();
 

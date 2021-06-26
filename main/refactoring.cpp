@@ -30,7 +30,30 @@ public:
         glEnable(GL_CULL_FACE);
 
         // Model creation.
-        model_.Create("../data/models/brickSphere/brickSphere.obj");
+        Material::Definition matdef;
+        matdef.shader.vertexPath = "../data/shaders/toon.vert";
+        matdef.shader.fragmentPath = "../data/shaders/toon.frag";
+        
+        matdef.texturePathsAndTypes.push_back({ "../data/models/brickSphere/diffuse.jpg", Texture::Type::AMBIENT });
+        matdef.shader.staticInts.insert({ AMBIENT_SAMPLER_NAME, AMBIENT_TEXTURE_UNIT });
+        
+        matdef.texturePathsAndTypes.push_back({ "../data/models/brickSphere/specular.jpg", Texture::Type::ALPHA });
+        matdef.shader.staticInts.insert({ ALPHA_SAMPLER_NAME, ALPHA_TEXTURE_UNIT });
+        
+        matdef.texturePathsAndTypes.push_back({ "../data/models/brickSphere/diffuse.jpg", Texture::Type::DIFFUSE });
+        matdef.shader.staticInts.insert({ DIFFUSE_SAMPLER_NAME, DIFFUSE_TEXTURE_UNIT });
+        
+        matdef.texturePathsAndTypes.push_back({ "../data/models/brickSphere/specular.jpg", Texture::Type::SPECULAR });
+        matdef.shader.staticInts.insert({ SPECULAR_SAMPLER_NAME, SPECULAR_TEXTURE_UNIT });
+        
+        matdef.texturePathsAndTypes.push_back({ "../data/models/brickSphere/normals.png", Texture::Type::NORMALMAP });
+        matdef.shader.staticInts.insert({ NORMALMAP_SAMPLER_NAME, NORMALMAP_TEXTURE_UNIT });
+        
+        matdef.shader.staticFloats.insert({ SHININESS_NAME, 64.0f });
+        matdef.shader.staticMat4s.insert({ PROJECTION_MARIX_NAME, PERSPECTIVE });
+        matdef.shader.dynamicMat4s.insert({ VIEW_MARIX_NAME, ResourceManager::Get().GetCamera().GetViewMatrixPtr() });
+        matdef.shader.dynamicVec3s.insert({ VIEW_POSITION_NAME, ResourceManager::Get().GetCamera().GetPositionPtr() });
+        model_.Create("../data/models/brickSphere/brickSphere.obj", {IDENTITY_MAT4}, matdef);
 
         // Skybox.
         Skybox::Definition skdef;

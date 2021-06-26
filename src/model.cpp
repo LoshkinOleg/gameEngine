@@ -8,7 +8,7 @@
 
 #include "resource_manager.h"
 
-void gl::Model::Create(const std::string_view path, std::vector<glm::mat4> modelMatrices)
+void gl::Model::Create(const std::string_view path, std::vector<glm::mat4> modelMatrices, Material::Definition material)
 {
     if (modelMatricesVBO_ != 0)
     {
@@ -173,40 +173,47 @@ void gl::Model::Create(const std::string_view path, std::vector<glm::mat4> model
         glBindVertexArray(0);
 
         Material::Definition matdef;
-        matdef.shader.vertexPath = ILLUM2_SHADER[0]; // TODO: modify this, we want to be able to specify the shader to use on function call.
-        matdef.shader.fragmentPath = ILLUM2_SHADER[1];
-        if (!materials[mesh.material_ids[0]].ambient_texname.empty())
-        {
-            matdef.texturePathsAndTypes.push_back({ dir + materials[mesh.material_ids[0]].ambient_texname, Texture::Type::AMBIENT });
-            matdef.shader.staticInts.insert({AMBIENT_SAMPLER_NAME, AMBIENT_TEXTURE_UNIT});
-        }
-        if (!materials[mesh.material_ids[0]].alpha_texname.empty())
-        {
-            matdef.texturePathsAndTypes.push_back({ dir + materials[mesh.material_ids[0]].alpha_texname, Texture::Type::ALPHA });
-            matdef.shader.staticInts.insert({ ALPHA_SAMPLER_NAME, ALPHA_TEXTURE_UNIT });
-        }
-        if (!materials[mesh.material_ids[0]].diffuse_texname.empty())
-        {
-            matdef.texturePathsAndTypes.push_back({ dir + materials[mesh.material_ids[0]].diffuse_texname, Texture::Type::DIFFUSE });
-            matdef.shader.staticInts.insert({ DIFFUSE_SAMPLER_NAME, DIFFUSE_TEXTURE_UNIT });
-        }
-        if (!materials[mesh.material_ids[0]].specular_texname.empty())
-        {
-            matdef.texturePathsAndTypes.push_back({ dir + materials[mesh.material_ids[0]].specular_texname, Texture::Type::SPECULAR });
-            matdef.shader.staticInts.insert({ SPECULAR_SAMPLER_NAME, SPECULAR_TEXTURE_UNIT });
-        }
-        if (!materials[mesh.material_ids[0]].bump_texname.empty())
-        {
-            matdef.texturePathsAndTypes.push_back({ dir + materials[mesh.material_ids[0]].bump_texname, Texture::Type::NORMALMAP });
-            matdef.shader.staticInts.insert({ NORMALMAP_SAMPLER_NAME, NORMALMAP_TEXTURE_UNIT });
-        }
-        matdef.shader.staticFloats.insert({SHININESS_NAME, materials[mesh.material_ids[0]].shininess});
-        matdef.shader.staticMat4s.insert({PROJECTION_MARIX_NAME, PERSPECTIVE});
-        matdef.shader.dynamicMat4s.insert({VIEW_MARIX_NAME, ResourceManager::Get().GetCamera().GetViewMatrixPtr()});
-        matdef.shader.dynamicVec3s.insert({VIEW_POSITION_NAME, ResourceManager::Get().GetCamera().GetPositionPtr()});
-        // TODO: add pbr textures and ior
         Material mat;
-        mat.Create(matdef);
+        if (material.shader.vertexPath.empty()) // Use default shader.
+        {
+            matdef.shader.vertexPath = ILLUM2_SHADER[0];
+            matdef.shader.fragmentPath = ILLUM2_SHADER[1];
+            if (!materials[mesh.material_ids[0]].ambient_texname.empty())
+            {
+                matdef.texturePathsAndTypes.push_back({ dir + materials[mesh.material_ids[0]].ambient_texname, Texture::Type::AMBIENT });
+                matdef.shader.staticInts.insert({ AMBIENT_SAMPLER_NAME, AMBIENT_TEXTURE_UNIT });
+            }
+            if (!materials[mesh.material_ids[0]].alpha_texname.empty())
+            {
+                matdef.texturePathsAndTypes.push_back({ dir + materials[mesh.material_ids[0]].alpha_texname, Texture::Type::ALPHA });
+                matdef.shader.staticInts.insert({ ALPHA_SAMPLER_NAME, ALPHA_TEXTURE_UNIT });
+            }
+            if (!materials[mesh.material_ids[0]].diffuse_texname.empty())
+            {
+                matdef.texturePathsAndTypes.push_back({ dir + materials[mesh.material_ids[0]].diffuse_texname, Texture::Type::DIFFUSE });
+                matdef.shader.staticInts.insert({ DIFFUSE_SAMPLER_NAME, DIFFUSE_TEXTURE_UNIT });
+            }
+            if (!materials[mesh.material_ids[0]].specular_texname.empty())
+            {
+                matdef.texturePathsAndTypes.push_back({ dir + materials[mesh.material_ids[0]].specular_texname, Texture::Type::SPECULAR });
+                matdef.shader.staticInts.insert({ SPECULAR_SAMPLER_NAME, SPECULAR_TEXTURE_UNIT });
+            }
+            if (!materials[mesh.material_ids[0]].bump_texname.empty())
+            {
+                matdef.texturePathsAndTypes.push_back({ dir + materials[mesh.material_ids[0]].bump_texname, Texture::Type::NORMALMAP });
+                matdef.shader.staticInts.insert({ NORMALMAP_SAMPLER_NAME, NORMALMAP_TEXTURE_UNIT });
+            }
+            matdef.shader.staticFloats.insert({ SHININESS_NAME, materials[mesh.material_ids[0]].shininess });
+            matdef.shader.staticMat4s.insert({ PROJECTION_MARIX_NAME, PERSPECTIVE });
+            matdef.shader.dynamicMat4s.insert({ VIEW_MARIX_NAME, ResourceManager::Get().GetCamera().GetViewMatrixPtr() });
+            matdef.shader.dynamicVec3s.insert({ VIEW_POSITION_NAME, ResourceManager::Get().GetCamera().GetPositionPtr() });
+            // TODO: add pbr textures and ior
+            mat.Create(matdef);
+        }
+        else
+        {
+            mat.Create(material);
+        }
 
         meshes_.push_back(Mesh());
         meshes_.back().Create(vb, mat);
