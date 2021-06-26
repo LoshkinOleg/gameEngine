@@ -17,63 +17,73 @@
 void gl::Shader::SetInt(const std::pair<std::string_view, int> pair) const
 {
     assert(isBound_);
-    glUniform1i(ResourceManager::Get().GetUniformName(pair.first, PROGRAM_), pair.second);
+    const int gpuName = ResourceManager::Get().GetUniformName(pair.first, PROGRAM_);
+    glUniform1i(gpuName, pair.second);
     CheckGlError();
 }
 
 void gl::Shader::SetInt(const std::pair<std::string_view, const int*> pair) const
 {
     assert(isBound_);
-    glUniform1i(ResourceManager::Get().GetUniformName(pair.first, PROGRAM_), *(pair.second));
+    const int gpuName = ResourceManager::Get().GetUniformName(pair.first, PROGRAM_);
+    glUniform1i(gpuName, *(pair.second));
     CheckGlError();
 }
 
 void gl::Shader::SetVec3(const std::pair<std::string_view, glm::vec3> pair) const
 {
     assert(isBound_);
-    glUniform3fv(ResourceManager::Get().GetUniformName(pair.first, PROGRAM_), 1, &pair.second[0]);
+    const int gpuName = ResourceManager::Get().GetUniformName(pair.first, PROGRAM_);
+    glUniform3fv(gpuName, 1, &pair.second[0]);
     CheckGlError();
 }
 
 void gl::Shader::SetVec3(const std::pair<std::string_view, const glm::vec3*> pair) const
 {
     assert(isBound_);
-    glUniform3fv(ResourceManager::Get().GetUniformName(pair.first, PROGRAM_), 1, &(*pair.second)[0]);
+    const int gpuName = ResourceManager::Get().GetUniformName(pair.first, PROGRAM_);
+    glUniform3fv(gpuName, 1, &(*pair.second)[0]);
     CheckGlError();
 }
 
 void gl::Shader::SetMat4(const std::pair<std::string_view, glm::mat4> pair) const
 {
     assert(isBound_);
-    glUniformMatrix4fv(ResourceManager::Get().GetUniformName(pair.first, PROGRAM_), 1, GL_FALSE, &pair.second[0][0]);
+    const int gpuName = ResourceManager::Get().GetUniformName(pair.first, PROGRAM_);
+    glUniformMatrix4fv(gpuName, 1, GL_FALSE, &pair.second[0][0]);
     CheckGlError();
 }
 
 void gl::Shader::SetMat4(const std::pair<std::string_view, const glm::mat4*> pair) const
 {
     assert(isBound_);
+    const int gpuName = ResourceManager::Get().GetUniformName(pair.first, PROGRAM_);
     // const glm::vec3 value = *pair.second;
     // glUniformMatrix4fv(ResourceManager::Get().GetUniformName(pair.first, PROGRAM_), 1, GL_FALSE, &value[0][0]);
-    glUniformMatrix4fv(ResourceManager::Get().GetUniformName(pair.first, PROGRAM_), 1, GL_FALSE, &(*pair.second)[0][0]);
+    glUniformMatrix4fv(gpuName, 1, GL_FALSE, &(*pair.second)[0][0]);
     CheckGlError();
 }
 
 void gl::Shader::SetFloat(const std::pair<std::string_view, float> pair) const
 {
     assert(isBound_);
-    glUniform1f(ResourceManager::Get().GetUniformName(pair.first, PROGRAM_), pair.second);
+    const int gpuName = ResourceManager::Get().GetUniformName(pair.first, PROGRAM_);
+    glUniform1f(gpuName, pair.second);
     CheckGlError();
 }
 
 void gl::Shader::SetFloat(const std::pair<std::string_view, const float*> pair) const
 {
     assert(isBound_);
-    glUniform1f(ResourceManager::Get().GetUniformName(pair.first, PROGRAM_), *pair.second);
+    const int gpuName = ResourceManager::Get().GetUniformName(pair.first, PROGRAM_);
+    glUniform1f(gpuName, *pair.second);
     CheckGlError();
 }
 
 void gl::Shader::Create(Definition def)
 {
+    assert(!def.vertexPath.empty() && !def.fragmentPath.empty());
+
     if (PROGRAM_ != 0)
     {
         EngineError("Calling Create() a second time...");

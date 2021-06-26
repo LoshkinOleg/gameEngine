@@ -76,7 +76,7 @@ void gl::Framebuffer::Create(Definition def)
         tex.Create(def.resolution, (Texture::FramebufferAttachment)Type::FBO_DEPTH0); // TODO: this is ugly as sheit, fix it.
         textures_.push_back(tex);
         tex.Bind();
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, FBO_, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, tex.GetTEX(), 0);
         tex.Unbind();
         CheckGlError();
     }
@@ -84,9 +84,12 @@ void gl::Framebuffer::Create(Definition def)
     {
         Texture tex;
         tex.Create(def.resolution, (Texture::FramebufferAttachment)Type::FBO_RGBA0);
+        CheckGlError();
         textures_.push_back(tex);
         tex.Bind();
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, FBO_, 0);
+        CheckGlError();
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex.GetTEX(), 0);
+        CheckGlError();
         tex.Unbind();
         CheckGlError();
     }
@@ -96,7 +99,7 @@ void gl::Framebuffer::Create(Definition def)
         tex.Create(def.resolution, (Texture::FramebufferAttachment)Type::FBO_RGBA1);
         textures_.push_back(tex);
         tex.Bind();
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, FBO_, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, tex.GetTEX(), 0);
         tex.Unbind();
         CheckGlError();
     }
@@ -106,7 +109,7 @@ void gl::Framebuffer::Create(Definition def)
         tex.Create(def.resolution, (Texture::FramebufferAttachment)Type::FBO_RGBA2);
         textures_.push_back(tex);
         tex.Bind();
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, FBO_, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, tex.GetTEX(), 0);
         tex.Unbind();
         CheckGlError();
     }
@@ -116,7 +119,7 @@ void gl::Framebuffer::Create(Definition def)
         tex.Create(def.resolution, (Texture::FramebufferAttachment)Type::FBO_RGBA3);
         textures_.push_back(tex);
         tex.Bind();
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, FBO_, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, tex.GetTEX(), 0);
         tex.Unbind();
         CheckGlError();
     }
@@ -126,7 +129,7 @@ void gl::Framebuffer::Create(Definition def)
         tex.Create(def.resolution, (Texture::FramebufferAttachment)Type::FBO_RGBA4);
         textures_.push_back(tex);
         tex.Bind();
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT4, GL_TEXTURE_2D, FBO_, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT4, GL_TEXTURE_2D, tex.GetTEX(), 0);
         tex.Unbind();
         CheckGlError();
     }
@@ -136,7 +139,7 @@ void gl::Framebuffer::Create(Definition def)
         tex.Create(def.resolution, (Texture::FramebufferAttachment)Type::FBO_RGBA5);
         textures_.push_back(tex);
         tex.Bind();
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT5, GL_TEXTURE_2D, FBO_, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT5, GL_TEXTURE_2D, tex.GetTEX(), 0);
         tex.Unbind();
         CheckGlError();
     }
@@ -184,7 +187,7 @@ void gl::Framebuffer::Bind() const
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     CheckGlError();
 }
-void gl::Framebuffer::UnBind(const std::array<size_t, 2> screenResolution) const
+void gl::Framebuffer::Unbind(const std::array<size_t, 2> screenResolution) const
 {
     glViewport(0, 0, screenResolution[0], screenResolution[1]);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);

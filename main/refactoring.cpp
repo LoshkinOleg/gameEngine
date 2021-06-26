@@ -16,6 +16,7 @@
 #include "engine.h"
 #include "model.h"
 #include "skybox.h"
+#include "framebuffer.h"
 #include "resource_manager.h"
 
 namespace gl {
@@ -31,9 +32,13 @@ public:
         // Model creation.
         model_.Create("../data/models/brickSphere/brickSphere.obj");
 
+        // Skybox.
         Skybox::Definition skdef;
         skdef.flipImages = false;
         skybox_.Create(skdef);
+
+        // Framebuffer.
+        fb_.Create({});
     }
     void Update(seconds dt) override
     {
@@ -41,8 +46,11 @@ public:
         glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        fb_.Bind();
         model_.Draw();
         skybox_.Draw();
+        fb_.Unbind();
+        fb_.Draw();
     }
     void Destroy() override
     {
@@ -108,6 +116,7 @@ private:
     bool mouseButtonDown_ = false;
     Model model_;
     Skybox skybox_;
+    Framebuffer fb_;
     ResourceManager& resourceManager_ = ResourceManager::Get();
 };
 

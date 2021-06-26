@@ -18,6 +18,7 @@ gl::ResourceManager::~ResourceManager()
 
 int gl::ResourceManager::GetUniformName(std::string_view strName, unsigned int gpuProgramName)
 {
+    // TODO: possible cause of occasional crashing: DeletePROGRAM() doesn't remove uniform names from uniformNames_. Callers might retireve a gpu uniform name to a destroyed program!
     const auto match = uniformNames_.find(std::to_string(gpuProgramName) + strName.data());
     if (match != uniformNames_.end()) // Name of uniform already known, use it.
     {
@@ -194,6 +195,7 @@ void gl::ResourceManager::DeletePROGRAM(GLuint gpuName)
     {
         if (pair.second == gpuName)
         {
+            // TODO: possible cause of occasional crashing: DeletePROGRAM() doesn't remove uniform names from uniformNames_. Callers might retireve a gpu uniform name to a destroyed program!
             glDeleteProgram(gpuName);
             PROGRAMs_.erase(pair.first);
             return;

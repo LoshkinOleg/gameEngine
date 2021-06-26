@@ -58,7 +58,7 @@ public:
     void Resize(std::array<size_t, 2> newResolution);
 
     void Bind() const;
-    void UnBind(const std::array<size_t, 2> screenResolution = { (size_t)SCREEN_RESOLUTION[0], (size_t)SCREEN_RESOLUTION[1] }) const;
+    void Unbind(const std::array<size_t, 2> screenResolution = { (size_t)SCREEN_RESOLUTION[0], (size_t)SCREEN_RESOLUTION[1] }) const;
     void Draw();
 private:
 

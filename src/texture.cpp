@@ -131,6 +131,7 @@ void gl::Texture::Create(std::array<size_t, 2> resolution, FramebufferAttachment
     {
         EngineError("Calling Create() a second time...");
     }
+    type_ = Texture::Type::FRAMEBUFFER;
 
     // Note: type should only have at most 2 bits set: the Type you with to create and optionally the HDR bit.
     if ((int)type & (int)FramebufferAttachment::FBO_DEPTH0)
@@ -169,8 +170,8 @@ GLuint gl::Texture::GetTEX() const
 
 void gl::Texture::Bind() const
 {
+    CheckGlError();
     assert((int)type_ > -1 && (int)type_ < (int)Type::INVALID);
-
     glActiveTexture(GL_TEXTURE0 + (int)type_);
     glBindTexture((int)type_ == (int)Type::CUBEMAP ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D, TEX_);
     CheckGlError();
@@ -178,8 +179,8 @@ void gl::Texture::Bind() const
 
 void gl::Texture::Unbind() const
 {
+    CheckGlError();
     assert((int)type_ > -1 && (int)type_ < (int)Type::INVALID);
-
     glActiveTexture(GL_TEXTURE0 + (int)type_);
     glBindTexture((int)type_ == (int)Type::CUBEMAP ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D, 0);
     CheckGlError();
