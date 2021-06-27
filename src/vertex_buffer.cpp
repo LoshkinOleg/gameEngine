@@ -19,7 +19,7 @@ void gl::VertexBuffer::Create(Definition def)
         EngineError("Calling Create() a second time...");
     }
 
-    assert(def.data.size() > 0 && def.dataLayout.size() > 0 && def.dataLayout.size() <= MODEL_MATRIX_LOCATION);
+    assert(def.data.size() > 0 && def.dataLayout.size() > 0);
 
     // Hash the data of the buffer and check if it's not loaded already.
     std::string accumulatedData = std::to_string(XXH32(def.data.data(), sizeof(float) * def.data.size(), HASHING_SEED));
@@ -86,6 +86,16 @@ void gl::VertexBuffer::Draw(int nrOfInstances) const
 
     Bind();
     glDrawArraysInstanced(GL_TRIANGLES, 0, verticesCount_, nrOfInstances);
+    CheckGlError();
+    Unbind();
+}
+
+void gl::VertexBuffer::DrawSingle() const
+{
+    assert(VAO_ != 0 && VBO_ != 0);
+
+    Bind();
+    glDrawArrays(GL_TRIANGLES, 0, verticesCount_);
     CheckGlError();
     Unbind();
 }

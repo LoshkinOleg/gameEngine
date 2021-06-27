@@ -17,3 +17,10 @@ void gl::Mesh::Draw(int nrOfInstances)
     vb_.Draw(nrOfInstances);
     material_.Unbind();
 }
+
+void gl::Mesh::DrawSingle()
+{
+    material_.Bind();
+    vb_.DrawSingle();
+    material_.Unbind();
+}

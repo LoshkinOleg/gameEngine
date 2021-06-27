@@ -1,15 +1,14 @@
 #include "model.h"
 
-#ifndef TINYOBJLOADER_IMPLEMENTATION
-#define TINYOBJLOADER_IMPLEMENTATION
-#endif // !TINYOBJLOADER_IMPLEMENTATION
-#include "tiny_obj_loader.h"
 #include <glad/glad.h>
+#include "tiny_obj_loader.h"
 
 #include "resource_manager.h"
 
 void gl::Model::Create(const std::string_view path, std::vector<glm::mat4> modelMatrices, Material::Definition material)
 {
+    // TODO: make following Create functions use Defintions instead of objects.
+
     if (modelMatricesVBO_ != 0)
     {
         EngineError("Calling Create() a second time...");
@@ -220,6 +219,16 @@ void gl::Model::Create(const std::string_view path, std::vector<glm::mat4> model
     }
 }
 
+void gl::Model::Create(VertexBuffer::Definition vb, Material::Definition mat)
+{
+    meshes_.push_back(Mesh());
+    VertexBuffer vertbuff;
+    vertbuff.Create(vb);
+    Material material;
+    material.Create(mat);
+    meshes_.back().Create(vertbuff, material);
+}
+
 void gl::Model::Draw()
 {
     // TODO: fix the issue of inappropriate use of aModel in shader when there's more than 1 mesh in a model.
@@ -227,6 +236,11 @@ void gl::Model::Draw()
     {
         meshes_[i].Draw((int)modelMatrices_.size());
     }
+}
+
+void gl::Model::DrawSingle()
+{
+    meshes_[0].DrawSingle();
 }
 
 void gl::Model::Translate(glm::vec3 v, size_t modelMatrixIndex)

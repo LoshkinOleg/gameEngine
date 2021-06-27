@@ -8,29 +8,16 @@
 #define XXH_INLINE_ALL
 #endif // !XXH_INLINE_ALL
 #include "xxhash.h"
+#ifndef TINYOBJLOADER_IMPLEMENTATION
+#define TINYOBJLOADER_IMPLEMENTATION
+#endif // !TINYOBJLOADER_IMPLEMENTATION
+#include "tiny_obj_loader.h"
 
 #include "defines.h"
 
 gl::ResourceManager::~ResourceManager()
 {
     EngineWarning("Destroying an instance of ResourceManager. This should only happen at the end of the program's lifetime.");
-}
-
-int gl::ResourceManager::GetUniformName(std::string_view strName, unsigned int gpuProgramName)
-{
-    // TODO: possible cause of occasional crashing: DeletePROGRAM() doesn't remove uniform names from uniformNames_. Callers might retireve a gpu uniform name to a destroyed program!
-    const auto match = uniformNames_.find(std::to_string(gpuProgramName) + strName.data());
-    if (match != uniformNames_.end()) // Name of uniform already known, use it.
-    {
-        return match->second;
-    }
-    else
-    {
-        const int uniformIntName = glGetUniformLocation(gpuProgramName, strName.data());
-        CheckGlError();
-        uniformNames_.insert({ std::to_string(gpuProgramName) + strName.data(), uniformIntName }); // Add the new entry.
-        return uniformIntName;
-    }
 }
 
 void gl::ResourceManager::Shutdown() const
@@ -195,7 +182,6 @@ void gl::ResourceManager::DeletePROGRAM(GLuint gpuName)
     {
         if (pair.second == gpuName)
         {
-            // TODO: possible cause of occasional crashing: DeletePROGRAM() doesn't remove uniform names from uniformNames_. Callers might retireve a gpu uniform name to a destroyed program!
             glDeleteProgram(gpuName);
             PROGRAMs_.erase(pair.first);
             return;
@@ -207,4 +193,122 @@ void gl::ResourceManager::DeletePROGRAM(GLuint gpuName)
 gl::Camera& gl::ResourceManager::GetCamera()
 {
     return camera_;
+}
+
+std::vector<gl::ResourceManager::ObjData> gl::ResourceManager::ReadObj(std::string_view path)
+{
+    std::vector<ObjData> returnVal;
+
+    tinyobj::ObjReaderConfig reader_config;
+    std::string dir = std::string(path.begin(), path.begin() + path.find_last_of('/') + 1);
+    reader_config.mtl_search_path = dir;
+    tinyobj::ObjReader reader;
+
+    if (!reader.ParseFromFile(path.data(), reader_config))
+    {
+        if (!reader.Error().empty())
+        {
+            EngineError(reader.Error().c_str());
+        }
+        else
+        {
+            // TODO: refactor EngineError func to avoid this kind of horror...
+            std::string msg = "Failed to load file at path: ";
+            msg += path.data();
+            msg += ", at directory: ";
+            msg += dir.c_str();
+            EngineError(msg.c_str());
+        }
+    }
+
+    if (!reader.Warning().empty())
+    {
+        EngineError(reader.Warning().c_str());
+    }
+
+    const auto& attrib = reader.GetAttrib();
+    const auto& shapes = reader.GetShapes();
+    const auto& materials = reader.GetMaterials();
+
+    for (size_t shape = 0; shape < shapes.size(); shape++)
+    {
+        size_t index_offset = 0;
+        std::vector<glm::vec3> positions, normals, tangents;
+        std::vector<glm::vec2> texcoords;
+
+        const auto& mesh = shapes[shape].mesh;
+        for (size_t face = 0; face < mesh.num_face_vertices.size(); face++)
+        {
+            tinyobj::index_t idx0 = mesh.indices[index_offset + 0];
+            tinyobj::index_t idx1 = mesh.indices[index_offset + 1];
+            tinyobj::index_t idx2 = mesh.indices[index_offset + 2];
+            index_offset += 3;
+
+            const glm::vec3 pos0 =
+            {
+                attrib.vertices[3 * size_t(idx0.vertex_index) + 0],
+                attrib.vertices[3 * size_t(idx0.vertex_index) + 1],
+                attrib.vertices[3 * size_t(idx0.vertex_index) + 2]
+            };
+            const glm::vec3 pos1 =
+            {
+                attrib.vertices[3 * size_t(idx1.vertex_index) + 0],
+                attrib.vertices[3 * size_t(idx1.vertex_index) + 1],
+                attrib.vertices[3 * size_t(idx1.vertex_index) + 2]
+            };
+            const glm::vec3 pos2 =
+            {
+                attrib.vertices[3 * size_t(idx2.vertex_index) + 0],
+                attrib.vertices[3 * size_t(idx2.vertex_index) + 1],
+                attrib.vertices[3 * size_t(idx2.vertex_index) + 2]
+            };
+            const glm::vec3 deltaPos0 = pos1 - pos0;
+            const glm::vec3 deltaPos1 = pos2 - pos1;
+
+            const glm::vec2 uv0 =
+            {
+                attrib.texcoords[2 * size_t(idx0.texcoord_index) + 0],
+                attrib.texcoords[2 * size_t(idx0.texcoord_index) + 1]
+            };
+            const glm::vec2 uv1 =
+            {
+                attrib.texcoords[2 * size_t(idx1.texcoord_index) + 0],
+                attrib.texcoords[2 * size_t(idx1.texcoord_index) + 1]
+            };
+            const glm::vec2 uv2 =
+            {
+                attrib.texcoords[2 * size_t(idx2.texcoord_index) + 0],
+                attrib.texcoords[2 * size_t(idx2.texcoord_index) + 1]
+            };
+            const glm::vec2 deltaUv0 = uv1 - uv0;
+            const glm::vec2 deltaUv1 = uv2 - uv1;
+
+            const float F = 1.0f / (deltaUv0.x * deltaUv1.y - deltaUv1.x * deltaUv0.y);
+            const glm::vec3 tangent = glm::normalize(glm::vec3
+            (
+                F * (deltaUv1.y * deltaPos0.x - deltaUv0.y * deltaPos1.x),
+                F * (deltaUv1.y * deltaPos0.y - deltaUv0.y * deltaPos1.y),
+                F * (deltaUv1.y * deltaPos0.z - deltaUv0.y * deltaPos1.z)
+            ));
+
+            const glm::vec3 normal = glm::normalize(glm::cross(deltaPos0, deltaPos1));
+
+            positions.push_back(pos0);
+            positions.push_back(pos1);
+            positions.push_back(pos2);
+            texcoords.push_back(uv0);
+            texcoords.push_back(uv1);
+            texcoords.push_back(uv2);
+            normals.push_back(normal);
+            normals.push_back(normal);
+            normals.push_back(normal);
+            tangents.push_back(tangent);
+            tangents.push_back(tangent);
+            tangents.push_back(tangent);
+        }
+
+        returnVal.push_back({ positions, texcoords, normals, tangents });
+    }
+
+    return returnVal;
 }

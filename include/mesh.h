@@ -12,6 +12,7 @@ namespace gl
         void Create(VertexBuffer vb, Material mat);
 
         void Draw(int nrOfInstances = 1);
+        void DrawSingle();
     private:
 
         VertexBuffer vb_ = {};

@@ -26,6 +26,7 @@ namespace gl
         void Bind() const;
         static void Unbind();
         void Draw(int nrOfInstances = 1) const;
+        void DrawSingle() const;
     private:
         friend class Model;
 

@@ -6,6 +6,8 @@
 
 namespace gl
 {
+    using GLint = int;
+
     class Shader
     {
     public:
@@ -37,15 +39,17 @@ namespace gl
         unsigned int PROGRAM_ = 0;
         bool isBound_ = false;
 
-        void SetInt(const std::pair<std::string_view, int> pair) const;
-        void SetVec3(const std::pair<std::string_view, glm::vec3> pair) const;
-        void SetMat4(const std::pair<std::string_view, glm::mat4> pair) const;
-        void SetFloat(const std::pair<std::string_view, float> pair) const;
+        GLint GetUniformLocation(std::string_view uniformName);
 
-        void SetInt(const std::pair<std::string_view, const int*> pair) const;
-        void SetVec3(const std::pair<std::string_view, const glm::vec3*> pair) const;
-        void SetMat4(const std::pair<std::string_view, const glm::mat4*> pair) const;
-        void SetFloat(const std::pair<std::string_view, const float*> pair) const;
+        void SetInt(const std::pair<std::string_view, int> pair);
+        void SetVec3(const std::pair<std::string_view, glm::vec3> pair);
+        void SetMat4(const std::pair<std::string_view, glm::mat4> pair);
+        void SetFloat(const std::pair<std::string_view, float> pair);
+
+        void SetInt(const std::pair<std::string_view, const int*> pair);
+        void SetVec3(const std::pair<std::string_view, const glm::vec3*> pair);
+        void SetMat4(const std::pair<std::string_view, const glm::mat4*> pair);
+        void SetFloat(const std::pair<std::string_view, const float*> pair);
 
         std::map<std::string_view, int> staticInts_ = {}; // ex: texture units
         std::map<std::string_view, glm::vec3> staticVec3s_ = {}; // ex: material's ambient color
@@ -56,5 +60,7 @@ namespace gl
         std::map<std::string_view, const glm::vec3*> dynamicVec3s_ = {}; // ex: camera position
         std::map<std::string_view, const glm::mat4*> dynamicMat4s_ = {}; // ex: transform model matrix
         std::map<std::string_view, const float*> dynamicFloats_ = {};
+
+        std::map<std::string_view, int> uniformNames_ = {};
     };
 }//!gl

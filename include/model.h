@@ -37,8 +37,10 @@ namespace gl
         };
 
         void Create(const std::string_view path, std::vector<glm::mat4> modelMatrices = { IDENTITY_MAT4 }, Material::Definition material = {});
+        void Create(VertexBuffer::Definition vb, Material::Definition mat);
 
         void Draw();
+        void DrawSingle();
 
         void Translate(glm::vec3 v, size_t modelMatrixIndex = 0);
         void Rotate(glm::vec3 cardinalRotation, size_t modelMatrixIndex = 0);

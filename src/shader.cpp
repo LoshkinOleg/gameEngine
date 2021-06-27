@@ -14,68 +14,85 @@
 
 #include "resource_manager.h"
 
-void gl::Shader::SetInt(const std::pair<std::string_view, int> pair) const
+GLint gl::Shader::GetUniformLocation(std::string_view uniformName)
+{
+    const auto match = uniformNames_.find(uniformName.data());
+    if (match != uniformNames_.end()) // Name of uniform already known, use it.
+    {
+        return match->second;
+    }
+    else
+    {
+        const int uniformIntName = glGetUniformLocation(PROGRAM_, uniformName.data());
+        CheckGlError();
+        uniformNames_.insert({ uniformName.data(), uniformIntName }); // Add the new entry.
+        return uniformIntName;
+    }
+}
+
+void gl::Shader::SetInt(const std::pair<std::string_view, int> pair)
 {
     assert(isBound_);
-    const int gpuName = ResourceManager::Get().GetUniformName(pair.first, PROGRAM_);
+    const int gpuName = GetUniformLocation(pair.first);
     glUniform1i(gpuName, pair.second);
     CheckGlError();
 }
 
-void gl::Shader::SetInt(const std::pair<std::string_view, const int*> pair) const
+void gl::Shader::SetInt(const std::pair<std::string_view, const int*> pair)
 {
     assert(isBound_);
-    const int gpuName = ResourceManager::Get().GetUniformName(pair.first, PROGRAM_);
+    const int gpuName = GetUniformLocation(pair.first);
     glUniform1i(gpuName, *(pair.second));
     CheckGlError();
 }
 
-void gl::Shader::SetVec3(const std::pair<std::string_view, glm::vec3> pair) const
+void gl::Shader::SetVec3(const std::pair<std::string_view, glm::vec3> pair)
 {
     assert(isBound_);
-    const int gpuName = ResourceManager::Get().GetUniformName(pair.first, PROGRAM_);
+    const int gpuName = GetUniformLocation(pair.first);
     glUniform3fv(gpuName, 1, &pair.second[0]);
     CheckGlError();
 }
 
-void gl::Shader::SetVec3(const std::pair<std::string_view, const glm::vec3*> pair) const
+void gl::Shader::SetVec3(const std::pair<std::string_view, const glm::vec3*> pair)
 {
     assert(isBound_);
-    const int gpuName = ResourceManager::Get().GetUniformName(pair.first, PROGRAM_);
+    const int gpuName = GetUniformLocation(pair.first);
     glUniform3fv(gpuName, 1, &(*pair.second)[0]);
     CheckGlError();
 }
 
-void gl::Shader::SetMat4(const std::pair<std::string_view, glm::mat4> pair) const
+void gl::Shader::SetMat4(const std::pair<std::string_view, glm::mat4> pair)
 {
     assert(isBound_);
-    const int gpuName = ResourceManager::Get().GetUniformName(pair.first, PROGRAM_);
+    const int gpuName = GetUniformLocation(pair.first);
     glUniformMatrix4fv(gpuName, 1, GL_FALSE, &pair.second[0][0]);
     CheckGlError();
 }
 
-void gl::Shader::SetMat4(const std::pair<std::string_view, const glm::mat4*> pair) const
+void gl::Shader::SetMat4(const std::pair<std::string_view, const glm::mat4*> pair)
 {
+    CheckGlError();
     assert(isBound_);
-    const int gpuName = ResourceManager::Get().GetUniformName(pair.first, PROGRAM_);
+    const int gpuName = GetUniformLocation(pair.first);
     // const glm::vec3 value = *pair.second;
     // glUniformMatrix4fv(ResourceManager::Get().GetUniformName(pair.first, PROGRAM_), 1, GL_FALSE, &value[0][0]);
     glUniformMatrix4fv(gpuName, 1, GL_FALSE, &(*pair.second)[0][0]);
     CheckGlError();
 }
 
-void gl::Shader::SetFloat(const std::pair<std::string_view, float> pair) const
+void gl::Shader::SetFloat(const std::pair<std::string_view, float> pair)
 {
     assert(isBound_);
-    const int gpuName = ResourceManager::Get().GetUniformName(pair.first, PROGRAM_);
+    const int gpuName = GetUniformLocation(pair.first);
     glUniform1f(gpuName, pair.second);
     CheckGlError();
 }
 
-void gl::Shader::SetFloat(const std::pair<std::string_view, const float*> pair) const
+void gl::Shader::SetFloat(const std::pair<std::string_view, const float*> pair)
 {
     assert(isBound_);
-    const int gpuName = ResourceManager::Get().GetUniformName(pair.first, PROGRAM_);
+    const int gpuName = GetUniformLocation(pair.first);
     glUniform1f(gpuName, *pair.second);
     CheckGlError();
 }

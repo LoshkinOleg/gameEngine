@@ -30,30 +30,67 @@ public:
         glEnable(GL_CULL_FACE);
 
         // Model creation.
+        const auto cubeVertices = ResourceManager::ReadObj("../data/models/morphingCubeSphere/morphingCube.obj");
+        const auto sphereVertices = ResourceManager::ReadObj("../data/models/morphingCubeSphere/morphingSphere.obj");
+        VertexBuffer::Definition vbdef;
+        for (size_t i = 0; i < cubeVertices[0].positions.size(); i++)
+        {
+            vbdef.data.push_back(cubeVertices[0].positions[i].x);
+            vbdef.data.push_back(cubeVertices[0].positions[i].y);
+            vbdef.data.push_back(cubeVertices[0].positions[i].z);
+            vbdef.data.push_back(sphereVertices[0].positions[i].x);
+            vbdef.data.push_back(sphereVertices[0].positions[i].y);
+            vbdef.data.push_back(sphereVertices[0].positions[i].z);
+
+            vbdef.data.push_back(cubeVertices[0].uvs[i].x); // uvs are identical between meshes.
+            vbdef.data.push_back(cubeVertices[0].uvs[i].y);
+
+            vbdef.data.push_back(cubeVertices[0].normals[i].x);
+            vbdef.data.push_back(cubeVertices[0].normals[i].y);
+            vbdef.data.push_back(cubeVertices[0].normals[i].z);
+            vbdef.data.push_back(sphereVertices[0].normals[i].x);
+            vbdef.data.push_back(sphereVertices[0].normals[i].y);
+            vbdef.data.push_back(sphereVertices[0].normals[i].z);
+
+            vbdef.data.push_back(cubeVertices[0].tangents[i].x);
+            vbdef.data.push_back(cubeVertices[0].tangents[i].y);
+            vbdef.data.push_back(cubeVertices[0].tangents[i].z);
+            vbdef.data.push_back(sphereVertices[0].tangents[i].x);
+            vbdef.data.push_back(sphereVertices[0].tangents[i].y);
+            vbdef.data.push_back(sphereVertices[0].tangents[i].z);
+        }
+        vbdef.dataLayout =
+        {
+            3, // pos cube
+            3, // pos sphere
+            2, // uvs
+            3, // norm cube
+            3, // norm sphere
+            3, // tan cube
+            3 // tan sphere
+        };
+
+        Shader::Definition sdef;
+        sdef.vertexPath = "../data/shaders/hello_morphing.vert";
+        sdef.fragmentPath = "../data/shaders/hello_morphing.frag";
+        sdef.staticInts.insert({ALPHA_SAMPLER_NAME, ALPHA_TEXTURE_UNIT});
+        sdef.staticInts.insert({AMBIENT_SAMPLER_NAME, AMBIENT_TEXTURE_UNIT});
+        sdef.staticInts.insert({DIFFUSE_SAMPLER_NAME, DIFFUSE_TEXTURE_UNIT});
+        sdef.staticInts.insert({SPECULAR_SAMPLER_NAME, SPECULAR_TEXTURE_UNIT});
+        sdef.staticFloats.insert({SHININESS_NAME, 64.0f});
+        sdef.staticMat4s.insert({PROJECTION_MARIX_NAME, PERSPECTIVE});
+        sdef.dynamicMat4s.insert({VIEW_MARIX_NAME, resourceManager_.GetCamera().GetViewMatrixPtr()});
+        sdef.dynamicVec3s.insert({VIEW_POSITION_NAME, resourceManager_.GetCamera().GetPositionPtr()});
+        sdef.dynamicFloats.insert({"interpolationFactor", &interpolationFactor_});
+
         Material::Definition matdef;
-        matdef.shader.vertexPath = "../data/shaders/toon.vert";
-        matdef.shader.fragmentPath = "../data/shaders/toon.frag";
-        
-        matdef.texturePathsAndTypes.push_back({ "../data/models/brickSphere/diffuse.jpg", Texture::Type::AMBIENT });
-        matdef.shader.staticInts.insert({ AMBIENT_SAMPLER_NAME, AMBIENT_TEXTURE_UNIT });
-        
-        matdef.texturePathsAndTypes.push_back({ "../data/models/brickSphere/specular.jpg", Texture::Type::ALPHA });
-        matdef.shader.staticInts.insert({ ALPHA_SAMPLER_NAME, ALPHA_TEXTURE_UNIT });
-        
-        matdef.texturePathsAndTypes.push_back({ "../data/models/brickSphere/diffuse.jpg", Texture::Type::DIFFUSE });
-        matdef.shader.staticInts.insert({ DIFFUSE_SAMPLER_NAME, DIFFUSE_TEXTURE_UNIT });
-        
-        matdef.texturePathsAndTypes.push_back({ "../data/models/brickSphere/specular.jpg", Texture::Type::SPECULAR });
-        matdef.shader.staticInts.insert({ SPECULAR_SAMPLER_NAME, SPECULAR_TEXTURE_UNIT });
-        
-        matdef.texturePathsAndTypes.push_back({ "../data/models/brickSphere/normals.png", Texture::Type::NORMALMAP });
-        matdef.shader.staticInts.insert({ NORMALMAP_SAMPLER_NAME, NORMALMAP_TEXTURE_UNIT });
-        
-        matdef.shader.staticFloats.insert({ SHININESS_NAME, 64.0f });
-        matdef.shader.staticMat4s.insert({ PROJECTION_MARIX_NAME, PERSPECTIVE });
-        matdef.shader.dynamicMat4s.insert({ VIEW_MARIX_NAME, ResourceManager::Get().GetCamera().GetViewMatrixPtr() });
-        matdef.shader.dynamicVec3s.insert({ VIEW_POSITION_NAME, ResourceManager::Get().GetCamera().GetPositionPtr() });
-        model_.Create("../data/models/brickSphere/brickSphere.obj", {IDENTITY_MAT4}, matdef);
+        matdef.shader = sdef;
+        matdef.texturePathsAndTypes.push_back({"../data/models/morphingCubeSphere/blank2x2.jpg", Texture::Type::ALPHA});
+        matdef.texturePathsAndTypes.push_back({"../data/models/morphingCubeSphere/blank2x2.jpg", Texture::Type::AMBIENT});
+        matdef.texturePathsAndTypes.push_back({"../data/models/morphingCubeSphere/blank2x2.jpg", Texture::Type::DIFFUSE});
+        matdef.texturePathsAndTypes.push_back({"../data/models/morphingCubeSphere/blank2x2.jpg", Texture::Type::SPECULAR});
+
+        model_.Create(vbdef, matdef);
 
         // Skybox.
         Skybox::Definition skdef;
@@ -69,8 +106,10 @@ public:
         glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        interpolationFactor_ = (glm::cos(timer_) + 1.0f) * 0.5f;
+
         fb_.Bind();
-        model_.Draw();
+        model_.DrawSingle();
         skybox_.Draw();
         fb_.Unbind();
         fb_.Draw();
@@ -137,6 +176,7 @@ public:
 private:
     float timer_ = 0.0f;
     bool mouseButtonDown_ = false;
+    float interpolationFactor_ = 0.0f;
     Model model_;
     Skybox skybox_;
     Framebuffer fb_;

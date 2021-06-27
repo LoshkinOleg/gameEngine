@@ -13,6 +13,14 @@ namespace gl
     class ResourceManager
     {
     public:
+        struct ObjData
+        {
+            std::vector<glm::vec3> positions = {};
+            std::vector<glm::vec2> uvs = {};
+            std::vector<glm::vec3> normals = {};
+            std::vector<glm::vec3> tangents = {};
+        };
+
         ResourceManager() = default;
         ~ResourceManager();
         ResourceManager(const ResourceManager&) = delete; // Disallow things like ResourceManager r = ResourceManager::Get(), only allow ResourceManager& r = ResourceManager::Get() .
@@ -39,9 +47,9 @@ namespace gl
         void DeleteTEX(GLuint gpuName);
         void DeletePROGRAM(GLuint gpuName);
 
-        Camera& GetCamera();
+        static std::vector<ObjData> ReadObj(std::string_view path);
 
-        int GetUniformName(std::string_view strName, unsigned int gpuProgramName);
+        Camera& GetCamera();
 
         void Shutdown() const;
 
@@ -53,8 +61,6 @@ namespace gl
         std::map<XXH32_hash_t, GLuint> PROGRAMs_ = {};
 
         Camera camera_ = {}; // Most shaders need a view matrix and the camera's position, hence it's need to be accessible globally.
-
-        std::map<std::string_view, int> uniformNames_ = {};
     };
 
 }//!gl
