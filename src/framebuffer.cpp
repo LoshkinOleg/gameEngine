@@ -181,14 +181,33 @@ void gl::Framebuffer::Resize(std::array<size_t, 2> newResolution)
 
 void gl::Framebuffer::Bind() const
 {
-    glBindFramebuffer(GL_FRAMEBUFFER, FBO_);
+    // TODO: come up with a better name for the function...
+    CheckGlError();
+    glCullFace(GL_FRONT);
     glViewport(0, 0, defCopy_.resolution[0], defCopy_.resolution[1]);
+    glBindFramebuffer(GL_FRAMEBUFFER, FBO_);
     glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     CheckGlError();
 }
+void gl::Framebuffer::BindTextures() const
+{
+    for (const auto& tex : textures_)
+    {
+        tex.Bind();
+    }
+}
+void gl::Framebuffer::UnbindTextures() const
+{
+    // for (const auto& tex : textures_)
+    // {
+    //     tex.Unbind();
+    // }
+}
 void gl::Framebuffer::Unbind(const std::array<size_t, 2> screenResolution) const
 {
+    CheckGlError();
+    glCullFace(GL_BACK);
     glViewport(0, 0, screenResolution[0], screenResolution[1]);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     CheckGlError();

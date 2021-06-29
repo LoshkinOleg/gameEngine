@@ -69,15 +69,22 @@ namespace gl
 	const int SHEEN_TEXTURE_UNIT = 7;
 	const std::string_view EMISSIVE_SAMPLER_NAME = "material.emissiveMap";
 	const int EMISSIVE_TEXTURE_UNIT = 8;
-	const std::string_view FRAMEBUFFER_SAMPLER_NAME = "fbTexture";
-	const int FRAMEBUFFER_TEXTURE_UNIT = 9;
 	const std::string_view CUBEMAP_SAMPLER_NAME = "cubemap";
-	const int CUBEMAP_TEXTURE_UNIT = 10;
+	const int CUBEMAP_TEXTURE_UNIT = 9;
+	const std::string_view FRAMEBUFFER_SAMPLER0_NAME = "fbTexture0";
+	const int FRAMEBUFFER_TEXTURE0_UNIT = 10;
+	const std::string_view FRAMEBUFFER_SAMPLER1_NAME = "fbTexture1";
+	const int FRAMEBUFFER_TEXTURE1_UNIT = 11;
+	const std::string_view FRAMEBUFFER_SAMPLER2_NAME = "fbTexture2";
+	const int FRAMEBUFFER_TEXTURE2_UNIT = 12;
+	const std::string_view FRAMEBUFFER_SAMPLER3_NAME = "fbTexture3";
+	const int FRAMEBUFFER_TEXTURE3_UNIT = 13;
 	const std::string_view SHININESS_NAME = "material.shininess";
 	const std::string_view IOR_NAME = "material.ior";
 	const std::string_view VIEW_POSITION_NAME = "viewPos";
 	const std::string_view PROJECTION_MARIX_NAME = "projection";
 	const std::string_view VIEW_MARIX_NAME = "view";
+	const std::string_view LIGHT_MATRIX_NAME = "lightMatrix";
 	const std::string_view HDR_EXPOSURE_NAME = "exposure";
 
 	const int POSITION_LOCATION = 0;

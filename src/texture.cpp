@@ -21,7 +21,7 @@ void gl::Texture::Create(Type textureType, std::string_view path, bool flipImage
         EngineError("Calling Create() a second time...");
     }
 
-    assert((int)textureType < (int)Type::FRAMEBUFFER && (int)textureType > -1 && !path.empty());
+    assert((int)textureType < (int)Type::CUBEMAP && (int)textureType > -1 && !path.empty());
 
     stbi_set_flip_vertically_on_load(flipImage);
     int width, height, nrChannels;
@@ -29,7 +29,7 @@ void gl::Texture::Create(Type textureType, std::string_view path, bool flipImage
     data = stbi_load(path.data(), &width, &height, &nrChannels, 0);
     assert(data && data[0] != '\0');
 
-    const XXH32_hash_t dataHash = XXH32(data, sizeof(char) * sizeof(unsigned char) * width * height * nrChannels, HASHING_SEED);
+    const XXH32_hash_t dataHash = XXH32(data, sizeof(unsigned char) * width * height * nrChannels, HASHING_SEED);
 
     // Accumulate all the relevant data in a single string for hashing.
     std::string accumulatedData = std::to_string(dataHash);
@@ -131,18 +131,18 @@ void gl::Texture::Create(std::array<size_t, 2> resolution, FramebufferAttachment
     {
         EngineError("Calling Create() a second time...");
     }
-    type_ = Texture::Type::FRAMEBUFFER;
 
     // Note: type should only have at most 2 bits set: the Type you with to create and optionally the HDR bit.
     if ((int)type & (int)FramebufferAttachment::FBO_DEPTH0)
     {
         glGenTextures(1, &TEX_);
         glBindTexture(GL_TEXTURE_2D, TEX_);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, resolution[0], resolution[1], 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, resolution[0], resolution[1], 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        type_ = Texture::Type::FRAMEBUFFER0;
     }
     else if ((int)type & (int)FramebufferAttachment::FBO_RGBA0 ||
              (int)type & (int)FramebufferAttachment::FBO_RGBA1 ||
@@ -156,6 +156,8 @@ void gl::Texture::Create(std::array<size_t, 2> resolution, FramebufferAttachment
         glTexImage2D(GL_TEXTURE_2D, 0, (int)type & (int)FramebufferAttachment::HDR ? GL_RGB16F : GL_RGB8, resolution[0], resolution[1], 0, GL_RGB, (int)type & (int)FramebufferAttachment::HDR ? GL_FLOAT : GL_UNSIGNED_BYTE, nullptr);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        assert((int)type & (int)FramebufferAttachment::FBO_RGBA0); // TODO: this will break, need a way to attribute it's own texture unit to each attachment.
+        type_ = Texture::Type::FRAMEBUFFER0;
     }
     CheckGlError();
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -181,7 +183,7 @@ void gl::Texture::Unbind() const
 {
     CheckGlError();
     assert((int)type_ > -1 && (int)type_ < (int)Type::INVALID);
-    glActiveTexture(GL_TEXTURE0 + (int)type_);
-    glBindTexture((int)type_ == (int)Type::CUBEMAP ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D, 0);
+    // glActiveTexture(GL_TEXTURE0 + (int)type_);
+    // glBindTexture((int)type_ == (int)Type::CUBEMAP ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D, 0);
     CheckGlError();
 }

@@ -22,9 +22,12 @@ namespace gl
             METALLIC = METALLIC_TEXTURE_UNIT, // 6
             SHEEN = SHEEN_TEXTURE_UNIT, // 7
             EMISSIVE = EMISSIVE_TEXTURE_UNIT, // 8
-            FRAMEBUFFER = FRAMEBUFFER_TEXTURE_UNIT, // 9
-            CUBEMAP = CUBEMAP_TEXTURE_UNIT, // 10
-            INVALID = CUBEMAP_TEXTURE_UNIT + 1
+            CUBEMAP = CUBEMAP_TEXTURE_UNIT, // 9
+            FRAMEBUFFER0 = FRAMEBUFFER_TEXTURE0_UNIT, // 10
+            FRAMEBUFFER1 = FRAMEBUFFER_TEXTURE0_UNIT, // 11
+            FRAMEBUFFER2 = FRAMEBUFFER_TEXTURE0_UNIT, // 12
+            FRAMEBUFFER3 = FRAMEBUFFER_TEXTURE0_UNIT, // 13
+            INVALID = FRAMEBUFFER_TEXTURE3_UNIT + 1
         };
         enum class FramebufferAttachment // TODO: get rid of this sheit, it's an ugly hack. Find a way around the cyclical dependancy of Texture and Framebuffer
         {

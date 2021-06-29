@@ -41,10 +41,13 @@ namespace gl
 
         void Draw();
         void DrawSingle();
+        void DrawUsingShader(Shader& shader);
 
         void Translate(glm::vec3 v, size_t modelMatrixIndex = 0);
         void Rotate(glm::vec3 cardinalRotation, size_t modelMatrixIndex = 0);
         void Scale(glm::vec3 v, size_t modelMatrixIndex = 0);
+
+        std::vector<glm::mat4>& GetModelMatrices();
 
     private:
 

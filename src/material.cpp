@@ -12,7 +12,8 @@ void gl::Material::Create(Definition def)
     assert(def.texturePathsAndTypes.size() > 0);
     for (const auto& pair : def.texturePathsAndTypes)
     {
-        assert(!pair.first.empty() && pair.second != Texture::Type::FRAMEBUFFER);
+        // We don't want framebuffers to have materials.
+        assert(!pair.first.empty() && (int)pair.second < (int)Texture::Type::FRAMEBUFFER0);
     }
 
     for (size_t i = 0; i < def.texturePathsAndTypes.size(); i++)
@@ -53,9 +54,9 @@ void gl::Material::Bind()
 }
 void gl::Material::Unbind()
 {
-	for (const auto& texture : textures_)
-	{
-		texture.Unbind();
-	}
-    shader_.Unbind();
+	// for (const auto& texture : textures_)
+	// {
+	// 	texture.Unbind();
+	// }
+    // shader_.Unbind();
 }

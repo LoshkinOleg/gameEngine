@@ -260,9 +260,10 @@ void gl::Model::Create(VertexBuffer::Definition vb, Material::Definition mat, st
 void gl::Model::Draw()
 {
     // TODO: fix the issue of inappropriate use of aModel in shader when there's more than 1 mesh in a model.
+    // TODO: add a way to check if the models need updating, no need to update the transformModels every frame...
     glBindBuffer(GL_ARRAY_BUFFER, modelMatricesVBO_);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::mat4) * modelMatrices_.size(), (void*)&modelMatrices_[0][0]);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    // glBindBuffer(GL_ARRAY_BUFFER, 0);
     for (size_t i = 0; i < meshes_.size(); i++)
     {
         meshes_[i].Draw((int)modelMatrices_.size());
@@ -272,6 +273,17 @@ void gl::Model::Draw()
 void gl::Model::DrawSingle()
 {
     meshes_[0].DrawSingle();
+}
+
+void gl::Model::DrawUsingShader(Shader& shader)
+{
+    glBindBuffer(GL_ARRAY_BUFFER, modelMatricesVBO_);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::mat4) * modelMatrices_.size(), (void*)&modelMatrices_[0][0]);
+    // glBindBuffer(GL_ARRAY_BUFFER, 0);
+    for (size_t i = 0; i < meshes_.size(); i++)
+    {
+        meshes_[i].DrawUsingShader(shader, (int)modelMatrices_.size());
+    }
 }
 
 void gl::Model::Translate(glm::vec3 v, size_t modelMatrixIndex)
@@ -289,4 +301,9 @@ void gl::Model::Rotate(glm::vec3 cardinalRotation, size_t modelMatrixIndex)
 void gl::Model::Scale(glm::vec3 v, size_t modelMatrixIndex)
 {
     modelMatrices_[modelMatrixIndex] = glm::scale(modelMatrices_[modelMatrixIndex], v);
+}
+
+std::vector<glm::mat4>& gl::Model::GetModelMatrices()
+{
+    return modelMatrices_;
 }

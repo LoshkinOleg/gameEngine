@@ -19,10 +19,17 @@ namespace gl
             glEnable(GL_DEPTH_TEST);
             glEnable(GL_CULL_FACE);
 
+            const float bounds = 10.0f;
+            const float near = 0.0f;
+            const float far = 100.0f;
+            glm::mat4 lightProjectionMatrix = glm::ortho(-bounds, bounds, -bounds, bounds, near, far);
+            const glm::vec3 lightPos = ONE_VEC3 * 10.0f;
+            glm::mat4 lightViewMatrix = glm::lookAt(lightPos, ZERO_VEC3, UP_VEC3);
+
             // Crate model.
             {
                 VertexBuffer::Definition vbdef;
-                const auto objData = ResourceManager::ReadObj("../data/models/brickCube/brickCube.obj");
+                const auto objData = ResourceManager::ReadObj("../data/models/brickSphere/brickSphere.obj");
                 for (size_t i = 0; i < objData[0].positions.size(); i++)
                 {
                     vbdef.data.push_back(objData[0].positions[i].x);
@@ -49,8 +56,8 @@ namespace gl
                 };
 
                 Material::Definition matdef;
-                matdef.shader.vertexPath = "../data/shaders/hello_shadows.vert";
-                matdef.shader.fragmentPath = "../data/shaders/hello_shadows.frag";
+                matdef.shader.vertexPath = "../data/shaders/illum2_shadowmapped.vert";
+                matdef.shader.fragmentPath = "../data/shaders/illum2_shadowmapped.frag";
                 matdef.texturePathsAndTypes.push_back({ "../data/textures/brickwall.jpg", Texture::Type::AMBIENT });
                 matdef.shader.staticInts.insert({ AMBIENT_SAMPLER_NAME, AMBIENT_TEXTURE_UNIT });
                 matdef.texturePathsAndTypes.push_back({ "../data/textures/blank2x2.jpg", Texture::Type::ALPHA });
@@ -61,26 +68,18 @@ namespace gl
                 matdef.shader.staticInts.insert({ SPECULAR_SAMPLER_NAME, SPECULAR_TEXTURE_UNIT });
                 matdef.texturePathsAndTypes.push_back({ "../data/textures/brickwall_normal.jpg", Texture::Type::NORMALMAP });
                 matdef.shader.staticInts.insert({ NORMALMAP_SAMPLER_NAME, NORMALMAP_TEXTURE_UNIT });
+                matdef.shader.staticInts.insert({ FRAMEBUFFER_SAMPLER0_NAME, FRAMEBUFFER_TEXTURE0_UNIT });
                 matdef.shader.staticFloats.insert({ SHININESS_NAME, 64.0f });
                 matdef.shader.staticMat4s.insert({ PROJECTION_MARIX_NAME, PERSPECTIVE });
+                matdef.shader.staticMat4s.insert({ LIGHT_MATRIX_NAME, lightProjectionMatrix * lightViewMatrix});
                 matdef.shader.dynamicMat4s.insert({ VIEW_MARIX_NAME, ResourceManager::Get().GetCamera().GetViewMatrixPtr() });
                 matdef.shader.dynamicVec3s.insert({ VIEW_POSITION_NAME, ResourceManager::Get().GetCamera().GetPositionPtr() });
 
-                std::vector<glm::vec3> positions;
-                positions.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
-                positions.push_back(glm::vec3(3.0f, 3.0f, 0.0f));
-                positions.push_back(glm::vec3(3.0f, 3.0f, -3.0f));
-                std::vector<glm::mat4> transformMatrices;
-                for (size_t i = 0; i < positions.size(); i++)
-                {
-                    transformMatrices.push_back(glm::translate(IDENTITY_MAT4, positions[i]));
-                }
-
-                model_.Create(vbdef, matdef, transformMatrices);
+                std::vector<glm::mat4> modelMatrices_ = { IDENTITY_MAT4, IDENTITY_MAT4, IDENTITY_MAT4 };
+                model_.Create(vbdef, matdef, modelMatrices_);
             }
 
-            // Flood model.
-            // Crate model.
+            // Floor model.
             {
                 VertexBuffer::Definition vbdef;
                 const auto objData = ResourceManager::ReadObj("../data/models/cratePlane/cratePlane.obj");
@@ -110,8 +109,8 @@ namespace gl
                 };
 
                 Material::Definition matdef;
-                matdef.shader.vertexPath = "../data/shaders/hello_shadows.vert";
-                matdef.shader.fragmentPath = "../data/shaders/hello_shadows.frag";
+                matdef.shader.vertexPath = "../data/shaders/illum2_shadowmapped.vert";
+                matdef.shader.fragmentPath = "../data/shaders/illum2_shadowmapped.frag";
                 matdef.texturePathsAndTypes.push_back({ "../data/textures/crate_diffuse.jpg", Texture::Type::AMBIENT });
                 matdef.shader.staticInts.insert({ AMBIENT_SAMPLER_NAME, AMBIENT_TEXTURE_UNIT });
                 matdef.texturePathsAndTypes.push_back({ "../data/textures/blank2x2.jpg", Texture::Type::ALPHA });
@@ -122,13 +121,15 @@ namespace gl
                 matdef.shader.staticInts.insert({ SPECULAR_SAMPLER_NAME, SPECULAR_TEXTURE_UNIT });
                 matdef.texturePathsAndTypes.push_back({ "../data/textures/crate_normals.png", Texture::Type::NORMALMAP });
                 matdef.shader.staticInts.insert({ NORMALMAP_SAMPLER_NAME, NORMALMAP_TEXTURE_UNIT });
+                matdef.shader.staticInts.insert({ FRAMEBUFFER_SAMPLER0_NAME, FRAMEBUFFER_TEXTURE0_UNIT });
                 matdef.shader.staticFloats.insert({ SHININESS_NAME, 64.0f });
                 matdef.shader.staticMat4s.insert({ PROJECTION_MARIX_NAME, PERSPECTIVE });
+                matdef.shader.staticMat4s.insert({ LIGHT_MATRIX_NAME, lightProjectionMatrix * lightViewMatrix });
                 matdef.shader.dynamicMat4s.insert({ VIEW_MARIX_NAME, ResourceManager::Get().GetCamera().GetViewMatrixPtr() });
                 matdef.shader.dynamicVec3s.insert({ VIEW_POSITION_NAME, ResourceManager::Get().GetCamera().GetPositionPtr() });
 
                 std::vector<glm::vec3> positions;
-                positions.push_back(glm::vec3(0.0f, -1.0f, 0.0f));
+                positions.push_back(glm::vec3(0.0f, -3.0f, 0.0f));
                 std::vector<glm::vec3> scales;
                 scales.push_back(ONE_VEC3 * 10.0f);
                 std::vector<glm::mat4> transformMatrices;
@@ -141,13 +142,23 @@ namespace gl
                 floor_.Create(vbdef, matdef, transformMatrices);
             }
 
-            // Skybox.
-            Skybox::Definition skdef;
-            skdef.flipImages = false;
-            skybox_.Create(skdef);
+            // Shadowmap shader.
+            {
+                Shader::Definition sdef;
+                sdef.vertexPath = "../data/shaders/shadowmapping.vert";
+                sdef.fragmentPath = "../data/shaders/empty.frag";
+                sdef.staticMat4s.insert({ LIGHT_MATRIX_NAME, lightProjectionMatrix * lightViewMatrix });
+                shaderShadowmap_.Create(sdef);
+            }
 
             // Framebuffer.
-            fb_.Create({});
+            {
+                Framebuffer::Definition fbdef;
+                fbdef.type = (Framebuffer::Type)((int)Framebuffer::Type::FBO_DEPTH0 | (int)Framebuffer::Type::NO_DRAW | (int)Framebuffer::Type::HDR);
+                fbdef.resolution = {1024, 1024};
+
+                fb_.Create(fbdef);
+            }
         }
         void Update(seconds dt) override
         {
@@ -155,9 +166,22 @@ namespace gl
             glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+            auto& modelMatrices = model_.GetModelMatrices();
+            modelMatrices[0] = glm::translate(IDENTITY_MAT4, 2.0f * glm::vec3(glm::cos(timer_), glm::sin(timer_), 0.0f));
+            modelMatrices[1] = glm::translate(IDENTITY_MAT4, 2.0f * glm::vec3(glm::cos(timer_ + 3.14f), 0.0f, glm::sin(timer_ + 3.14)));
+            modelMatrices[2] = glm::translate(IDENTITY_MAT4, 2.0f * glm::vec3(0.0f, glm::cos(timer_), glm::sin(timer_)));
+
+            // Shadow pass.
+            fb_.Bind();
+            floor_.DrawUsingShader(shaderShadowmap_);
+            model_.DrawUsingShader(shaderShadowmap_);
+            fb_.Unbind();
+
+            // Final pass.
+            fb_.BindTextures();
             floor_.Draw();
             model_.Draw();
-            skybox_.Draw();
+            // fb_.UnbindTextures();
         }
         void Destroy() override
         {
@@ -224,7 +248,7 @@ namespace gl
         float interpolationFactor_ = 0.0f;
         Model model_;
         Model floor_;
-        Skybox skybox_;
+        Shader shaderShadowmap_;
         Framebuffer fb_;
         ResourceManager& resourceManager_ = ResourceManager::Get();
     };

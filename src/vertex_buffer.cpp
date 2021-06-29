@@ -80,7 +80,7 @@ void gl::VertexBuffer::Bind() const
 
 void gl::VertexBuffer::Unbind()
 {
-    glBindVertexArray(0);
+    // glBindVertexArray(0);
     CheckGlError();
 }
 

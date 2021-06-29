@@ -42,7 +42,13 @@ public:
         };
         std::array<size_t, 2> resolution = { (size_t)SCREEN_RESOLUTION[0], (size_t)SCREEN_RESOLUTION[1] };
 
-        std::map<std::string_view, int> staticInts = { {FRAMEBUFFER_SAMPLER_NAME, FRAMEBUFFER_TEXTURE_UNIT} };
+        std::map<std::string_view, int> staticInts =
+        {
+            {FRAMEBUFFER_SAMPLER0_NAME, FRAMEBUFFER_TEXTURE0_UNIT},
+            {FRAMEBUFFER_SAMPLER1_NAME, FRAMEBUFFER_TEXTURE1_UNIT},
+            {FRAMEBUFFER_SAMPLER2_NAME, FRAMEBUFFER_TEXTURE2_UNIT},
+            {FRAMEBUFFER_SAMPLER3_NAME, FRAMEBUFFER_TEXTURE3_UNIT}
+        };
         std::map<std::string_view, glm::vec3> staticVec3s = {};
         std::map<std::string_view, glm::mat4> staticMat4s = {};
         std::map<std::string_view, float> staticFloats = {};
@@ -58,6 +64,8 @@ public:
     void Resize(std::array<size_t, 2> newResolution);
 
     void Bind() const;
+    void BindTextures() const;
+    void UnbindTextures() const;
     void Unbind(const std::array<size_t, 2> screenResolution = { (size_t)SCREEN_RESOLUTION[0], (size_t)SCREEN_RESOLUTION[1] }) const;
     void Draw();
 private:
