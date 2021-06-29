@@ -1,166 +1,233 @@
-// Checklist: use textureType where appropriate, make a separate cubemap class?, make sure there CheckGlError() at key points
-// make sure we're using "const auto match" everywhere, not a & version, make sure we're not fucking up where we're passing & in arguments, replace all generic errors with descriptive ones: throw() assert()
-// make sure we unbind everything once we're done using it, see where the code could fail for every function
-// on creation of a resource, check the validity of ids, check on draw that the asset is valid
-// Refactor shaders.
-// TODO: rename any <baseClass> variables into <baseClassId> variables where appropriate to better reflect the type of the variable.
-// TODO: remove all the old commented code.
-// TODO: rename files names to use CamelCase
-// TODO: remove id_ from classes, it's useless
-// TODO: make a define for lambda with value of <Shader& shader, const Model& model> and <Shader& shader, const Model& model, const Camera& camera>
-// TODO: make sure whenever we bind shit, we unbind it afterwards
-// TODO: add normalsmaps support
-// TODO: add transparency
-// TODO: add frustrum culling
-// TODO: handle resizing of window? glViewport and framebuffer too
-
-// TODO: Do all the above crap, rebuild the demo scene.
+#include <vector>
 
 #include <glad/glad.h>
 
 #include "engine.h"
+#include "model.h"
+#include "skybox.h"
+#include "framebuffer.h"
 #include "resource_manager.h"
 
-namespace gl {
-
-class HelloTriangle : public Program
+namespace gl
 {
-public:
-    void Init() override
+
+    class HelloTriangle : public Program
     {
-        glEnable(GL_DEPTH_TEST);
-        glEnable(GL_CULL_FACE);
-        // glEnable(GL_FRAMEBUFFER_SRGB_EXT); // Gamma correct manually, not automatically
+    public:
+        void Init() override
+        {
+            glEnable(GL_DEPTH_TEST);
+            glEnable(GL_CULL_FACE);
 
-        // Camera.
-        {
-            Camera::Definition def;
-            camera_ = &resourceManager_.GetCamera(resourceManager_.CreateResource(def));
-        }
-
-        // Model creation.
-        {
-            const auto objData = resourceManager_.ReadObjData("../data/models/brickSphere/brickSphere.obj");
-            std::vector<glm::mat4> modelMatrices = std::vector<glm::mat4>(3, IDENTITY_MAT4);
-            modelMatrices[0] = glm::translate(modelMatrices[0], glm::vec3(0.0f, 1.0f, 0.0f));
-            modelMatrices[1] = glm::translate(modelMatrices[1], glm::vec3(3.0f, 3.0f, 0.0f));
-            modelMatrices[2] = glm::translate(modelMatrices[2], glm::vec3(3.0f, 3.0f, 4.0f));
-        
-            const ModelId id = resourceManager_.CreateResource(objData, modelMatrices, {}, true, false);
-            model_ = &resourceManager_.GetModel(id);
-        }
-        {
-            const auto objData = resourceManager_.ReadObjData("../data/models/cratePlane/cratePlane.obj");
-            const ModelId id = resourceManager_.CreateResource(objData, {glm::scale(IDENTITY_MAT4, ONE_VEC3 * 10.0f)}, {}, true, false);
-            modelFloor_ = &resourceManager_.GetModel(id);
-        }
-
-        // Skybox creation.
-        {
-            Skybox::Definition def;
-            def.correctGamma = true;
-            def.flipImages = false;
-            def.shader = {SKYBOX_SHADER[0], SKYBOX_SHADER[1]};
-            def.paths =
+            // Crate model.
             {
-                "../data/textures/skybox/right.jpg",
-                "../data/textures/skybox/left.jpg",
-                "../data/textures/skybox/top.jpg",
-                "../data/textures/skybox/bottom.jpg",
-                "../data/textures/skybox/front.jpg",
-                "../data/textures/skybox/back.jpg"
-            };
-            skybox_ = &resourceManager_.GetSkybox(resourceManager_.CreateResource(def));
-        }
+                VertexBuffer::Definition vbdef;
+                const auto objData = ResourceManager::ReadObj("../data/models/brickCube/brickCube.obj");
+                for (size_t i = 0; i < objData[0].positions.size(); i++)
+                {
+                    vbdef.data.push_back(objData[0].positions[i].x);
+                    vbdef.data.push_back(objData[0].positions[i].y);
+                    vbdef.data.push_back(objData[0].positions[i].z);
 
-        // Shadow's framebuffer creation.
-        Framebuffer::Definition fbdef;
-        fbdef.attachments = Framebuffer::AttachmentMask::DEPTH24;
-        fbdef.shaderPaths = { "../data/shaders/hello_shadows.vert", "../data/shaders/hello_shadows.frag" };
-        fbdef.resolution = {1024, 1024};
-        framebufferShadow_ = &resourceManager_.GetFramebuffer(resourceManager_.CreateResource(fbdef));
-    }
-    void Update(seconds dt) override
-    {
-        timer_ += dt.count();
-        glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                    vbdef.data.push_back(objData[0].uvs[i].x);
+                    vbdef.data.push_back(objData[0].uvs[i].y);
 
-        // lightDir_ = glm::vec3(glm::cos(timer_) * 1.5f, 1.5f, glm::sin(timer_) * 1.5f);
+                    vbdef.data.push_back(objData[0].normals[i].x);
+                    vbdef.data.push_back(objData[0].normals[i].y);
+                    vbdef.data.push_back(objData[0].normals[i].z);
 
-        skybox_->Draw();
-        model_->Draw();
-        modelFloor_->Draw();
-    }
-    void Destroy() override
-    {
-        ResourceManager::Get().Shutdown();
-    }
-    void OnEvent(SDL_Event& event) override
-    {
-        if ((event.type == SDL_KEYDOWN) &&
-            (event.key.keysym.sym == SDLK_ESCAPE))
-        {
-            exit(0);
-        }
+                    vbdef.data.push_back(objData[0].tangents[i].x);
+                    vbdef.data.push_back(objData[0].tangents[i].y);
+                    vbdef.data.push_back(objData[0].tangents[i].z);
+                }
+                vbdef.dataLayout =
+                {
+                    3,
+                    2,
+                    3,
+                    3
+                };
 
-        switch (event.type)
-        {
-        case SDL_KEYDOWN:
+                Material::Definition matdef;
+                matdef.shader.vertexPath = "../data/shaders/hello_shadows.vert";
+                matdef.shader.fragmentPath = "../data/shaders/hello_shadows.frag";
+                matdef.texturePathsAndTypes.push_back({ "../data/textures/brickwall.jpg", Texture::Type::AMBIENT });
+                matdef.shader.staticInts.insert({ AMBIENT_SAMPLER_NAME, AMBIENT_TEXTURE_UNIT });
+                matdef.texturePathsAndTypes.push_back({ "../data/textures/blank2x2.jpg", Texture::Type::ALPHA });
+                matdef.shader.staticInts.insert({ ALPHA_SAMPLER_NAME, ALPHA_TEXTURE_UNIT });
+                matdef.texturePathsAndTypes.push_back({ "../data/textures/brickwall.jpg", Texture::Type::DIFFUSE });
+                matdef.shader.staticInts.insert({ DIFFUSE_SAMPLER_NAME, DIFFUSE_TEXTURE_UNIT });
+                matdef.texturePathsAndTypes.push_back({ "../data/textures/blank2x2.jpg", Texture::Type::SPECULAR });
+                matdef.shader.staticInts.insert({ SPECULAR_SAMPLER_NAME, SPECULAR_TEXTURE_UNIT });
+                matdef.texturePathsAndTypes.push_back({ "../data/textures/brickwall_normal.jpg", Texture::Type::NORMALMAP });
+                matdef.shader.staticInts.insert({ NORMALMAP_SAMPLER_NAME, NORMALMAP_TEXTURE_UNIT });
+                matdef.shader.staticFloats.insert({ SHININESS_NAME, 64.0f });
+                matdef.shader.staticMat4s.insert({ PROJECTION_MARIX_NAME, PERSPECTIVE });
+                matdef.shader.dynamicMat4s.insert({ VIEW_MARIX_NAME, ResourceManager::Get().GetCamera().GetViewMatrixPtr() });
+                matdef.shader.dynamicVec3s.insert({ VIEW_POSITION_NAME, ResourceManager::Get().GetCamera().GetPositionPtr() });
 
-            switch (event.key.keysym.sym)
-            {
-            case SDLK_w:
-                camera_->ProcessKeyboard(FRONT_VEC3);
-                break;
-            case SDLK_s:
-                camera_->ProcessKeyboard(BACK_VEC3);
-                break;
-            case SDLK_a:
-                camera_->ProcessKeyboard(LEFT_VEC3);
-                break;
-            case SDLK_d:
-                camera_->ProcessKeyboard(RIGHT_VEC3);
-                break;
-            case SDLK_SPACE:
-                camera_->ProcessKeyboard(UP_VEC3);
-                break;
-            case SDLK_LCTRL:
-                camera_->ProcessKeyboard(DOWN_VEC3);
-                break;
-            default:
-                break;
+                std::vector<glm::vec3> positions;
+                positions.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
+                positions.push_back(glm::vec3(3.0f, 3.0f, 0.0f));
+                positions.push_back(glm::vec3(3.0f, 3.0f, -3.0f));
+                std::vector<glm::mat4> transformMatrices;
+                for (size_t i = 0; i < positions.size(); i++)
+                {
+                    transformMatrices.push_back(glm::translate(IDENTITY_MAT4, positions[i]));
+                }
+
+                model_.Create(vbdef, matdef, transformMatrices);
             }
-            break;
-        case SDL_MOUSEMOTION:
-            if (mouseButtonDown_) camera_->ProcessMouseMovement(event.motion.xrel, event.motion.yrel);
-            break;
-        case SDL_MOUSEBUTTONDOWN:
-            mouseButtonDown_ = true;
-            break;
-        case SDL_MOUSEBUTTONUP:
-            mouseButtonDown_ = false;
-            break;
-        default:
-            break;
+
+            // Flood model.
+            // Crate model.
+            {
+                VertexBuffer::Definition vbdef;
+                const auto objData = ResourceManager::ReadObj("../data/models/cratePlane/cratePlane.obj");
+                for (size_t i = 0; i < objData[0].positions.size(); i++)
+                {
+                    vbdef.data.push_back(objData[0].positions[i].x);
+                    vbdef.data.push_back(objData[0].positions[i].y);
+                    vbdef.data.push_back(objData[0].positions[i].z);
+
+                    vbdef.data.push_back(objData[0].uvs[i].x);
+                    vbdef.data.push_back(objData[0].uvs[i].y);
+
+                    vbdef.data.push_back(objData[0].normals[i].x);
+                    vbdef.data.push_back(objData[0].normals[i].y);
+                    vbdef.data.push_back(objData[0].normals[i].z);
+
+                    vbdef.data.push_back(objData[0].tangents[i].x);
+                    vbdef.data.push_back(objData[0].tangents[i].y);
+                    vbdef.data.push_back(objData[0].tangents[i].z);
+                }
+                vbdef.dataLayout =
+                {
+                    3,
+                    2,
+                    3,
+                    3
+                };
+
+                Material::Definition matdef;
+                matdef.shader.vertexPath = "../data/shaders/hello_shadows.vert";
+                matdef.shader.fragmentPath = "../data/shaders/hello_shadows.frag";
+                matdef.texturePathsAndTypes.push_back({ "../data/textures/crate_diffuse.jpg", Texture::Type::AMBIENT });
+                matdef.shader.staticInts.insert({ AMBIENT_SAMPLER_NAME, AMBIENT_TEXTURE_UNIT });
+                matdef.texturePathsAndTypes.push_back({ "../data/textures/blank2x2.jpg", Texture::Type::ALPHA });
+                matdef.shader.staticInts.insert({ ALPHA_SAMPLER_NAME, ALPHA_TEXTURE_UNIT });
+                matdef.texturePathsAndTypes.push_back({ "../data/textures/crate_diffuse.jpg", Texture::Type::DIFFUSE });
+                matdef.shader.staticInts.insert({ DIFFUSE_SAMPLER_NAME, DIFFUSE_TEXTURE_UNIT });
+                matdef.texturePathsAndTypes.push_back({ "../data/textures/crate_specular.jpg", Texture::Type::SPECULAR });
+                matdef.shader.staticInts.insert({ SPECULAR_SAMPLER_NAME, SPECULAR_TEXTURE_UNIT });
+                matdef.texturePathsAndTypes.push_back({ "../data/textures/crate_normals.png", Texture::Type::NORMALMAP });
+                matdef.shader.staticInts.insert({ NORMALMAP_SAMPLER_NAME, NORMALMAP_TEXTURE_UNIT });
+                matdef.shader.staticFloats.insert({ SHININESS_NAME, 64.0f });
+                matdef.shader.staticMat4s.insert({ PROJECTION_MARIX_NAME, PERSPECTIVE });
+                matdef.shader.dynamicMat4s.insert({ VIEW_MARIX_NAME, ResourceManager::Get().GetCamera().GetViewMatrixPtr() });
+                matdef.shader.dynamicVec3s.insert({ VIEW_POSITION_NAME, ResourceManager::Get().GetCamera().GetPositionPtr() });
+
+                std::vector<glm::vec3> positions;
+                positions.push_back(glm::vec3(0.0f, -1.0f, 0.0f));
+                std::vector<glm::vec3> scales;
+                scales.push_back(ONE_VEC3 * 10.0f);
+                std::vector<glm::mat4> transformMatrices;
+                for (size_t i = 0; i < positions.size(); i++)
+                {
+                    transformMatrices.push_back(glm::translate(IDENTITY_MAT4, positions[i]));
+                    transformMatrices[i] = glm::scale(transformMatrices[i], scales[i]);
+                }
+
+                floor_.Create(vbdef, matdef, transformMatrices);
+            }
+
+            // Skybox.
+            Skybox::Definition skdef;
+            skdef.flipImages = false;
+            skybox_.Create(skdef);
+
+            // Framebuffer.
+            fb_.Create({});
         }
-    }
-    void DrawImGui() override
-    {
+        void Update(seconds dt) override
+        {
+            timer_ += dt.count();
+            glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    }
+            floor_.Draw();
+            model_.Draw();
+            skybox_.Draw();
+        }
+        void Destroy() override
+        {
+            ResourceManager::Get().Shutdown();
+        }
+        void OnEvent(SDL_Event& event) override
+        {
+            if ((event.type == SDL_KEYDOWN) &&
+                (event.key.keysym.sym == SDLK_ESCAPE))
+            {
+                exit(0);
+            }
 
-private:
-    float timer_ = 0.0f;
-    bool mouseButtonDown_ = false;
-    Camera* camera_;
-    Model* model_;
-    Model* modelFloor_;
-    Skybox* skybox_;
-    Framebuffer* framebufferShadow_;
+            Camera& camera = resourceManager_.GetCamera();
+            switch (event.type)
+            {
+                case SDL_KEYDOWN:
 
-    ResourceManager& resourceManager_ = ResourceManager::Get();
-};
+                    switch (event.key.keysym.sym)
+                    {
+                        case SDLK_w:
+                            camera.ProcessKeyboard(FRONT_VEC3);
+                            break;
+                        case SDLK_s:
+                            camera.ProcessKeyboard(BACK_VEC3);
+                            break;
+                        case SDLK_a:
+                            camera.ProcessKeyboard(LEFT_VEC3);
+                            break;
+                        case SDLK_d:
+                            camera.ProcessKeyboard(RIGHT_VEC3);
+                            break;
+                        case SDLK_SPACE:
+                            camera.ProcessKeyboard(UP_VEC3);
+                            break;
+                        case SDLK_LCTRL:
+                            camera.ProcessKeyboard(DOWN_VEC3);
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                case SDL_MOUSEMOTION:
+                    if (mouseButtonDown_) camera.ProcessMouseMovement(event.motion.xrel, event.motion.yrel);
+                    break;
+                case SDL_MOUSEBUTTONDOWN:
+                    mouseButtonDown_ = true;
+                    break;
+                case SDL_MOUSEBUTTONUP:
+                    mouseButtonDown_ = false;
+                    break;
+                default:
+                    break;
+            }
+        }
+        void DrawImGui() override
+        {
+
+        }
+
+    private:
+        float timer_ = 0.0f;
+        bool mouseButtonDown_ = false;
+        float interpolationFactor_ = 0.0f;
+        Model model_;
+        Model floor_;
+        Skybox skybox_;
+        Framebuffer fb_;
+        ResourceManager& resourceManager_ = ResourceManager::Get();
+    };
 
 } // End namespace gl.
 

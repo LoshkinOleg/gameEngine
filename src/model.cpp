@@ -219,19 +219,50 @@ void gl::Model::Create(const std::string_view path, std::vector<glm::mat4> model
     }
 }
 
-void gl::Model::Create(VertexBuffer::Definition vb, Material::Definition mat)
+void gl::Model::Create(VertexBuffer::Definition vb, Material::Definition mat, std::vector<glm::mat4> modelMatrices)
 {
-    meshes_.push_back(Mesh());
+    modelMatrices_ = modelMatrices;
+
+    Material material;
     VertexBuffer vertbuff;
     vertbuff.Create(vb);
-    Material material;
+    CheckGlError();
     material.Create(mat);
+    CheckGlError();
+
+    glGenBuffers(1, &modelMatricesVBO_);
+    glBindBuffer(GL_ARRAY_BUFFER, modelMatricesVBO_);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::mat4) * modelMatrices_.size(), &modelMatrices[0][0][0], GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, modelMatricesVBO_);
+    const auto& vaoAndVbo = vertbuff.GetVAOandVBO();
+    glBindVertexArray(vaoAndVbo[0]);
+    glEnableVertexAttribArray(MODEL_MATRIX_LOCATION);
+    glVertexAttribPointer(MODEL_MATRIX_LOCATION, 4, GL_FLOAT, GL_FALSE, 4 * 4 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(MODEL_MATRIX_LOCATION + 1);
+    glVertexAttribPointer(MODEL_MATRIX_LOCATION + 1, 4, GL_FLOAT, GL_FALSE, 4 * 4 * sizeof(float), (void*)(4 * sizeof(float)));
+    glEnableVertexAttribArray(MODEL_MATRIX_LOCATION + 2);
+    glVertexAttribPointer(MODEL_MATRIX_LOCATION + 2, 4, GL_FLOAT, GL_FALSE, 4 * 4 * sizeof(float), (void*)(2 * 4 * sizeof(float)));
+    glEnableVertexAttribArray(MODEL_MATRIX_LOCATION + 3);
+    glVertexAttribPointer(MODEL_MATRIX_LOCATION + 3, 4, GL_FLOAT, GL_FALSE, 4 * 4 * sizeof(float), (void*)(3 * 4 * sizeof(float)));
+    glVertexAttribDivisor(MODEL_MATRIX_LOCATION, 1);
+    glVertexAttribDivisor(MODEL_MATRIX_LOCATION + 1, 1);
+    glVertexAttribDivisor(MODEL_MATRIX_LOCATION + 2, 1);
+    glVertexAttribDivisor(MODEL_MATRIX_LOCATION + 3, 1);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+    CheckGlError();
+
+    meshes_.push_back(Mesh());
     meshes_.back().Create(vertbuff, material);
+    CheckGlError();
 }
 
 void gl::Model::Draw()
 {
     // TODO: fix the issue of inappropriate use of aModel in shader when there's more than 1 mesh in a model.
+    glBindBuffer(GL_ARRAY_BUFFER, modelMatricesVBO_);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::mat4) * modelMatrices_.size(), (void*)&modelMatrices_[0][0]);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
     for (size_t i = 0; i < meshes_.size(); i++)
     {
         meshes_[i].Draw((int)modelMatrices_.size());

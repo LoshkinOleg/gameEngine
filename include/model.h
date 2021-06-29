@@ -37,7 +37,7 @@ namespace gl
         };
 
         void Create(const std::string_view path, std::vector<glm::mat4> modelMatrices = { IDENTITY_MAT4 }, Material::Definition material = {});
-        void Create(VertexBuffer::Definition vb, Material::Definition mat);
+        void Create(VertexBuffer::Definition vb, Material::Definition mat, std::vector<glm::mat4> modelMatrices = { IDENTITY_MAT4 });
 
         void Draw();
         void DrawSingle();

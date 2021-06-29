@@ -1,0 +1,7 @@
+newmtl Material.001
+Ns 64.0
+map_d blank2x2.jpg
+map_Ka brickwall.jpg
+map_Kd brickwall.jpg
+map_Ks blank2x2.jpg
+map_Bump brickwall_normal.jpg

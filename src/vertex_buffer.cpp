@@ -38,10 +38,14 @@ void gl::VertexBuffer::Create(Definition def)
         return;
     }
 
+    CheckGlError();
     glGenVertexArrays(1, &VAO_);
     glBindVertexArray(VAO_);
+    CheckGlError();
     glGenBuffers(1, &VBO_);
+    CheckGlError();
     glBindBuffer(GL_ARRAY_BUFFER, VBO_);
+    CheckGlError();
     glBufferData(GL_ARRAY_BUFFER, def.data.size() * sizeof(float), def.data.data(), GL_STATIC_DRAW);
     CheckGlError();
 
