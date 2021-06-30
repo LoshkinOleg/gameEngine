@@ -5,24 +5,6 @@
 #include "defines.h"
 #include "resource_manager.h"
 
-void gl::Framebuffer::Draw()
-{
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glDisable(GL_DEPTH_TEST);
-    shader_.Bind();
-    for (const auto& tex : textures_)
-    {
-        tex.Bind();
-    }
-    vb_.Draw();
-    for (const auto& tex : textures_)
-    {
-        tex.Unbind();
-    }
-    shader_.Unbind();
-    glEnable(GL_DEPTH_TEST);
-    CheckGlError();
-}
 void gl::Framebuffer::Create(Definition def)
 {
     if (FBO_ != 0)
@@ -32,38 +14,6 @@ void gl::Framebuffer::Create(Definition def)
 
     // Note: we want to be able to create identical framebuffers, so no hashing.
     defCopy_ = def;
-
-    // Fill out the VAO and VBO.
-    VertexBuffer::Definition vbdef;
-    vbdef.data =
-    {   // Positions   // TexCoords
-        -1.0f, -1.0f,   0.0f, 0.0f,
-         1.0f, -1.0f,   1.0f, 0.0f,
-         1.0f,  1.0f,   1.0f, 1.0f,
-
-        -1.0f, -1.0f,   0.0f, 0.0f,
-         1.0f,  1.0f,   1.0f, 1.0f,
-        -1.0f,  1.0f,   0.0f, 1.0f
-    };
-    vbdef.dataLayout =
-    {
-        2, // Pos
-        2 // Uvs
-    };
-    vb_.Create(vbdef);
-
-    Shader::Definition sdef;
-    sdef.vertexPath = def.shaderPaths[0];
-    sdef.fragmentPath = def.shaderPaths[1];
-    sdef.staticFloats = def.staticFloats;
-    sdef.staticInts = def.staticInts;
-    sdef.staticMat4s = def.staticMat4s;
-    sdef.staticVec3s = def.staticVec3s;
-    sdef.dynamicFloats = def.dynamicFloats;
-    sdef.dynamicInts = def.dynamicInts;
-    sdef.dynamicMat4s = def.dynamicMat4s;
-    sdef.dynamicVec3s = def.dynamicVec3s;
-    shader_.Create(sdef);
 
     glGenFramebuffers(1, &FBO_);
     glBindFramebuffer(GL_FRAMEBUFFER, FBO_);
@@ -167,15 +117,16 @@ void gl::Framebuffer::Create(Definition def)
 void gl::Framebuffer::Resize(std::array<size_t, 2> newResolution)
 {
     defCopy_.resolution = newResolution;
-    auto& rm = ResourceManager::Get();
-    const auto vaoAndVbo = vb_.GetVAOandVBO();
-    rm.DeleteVAO(vaoAndVbo[0]); // Just to be sure. Technically the ResourceManager should return the existing gpuNames but let's be paranoid.
-    rm.DeleteVBO(vaoAndVbo[1]);
-    rm.DeletePROGRAM(shader_.GetPROGRAM());
-    for (const auto& tex : textures_) // Annoying but necessary as framebuffer textures aren't hashed.
+    for (auto& tex : textures_)
     {
-        rm.DeleteTEX(tex.GetTEX());
+        auto TEX = tex.GetTEX();
+        glDeleteTextures(1, &TEX);
     }
+    textures_.clear();
+    glDeleteRenderbuffers(1, &RBO_);
+    RBO_ = 0;
+    glDeleteFramebuffers(1, &FBO_);
+    FBO_ = 0;
     Create(defCopy_);
 }
 
@@ -190,14 +141,14 @@ void gl::Framebuffer::Bind() const
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     CheckGlError();
 }
-void gl::Framebuffer::BindTextures() const
+void gl::Framebuffer::BindGBuffer() const
 {
     for (const auto& tex : textures_)
     {
         tex.Bind();
     }
 }
-void gl::Framebuffer::UnbindTextures() const
+void gl::Framebuffer::UnbindGBuffer() const
 {
     // for (const auto& tex : textures_)
     // {

@@ -35,44 +35,19 @@ public:
     struct Definition
     {
         Type type = Type::DEFAULT;
-        std::array<std::string_view, 2> shaderPaths =
-        {
-            "../data/shaders/fb.vert",
-            "../data/shaders/fb_hdr_reinhard.frag"
-        };
         std::array<size_t, 2> resolution = { (size_t)SCREEN_RESOLUTION[0], (size_t)SCREEN_RESOLUTION[1] };
-
-        std::map<std::string_view, int> staticInts =
-        {
-            {FRAMEBUFFER_SAMPLER0_NAME, FRAMEBUFFER_TEXTURE0_UNIT},
-            {FRAMEBUFFER_SAMPLER1_NAME, FRAMEBUFFER_TEXTURE1_UNIT},
-            {FRAMEBUFFER_SAMPLER2_NAME, FRAMEBUFFER_TEXTURE2_UNIT},
-            {FRAMEBUFFER_SAMPLER3_NAME, FRAMEBUFFER_TEXTURE3_UNIT}
-        };
-        std::map<std::string_view, glm::vec3> staticVec3s = {};
-        std::map<std::string_view, glm::mat4> staticMat4s = {};
-        std::map<std::string_view, float> staticFloats = {};
-
-        // NOTE: const* since those value are read only.
-        std::map<std::string_view, const int*> dynamicInts = {};
-        std::map<std::string_view, const glm::vec3*> dynamicVec3s = {};
-        std::map<std::string_view, const glm::mat4*> dynamicMat4s = {};
-        std::map<std::string_view, const float*> dynamicFloats = {};
     };
 
     void Create(Definition def);
     void Resize(std::array<size_t, 2> newResolution);
 
     void Bind() const;
-    void BindTextures() const;
-    void UnbindTextures() const;
+    void BindGBuffer() const;
+    void UnbindGBuffer() const;
     void Unbind(const std::array<size_t, 2> screenResolution = { (size_t)SCREEN_RESOLUTION[0], (size_t)SCREEN_RESOLUTION[1] }) const;
-    void Draw();
 private:
 
     unsigned int FBO_ = 0, RBO_ = 0;
-    Shader shader_ = {};
-    VertexBuffer vb_ = {};
     std::vector<Texture> textures_ = {};
     Definition defCopy_ = {}; // To be able to easilly recreate the a resized framebuffer.
 };

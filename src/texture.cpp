@@ -47,8 +47,15 @@ void gl::Texture::Create(Type textureType, std::string_view path, bool flipImage
 
     glGenTextures(1, &TEX_);
     glBindTexture(GL_TEXTURE_2D, TEX_);
-    assert(nrChannels == 3);
-    glTexImage2D(GL_TEXTURE_2D, 0, correctGamma ? GL_SRGB8 : GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    // assert(nrChannels == 3);
+    if (nrChannels == 3)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, correctGamma ? GL_SRGB8 : GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    }
+    else if (nrChannels == 1)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, data);
+    }
     stbi_image_free(data);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);

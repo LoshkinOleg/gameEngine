@@ -51,24 +51,10 @@ namespace gl
 	const bool DEFAULT_GENERATE_MIPMAPS = true;
 
 	// Common shader variables.
-	const std::string_view AMBIENT_SAMPLER_NAME = "material.ambientMap";
-	const int AMBIENT_TEXTURE_UNIT = 0;
 	const std::string_view ALPHA_SAMPLER_NAME = "material.alphaMap";
-	const int ALPHA_TEXTURE_UNIT = 1;
-	const std::string_view DIFFUSE_SAMPLER_NAME = "material.diffuseMap";
-	const int DIFFUSE_TEXTURE_UNIT = 2;
-	const std::string_view SPECULAR_SAMPLER_NAME = "material.specularMap";
-	const int SPECULAR_TEXTURE_UNIT = 3;
+	const int ALPHA_TEXTURE_UNIT = 0;
 	const std::string_view NORMALMAP_SAMPLER_NAME = "material.normalMap";
-	const int NORMALMAP_TEXTURE_UNIT = 4;
-	const std::string_view ROUGHNESS_SAMPLER_NAME = "material.roughnessMap";
-	const int ROUGHNESS_TEXTURE_UNIT = 5;
-	const std::string_view METALLIC_SAMPLER_NAME = "material.metallicMap";
-	const int METALLIC_TEXTURE_UNIT = 6;
-	const std::string_view SHEEN_SAMPLER_NAME = "material.sheenMap";
-	const int SHEEN_TEXTURE_UNIT = 7;
-	const std::string_view EMISSIVE_SAMPLER_NAME = "material.emissiveMap";
-	const int EMISSIVE_TEXTURE_UNIT = 8;
+	const int NORMALMAP_TEXTURE_UNIT = 1;
 	const std::string_view CUBEMAP_SAMPLER_NAME = "cubemap";
 	const int CUBEMAP_TEXTURE_UNIT = 9;
 	const std::string_view FRAMEBUFFER_SAMPLER0_NAME = "fbTexture0";
@@ -79,13 +65,26 @@ namespace gl
 	const int FRAMEBUFFER_TEXTURE2_UNIT = 12;
 	const std::string_view FRAMEBUFFER_SAMPLER3_NAME = "fbTexture3";
 	const int FRAMEBUFFER_TEXTURE3_UNIT = 13;
-	const std::string_view SHININESS_NAME = "material.shininess";
-	const std::string_view IOR_NAME = "material.ior";
 	const std::string_view VIEW_POSITION_NAME = "viewPos";
 	const std::string_view PROJECTION_MARIX_NAME = "projection";
 	const std::string_view VIEW_MARIX_NAME = "view";
 	const std::string_view LIGHT_MATRIX_NAME = "lightMatrix";
 	const std::string_view HDR_EXPOSURE_NAME = "exposure";
+	// Blinn-Phong.
+	const std::string_view AMBIENT_SAMPLER_NAME = "material.ambientMap";
+	const int AMBIENT_TEXTURE_UNIT = 2;
+	const std::string_view DIFFUSE_SAMPLER_NAME = "material.diffuseMap";
+	const int DIFFUSE_TEXTURE_UNIT = 3;
+	const std::string_view SPECULAR_SAMPLER_NAME = "material.specularMap";
+	const int SPECULAR_TEXTURE_UNIT = 4;
+	const std::string_view SHININESS_NAME = "material.shininess";
+	// PBR.
+	const std::string_view ALBEDO_SAMPLER_NAME = "material.albedoMap";
+	const int ALBEDO_TEXTURE_UNIT = 2;
+	const std::string_view ROUGHNESS_SAMPLER_NAME = "material.roughnessMap";
+	const int ROUGHNESS_TEXTURE_UNIT = 3;
+	const std::string_view METALLIC_SAMPLER_NAME = "material.metallicMap";
+	const int METALLIC_TEXTURE_UNIT = 4;
 
 	const int POSITION_LOCATION = 0;
 	const int TEXCOORD_LOCATION = 1;

@@ -8,8 +8,9 @@
 // TODO: add frustrum culling
 // TODO: handle resizing of window? glViewport and framebuffer too
 
-// TODO: Do all the above crap, rebuild the demo scene.
-// TODO: try to instanciate a multi mesh model
+// TODO: fix multi mesh models'es transformModels
+
+// TODO: hdr bloom
 
 #include <vector>
 
@@ -32,20 +33,59 @@ public:
         glEnable(GL_CULL_FACE);
 
         // Model creation.
+        const auto objData = ResourceManager::ReadObj("../data/models/camera/camera.obj");
+
+        std::vector<VertexBuffer::Definition> vbdefs = std::vector<VertexBuffer::Definition>(objData.size());
+        for (size_t mesh = 0; mesh < objData.size(); mesh++)
+        {
+            for (size_t vertex = 0; vertex < objData[mesh].positions.size(); vertex++)
+            {
+                vbdefs[mesh].data.push_back(objData[mesh].positions[vertex].x);
+                vbdefs[mesh].data.push_back(objData[mesh].positions[vertex].y);
+                vbdefs[mesh].data.push_back(objData[mesh].positions[vertex].z);
+
+                vbdefs[mesh].data.push_back(objData[mesh].uvs[vertex].x);
+                vbdefs[mesh].data.push_back(objData[mesh].uvs[vertex].y);
+                     
+                vbdefs[mesh].data.push_back(objData[mesh].normals[vertex].x);
+                vbdefs[mesh].data.push_back(objData[mesh].normals[vertex].y);
+                vbdefs[mesh].data.push_back(objData[mesh].normals[vertex].z);
+                     
+                vbdefs[mesh].data.push_back(objData[mesh].tangents[vertex].x);
+                vbdefs[mesh].data.push_back(objData[mesh].tangents[vertex].y);
+                vbdefs[mesh].data.push_back(objData[mesh].tangents[vertex].z);
+            }
+            vbdefs[mesh].dataLayout =
+            {
+                3,2,3,3
+            };
+        }
+        Material::Definition matdef;
+        {
+            matdef.shader.vertexPath = "../data/shaders/illum2.vert";
+            matdef.shader.fragmentPath = "../data/shaders/illum2.frag";
+            matdef.shader.staticInts.insert({ ALPHA_SAMPLER_NAME, ALPHA_TEXTURE_UNIT });
+            matdef.texturePathsAndTypes.push_back({"../data/textures/blank2x2.jpg", Texture::Type::ALPHA});
+            matdef.shader.staticInts.insert({ NORMALMAP_SAMPLER_NAME, NORMALMAP_TEXTURE_UNIT });
+            matdef.texturePathsAndTypes.push_back({ "../data/textures/brickwall_normal.jpg", Texture::Type::NORMALMAP });
+            matdef.shader.staticInts.insert({ AMBIENT_SAMPLER_NAME, AMBIENT_TEXTURE_UNIT });
+            matdef.texturePathsAndTypes.push_back({ "../data/textures/brickwall.jpg", Texture::Type::AMBIENT });
+            matdef.shader.staticInts.insert({ DIFFUSE_SAMPLER_NAME, DIFFUSE_TEXTURE_UNIT });
+            matdef.texturePathsAndTypes.push_back({ "../data/textures/brickwall.jpg", Texture::Type::DIFFUSE });
+            matdef.shader.staticInts.insert({ SPECULAR_SAMPLER_NAME, SPECULAR_TEXTURE_UNIT });
+            matdef.texturePathsAndTypes.push_back({ "../data/textures/blank2x2.jpg", Texture::Type::SPECULAR });
+            matdef.shader.staticMat4s.insert({ PROJECTION_MARIX_NAME, PERSPECTIVE });
+            matdef.shader.dynamicMat4s.insert({ VIEW_MARIX_NAME, resourceManager_.GetCamera().GetViewMatrixPtr() });
+            matdef.shader.dynamicVec3s.insert({ VIEW_POSITION_NAME, resourceManager_.GetCamera().GetPositionPtr() });
+            matdef.shader.staticFloats.insert({ SHININESS_NAME, 64.0f });
+        }
+
         std::vector<glm::mat4> transformModels;
         transformModels.push_back(glm::translate(IDENTITY_MAT4, glm::vec3(0.0f, 1.0f, 0.0f)));
         transformModels.push_back(glm::translate(IDENTITY_MAT4, glm::vec3(3.0f, 4.0f, 0.0f)));
         transformModels.push_back(glm::translate(IDENTITY_MAT4, glm::vec3(3.0f, 4.0f, -4.0f)));
-        model_.Create("../data/models/brickCube/brickCube.obj", transformModels);
-        floor_.Create("../data/models/cratePlane/cratePlane.obj", {glm::scale(IDENTITY_MAT4, glm::vec3(10.0f))});
+        model_.Create(vbdefs, std::vector<Material::Definition>(objData.size(), matdef), transformModels);
 
-        // Skybox.
-        Skybox::Definition skdef;
-        skdef.flipImages = false;
-        skybox_.Create(skdef);
-
-        // Framebuffer.
-        fb_.Create({});
     }
     void Update(seconds dt) override
     {
@@ -53,9 +93,7 @@ public:
         glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        floor_.Draw();
         model_.Draw();
-        skybox_.Draw();
     }
     void Destroy() override
     {
@@ -119,11 +157,7 @@ public:
 private:
     float timer_ = 0.0f;
     bool mouseButtonDown_ = false;
-    float interpolationFactor_ = 0.0f;
     Model model_;
-    Model floor_;
-    Skybox skybox_;
-    Framebuffer fb_;
     ResourceManager& resourceManager_ = ResourceManager::Get();
 };
 
