@@ -11,6 +11,7 @@ namespace gl
 	// Window parameters.
 	const float SCREEN_RESOLUTION[2] = { 1024.0f, 720.0f };
 	const glm::mat4 PERSPECTIVE = glm::perspective(glm::radians(45.0f), SCREEN_RESOLUTION[0] / SCREEN_RESOLUTION[1], 0.1f, 100.0f);
+	const glm::mat4 ORTHO = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.0f, 100.0f);
 
 	// Error and warning aliases.
 #ifndef glErrorGuard
@@ -41,6 +42,11 @@ namespace gl
 	const glm::vec3 FRONT_VEC3 = glm::vec3(0.0f, 0.0f, 1.0f);
 	const glm::vec3 BACK_VEC3 = glm::vec3(0.0f, 0.0f, -1.0f);
 
+	// Common geometry.
+#ifndef QUAD_POSITIONS
+#define QUAD_POSITIONS {-1.0f, -1.0f, 1.0f, -1.0f, 1.0f,  1.0f, -1.0f, -1.0f, 1.0f,  1.0f, -1.0f,  1.0f};
+#endif // !QUAD_POSITIONS
+
 	// Hashing parameters.
 	const uint32_t HASHING_SEED = 0xFFFF1337;
 
@@ -56,7 +62,11 @@ namespace gl
 	const std::string_view NORMALMAP_SAMPLER_NAME = "material.normalMap";
 	const int NORMALMAP_TEXTURE_UNIT = 1;
 	const std::string_view CUBEMAP_SAMPLER_NAME = "cubemap";
-	const int CUBEMAP_TEXTURE_UNIT = 9;
+	const int CUBEMAP_TEXTURE_UNIT = 5;
+	const int RESERVED_TEXTURE_UNIT6 = 6; // Reserved for consistent use: 0-9 for material textures, 10+ for framebuffer texture units.
+	const int RESERVED_TEXTURE_UNIT7 = 7;
+	const int RESERVED_TEXTURE_UNIT8 = 8;
+	const int RESERVED_TEXTURE_UNIT9 = 9;
 	const std::string_view FRAMEBUFFER_SAMPLER0_NAME = "fbTexture0";
 	const int FRAMEBUFFER_TEXTURE0_UNIT = 10;
 	const std::string_view FRAMEBUFFER_SAMPLER1_NAME = "fbTexture1";
@@ -85,6 +95,7 @@ namespace gl
 	const int ROUGHNESS_TEXTURE_UNIT = 3;
 	const std::string_view METALLIC_SAMPLER_NAME = "material.metallicMap";
 	const int METALLIC_TEXTURE_UNIT = 4;
+	const std::string_view IOR_NAME = "material.ior";
 
 	const int POSITION_LOCATION = 0;
 	const int TEXCOORD_LOCATION = 1;

@@ -54,8 +54,8 @@ void gl::Model::Draw()
 {
     // TODO: fix the issue of inappropriate use of aModel in shader when there's more than 1 mesh in a model.
     // TODO: add a way to check if the models need updating, no need to update the transformModels every frame...
-    // glBindBuffer(GL_ARRAY_BUFFER, modelMatricesVBO_);
-    // glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::mat4) * modelMatrices_.size(), (void*)&modelMatrices_[0][0]);
+    glBindBuffer(GL_ARRAY_BUFFER, modelMatricesVBO_);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::mat4) * modelMatrices_.size(), (void*)&modelMatrices_[0][0]);
     // glBindBuffer(GL_ARRAY_BUFFER, 0);
     for (size_t i = 0; i < meshes_.size(); i++)
     {

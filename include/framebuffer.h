@@ -8,33 +8,30 @@
 #include "vertex_buffer.h"
 #include "defines.h"
 
+
 namespace gl
 {
 class Framebuffer
 {
 public:
-    enum class Type
+    // NOTE: annoyingly, you can't define bitwise operators for nested enums... int casting it is whenever you want to use it then...
+    enum Type
     {
-        INVALID = 0,
-        RBO_DEPTH24 =   1 << 0, // 0000 0000 0001
-        // Note: stencil rbo not implemented
-        // RBO_STENCIL8 =  1 << 1, // 0000 0000 0010
-        FBO_RGBA0 =     1 << 2, // 0000 0000 0100
-        FBO_RGBA1 =     1 << 3, // 0000 0000 1000
-         
-        FBO_RGBA2 =     1 << 4, // 0000 0001 0000
-        FBO_RGBA3 =     1 << 5, // 0000 0010 0000
-        FBO_RGBA4 =     1 << 6, // 0000 0100 0000
-        FBO_RGBA5 =     1 << 7, // 0000 1000 0000
+        INVALID =       0,
 
-        HDR =           1 << 8, // 0001 0000 0000
-        FBO_DEPTH0 =    1 << 9, // 0010 0000 0000
-        NO_DRAW =       1 << 10,// 0100 0000 0000
-        DEFAULT = FBO_RGBA0 | RBO_DEPTH24 /*| RBO_STENCIL8*/ | HDR // 0001 0000 0111
+        RBO =           1 << 0, // 0000 0001 : GL_DEPTH24_STENCIL8 in RBO.
+        NO_DRAW =       1 << 1, // 0000 0010
+        FBO_RGB0 =      1 << 2, // 0000 0100
+        FBO_RGB1 =      1 << 3, // 0000 1000
+                                   
+        FBO_RGB2 =      1 << 4, // 0001 0000
+        FBO_RGB3 =      1 << 5, // 0010 0000     
+        FBO_DEPTH0 =    1 << 6  // 0100 0000
     };
+
     struct Definition
     {
-        Type type = Type::DEFAULT;
+        Type type = Type::INVALID;
         std::array<size_t, 2> resolution = { (size_t)SCREEN_RESOLUTION[0], (size_t)SCREEN_RESOLUTION[1] };
     };
 
@@ -48,8 +45,8 @@ public:
 private:
 
     unsigned int FBO_ = 0, RBO_ = 0;
-    std::vector<Texture> textures_ = {};
-    Definition defCopy_ = {}; // To be able to easilly recreate the a resized framebuffer.
+    std::vector<unsigned int> TEXs_ = {};
+    Definition defCopy_ = {}; // To be able to easilly recreate a resized framebuffer.
 };
 
 }//!gl

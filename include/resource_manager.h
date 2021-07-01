@@ -4,6 +4,7 @@
 #include <map>
 
 #include "camera.h"
+#include "material.h"
 
 using XXH32_hash_t = uint32_t;
 using GLuint = unsigned int;
@@ -15,10 +16,27 @@ namespace gl
     public:
         struct ObjData
         {
+            // Mesh vertices.
             std::vector<glm::vec3> positions = {};
             std::vector<glm::vec2> uvs = {};
             std::vector<glm::vec3> normals = {};
             std::vector<glm::vec3> tangents = {};
+
+            // Mesh material data.
+            std::string dir = "";
+            bool isPBR = false; // co-opting OBJ's "illum" variable to define whether a material is a PBR one or not. illum = 1 is for PBR, anything else means Blinn-Phong.
+            std::string alphaMap = ""; // Tex unit 0
+            std::string normalMap = ""; // Tex unit 1
+            // Blinn-Phong.
+            std::string ambientMap = ""; // Tex unit 2
+            std::string diffuseMap = ""; // Tex unit 3
+            std::string specularMap = ""; // Tex unit 4
+            float shininess = 64.0f;
+            // PBR.
+            std::string albedoMap = ""; // Tex unit 2
+            std::string roughnessMap = ""; // Tex unit 3
+            std::string metallicMap = ""; // Tex unit 4
+            float ior = 1.0f;
         };
 
         ResourceManager() = default;
@@ -48,6 +66,10 @@ namespace gl
         void DeletePROGRAM(GLuint gpuName);
 
         static std::vector<ObjData> ReadObj(std::string_view path);
+        /*
+        @brief: This function returns a list of per mesh materials with material related data filled out. Use it to avoid having repetitive sections in a Program::Init().
+        */
+        static std::vector<Material::Definition> PreprocessMaterialData(const std::vector<ObjData> objData);
 
         Camera& GetCamera();
 

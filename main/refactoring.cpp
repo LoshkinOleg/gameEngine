@@ -12,9 +12,13 @@
 
 // TODO: hdr bloom
 
+// TODO: try out Gouraud shader
+// TODO: test multiple multi mesh models with unbinding enabled
+
 #include <vector>
 
 #include <glad/glad.h>
+#include "imgui.h"
 
 #include "engine.h"
 #include "model.h"
@@ -33,59 +37,63 @@ public:
         glEnable(GL_CULL_FACE);
 
         // Model creation.
-        const auto objData = ResourceManager::ReadObj("../data/models/camera/camera.obj");
-
-        std::vector<VertexBuffer::Definition> vbdefs = std::vector<VertexBuffer::Definition>(objData.size());
-        for (size_t mesh = 0; mesh < objData.size(); mesh++)
         {
-            for (size_t vertex = 0; vertex < objData[mesh].positions.size(); vertex++)
+            const auto objData = ResourceManager::ReadObj("../data/models/brickSphere/brickSphere.obj");
+            VertexBuffer::Definition vbdef;
+            for (size_t vertex = 0; vertex < objData[0].positions.size(); vertex++)
             {
-                vbdefs[mesh].data.push_back(objData[mesh].positions[vertex].x);
-                vbdefs[mesh].data.push_back(objData[mesh].positions[vertex].y);
-                vbdefs[mesh].data.push_back(objData[mesh].positions[vertex].z);
+                vbdef.data.push_back(objData[0].positions[vertex].x);
+                vbdef.data.push_back(objData[0].positions[vertex].y);
+                vbdef.data.push_back(objData[0].positions[vertex].z);
 
-                vbdefs[mesh].data.push_back(objData[mesh].uvs[vertex].x);
-                vbdefs[mesh].data.push_back(objData[mesh].uvs[vertex].y);
-                     
-                vbdefs[mesh].data.push_back(objData[mesh].normals[vertex].x);
-                vbdefs[mesh].data.push_back(objData[mesh].normals[vertex].y);
-                vbdefs[mesh].data.push_back(objData[mesh].normals[vertex].z);
-                     
-                vbdefs[mesh].data.push_back(objData[mesh].tangents[vertex].x);
-                vbdefs[mesh].data.push_back(objData[mesh].tangents[vertex].y);
-                vbdefs[mesh].data.push_back(objData[mesh].tangents[vertex].z);
+                vbdef.data.push_back(objData[0].uvs[vertex].x);
+                vbdef.data.push_back(objData[0].uvs[vertex].y);
+
+                vbdef.data.push_back(objData[0].normals[vertex].x);
+                vbdef.data.push_back(objData[0].normals[vertex].y);
+                vbdef.data.push_back(objData[0].normals[vertex].z);
+
+                vbdef.data.push_back(objData[0].tangents[vertex].x);
+                vbdef.data.push_back(objData[0].tangents[vertex].y);
+                vbdef.data.push_back(objData[0].tangents[vertex].z);
             }
-            vbdefs[mesh].dataLayout =
+            vbdef.dataLayout =
             {
                 3,2,3,3
             };
+
+            Material::Definition matdef = ResourceManager::PreprocessMaterialData(objData)[0];
+            matdef.shader.vertexPath = "../data/shaders/hello_bloom.vert";
+            matdef.shader.fragmentPath = "../data/shaders/hello_bloom.frag";
+            matdef.shader.staticMat4s.insert({PROJECTION_MARIX_NAME, PERSPECTIVE});
+            matdef.shader.dynamicMat4s.insert({VIEW_MARIX_NAME, resourceManager_.GetCamera().GetViewMatrixPtr()});
+            matdef.shader.dynamicVec3s.insert({VIEW_POSITION_NAME, resourceManager_.GetCamera().GetPositionPtr()});
+            matdef.shader.dynamicFloats.insert({"lightMultiplier", &lightMultiplier_});
+
+            model_.Create({ vbdef }, {matdef});
         }
+
+        // Framebuffer creation.
+        Framebuffer::Definition fbdef;
+        fbdef.type = (Framebuffer::Type)
+            (
+                (int)Framebuffer::Type::FBO_RGB0 |
+                (int)Framebuffer::Type::FBO_RGB1 |
+                (int)Framebuffer::Type::RBO
+            );
+        fb_.Create(fbdef);
+
+        VertexBuffer::Definition vbdef;
+        vbdef.data = QUAD_POSITIONS;
+        vbdef.dataLayout = {2};
+
         Material::Definition matdef;
-        {
-            matdef.shader.vertexPath = "../data/shaders/illum2.vert";
-            matdef.shader.fragmentPath = "../data/shaders/illum2.frag";
-            matdef.shader.staticInts.insert({ ALPHA_SAMPLER_NAME, ALPHA_TEXTURE_UNIT });
-            matdef.texturePathsAndTypes.push_back({"../data/textures/blank2x2.jpg", Texture::Type::ALPHA});
-            matdef.shader.staticInts.insert({ NORMALMAP_SAMPLER_NAME, NORMALMAP_TEXTURE_UNIT });
-            matdef.texturePathsAndTypes.push_back({ "../data/textures/brickwall_normal.jpg", Texture::Type::NORMALMAP });
-            matdef.shader.staticInts.insert({ AMBIENT_SAMPLER_NAME, AMBIENT_TEXTURE_UNIT });
-            matdef.texturePathsAndTypes.push_back({ "../data/textures/brickwall.jpg", Texture::Type::AMBIENT });
-            matdef.shader.staticInts.insert({ DIFFUSE_SAMPLER_NAME, DIFFUSE_TEXTURE_UNIT });
-            matdef.texturePathsAndTypes.push_back({ "../data/textures/brickwall.jpg", Texture::Type::DIFFUSE });
-            matdef.shader.staticInts.insert({ SPECULAR_SAMPLER_NAME, SPECULAR_TEXTURE_UNIT });
-            matdef.texturePathsAndTypes.push_back({ "../data/textures/blank2x2.jpg", Texture::Type::SPECULAR });
-            matdef.shader.staticMat4s.insert({ PROJECTION_MARIX_NAME, PERSPECTIVE });
-            matdef.shader.dynamicMat4s.insert({ VIEW_MARIX_NAME, resourceManager_.GetCamera().GetViewMatrixPtr() });
-            matdef.shader.dynamicVec3s.insert({ VIEW_POSITION_NAME, resourceManager_.GetCamera().GetPositionPtr() });
-            matdef.shader.staticFloats.insert({ SHININESS_NAME, 64.0f });
-        }
+        matdef.shader.vertexPath = "../data/shaders/hello_bloom_quad.vert";
+        matdef.shader.fragmentPath = "../data/shaders/hello_bloom_quad.frag";
+        matdef.shader.staticInts.insert({FRAMEBUFFER_SAMPLER0_NAME, FRAMEBUFFER_TEXTURE0_UNIT});
+        matdef.shader.staticInts.insert({FRAMEBUFFER_SAMPLER1_NAME, FRAMEBUFFER_TEXTURE1_UNIT});
 
-        std::vector<glm::mat4> transformModels;
-        transformModels.push_back(glm::translate(IDENTITY_MAT4, glm::vec3(0.0f, 1.0f, 0.0f)));
-        transformModels.push_back(glm::translate(IDENTITY_MAT4, glm::vec3(3.0f, 4.0f, 0.0f)));
-        transformModels.push_back(glm::translate(IDENTITY_MAT4, glm::vec3(3.0f, 4.0f, -4.0f)));
-        model_.Create(vbdefs, std::vector<Material::Definition>(objData.size(), matdef), transformModels);
-
+        displayQuad_.Create({ vbdef }, {matdef});
     }
     void Update(seconds dt) override
     {
@@ -93,7 +101,13 @@ public:
         glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        fb_.Bind();
         model_.Draw();
+        fb_.Unbind();
+
+        fb_.BindGBuffer();
+        displayQuad_.Draw();
+        fb_.UnbindGBuffer();
     }
     void Destroy() override
     {
@@ -151,13 +165,17 @@ public:
     }
     void DrawImGui() override
     {
-
+        ImGui::Begin("Light settings.");
+        ImGui::InputFloat("Light Multiplier", &lightMultiplier_);
+        ImGui::End();
     }
 
 private:
     float timer_ = 0.0f;
     bool mouseButtonDown_ = false;
-    Model model_;
+    float lightMultiplier_ = 1.0f;
+    Model model_, displayQuad_;
+    Framebuffer fb_;
     ResourceManager& resourceManager_ = ResourceManager::Get();
 };
 

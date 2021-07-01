@@ -131,47 +131,6 @@ void gl::Texture::Create(std::array<std::string_view, 6> paths, bool flipImages,
     }
 }
 
-// Warning: textures created this way don't get hashed, so delete them everytime you drop their gpuNames, else you'll get a gpu memory leak.
-void gl::Texture::Create(std::array<size_t, 2> resolution, FramebufferAttachment type)
-{
-    if (TEX_ != 0)
-    {
-        EngineError("Calling Create() a second time...");
-    }
-
-    // Note: type should only have at most 2 bits set: the Type you with to create and optionally the HDR bit.
-    if ((int)type & (int)FramebufferAttachment::FBO_DEPTH0)
-    {
-        glGenTextures(1, &TEX_);
-        glBindTexture(GL_TEXTURE_2D, TEX_);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, resolution[0], resolution[1], 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        type_ = Texture::Type::FRAMEBUFFER0;
-    }
-    else if ((int)type & (int)FramebufferAttachment::FBO_RGBA0 ||
-             (int)type & (int)FramebufferAttachment::FBO_RGBA1 ||
-             (int)type & (int)FramebufferAttachment::FBO_RGBA2 ||
-             (int)type & (int)FramebufferAttachment::FBO_RGBA3 ||
-             (int)type & (int)FramebufferAttachment::FBO_RGBA4 ||
-             (int)type & (int)FramebufferAttachment::FBO_RGBA5 )
-    {
-        glGenTextures(1, &TEX_);
-        glBindTexture(GL_TEXTURE_2D, TEX_);
-        glTexImage2D(GL_TEXTURE_2D, 0, (int)type & (int)FramebufferAttachment::HDR ? GL_RGB16F : GL_RGB8, resolution[0], resolution[1], 0, GL_RGB, (int)type & (int)FramebufferAttachment::HDR ? GL_FLOAT : GL_UNSIGNED_BYTE, nullptr);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        assert((int)type & (int)FramebufferAttachment::FBO_RGBA0); // TODO: this will break, need a way to attribute it's own texture unit to each attachment.
-        type_ = Texture::Type::FRAMEBUFFER0;
-    }
-    CheckGlError();
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    ResourceManager::Get().AppendNewTEX(TEX_);
-}
-
 GLuint gl::Texture::GetTEX() const
 {
     return TEX_;
