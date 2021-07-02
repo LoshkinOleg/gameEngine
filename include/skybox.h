@@ -24,7 +24,7 @@ public:
             "../data/textures/skybox/back.jpg"
         };
         Shader::Definition shader = {};
-        bool flipImages = DEFAULT_FLIP_IMAGES;
+        bool flipImages = false;
         bool correctGamma = DEFAULT_CORRECT_GAMMA;
     };
 

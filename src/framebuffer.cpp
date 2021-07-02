@@ -19,7 +19,7 @@ void gl::Framebuffer::Create(Definition def)
     CheckGlError();
 
     // I think FBO_DEPTH and RGBA0 uses the same attachment slot?
-    assert(!(def.type & Framebuffer::Type::FBO_DEPTH0 && def.type & Framebuffer::Type::FBO_RGB0));
+    assert(!(def.type & Framebuffer::Type::FBO_DEPTH0 && def.type & Framebuffer::Type::FBO_RGBA0));
 
     if (def.type & Type::FBO_DEPTH0)
     {
@@ -41,12 +41,12 @@ void gl::Framebuffer::Create(Definition def)
     std::vector<unsigned int> attachments;
     for (size_t colorAttachment = 0; colorAttachment < 4; colorAttachment++) // Max 4 color attachments.
     {
-        if (def.type & (Type::FBO_RGB0 << colorAttachment))
+        if (def.type & (Type::FBO_RGBA0 << colorAttachment))
         {
             if (colorAttachment > 0)
             {
                 // Make sure we're using color attachments in order. We don't want to allow GL_COLOR_ATTACHMENT2 to be used when GL_COLOR_ATTACHMENT1 is not used.
-                assert(def.type & (Type::FBO_RGB0 << (colorAttachment - 1)));
+                assert(def.type & (Type::FBO_RGBA0 << (colorAttachment - 1)));
             }
 
             CheckGlError();
@@ -54,7 +54,7 @@ void gl::Framebuffer::Create(Definition def)
             TEXs_.push_back(0);
             glGenTextures(1, &TEXs_.back());
             glBindTexture(GL_TEXTURE_2D, TEXs_.back());
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, def.resolution[0], def.resolution[1], 0, GL_RGB, GL_FLOAT, nullptr);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, def.resolution[0], def.resolution[1], 0, GL_RGBA, GL_FLOAT, nullptr);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); // We want GL_LINEAR here to be able to blur textures as they get smaller.
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -118,7 +118,7 @@ void gl::Framebuffer::Bind() const
     // glCullFace(GL_FRONT);
     glViewport(0, 0, defCopy_.resolution[0], defCopy_.resolution[1]);
     glBindFramebuffer(GL_FRAMEBUFFER, FBO_);
-    glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     CheckGlError();
 }
@@ -150,6 +150,7 @@ void gl::Framebuffer::Unbind(const std::array<size_t, 2> screenResolution) const
     // glCullFace(GL_BACK);
     glViewport(0, 0, screenResolution[0], screenResolution[1]);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    // glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
+    glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     CheckGlError();
 }

@@ -83,6 +83,6 @@ void gl::Camera::UpdateCameraVectors()
 void gl::Camera::UpdateCameraMatrix()
 {
     viewMatrix_ = glm::lookAt(state_.position, state_.position + state_.front, state_.up); // pos + front as 2nd arg to have camera always face something right in front of it.
-    const glm::mat4 projection = usePerspective_ ? PERSPECTIVE_ : ORTHO_;
+    const glm::mat4 projection = usePerspective_ ? PERSPECTIVE : ORTHO;
     cameraMatrix_ = projection * viewMatrix_;
 }

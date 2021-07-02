@@ -10,6 +10,8 @@ namespace gl
 {
 	// Window parameters.
 	const float SCREEN_RESOLUTION[2] = { 1024.0f, 720.0f };
+	const glm::mat4 PERSPECTIVE = glm::perspective(glm::radians(45.0f), SCREEN_RESOLUTION[0] / SCREEN_RESOLUTION[1], 0.1f, 100.0f);
+	const glm::mat4 ORTHO = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.0f, 100.0f);
 
 	// Error and warning aliases.
 #ifndef glErrorGuard
@@ -72,6 +74,8 @@ namespace gl
 	const int FRAMEBUFFER_TEXTURE3_UNIT = 13;
 	const std::string VIEW_POSITION_NAME = "viewPos";
 	const std::string CAMERA_MARIX_NAME = "cameraMatrix";
+	const std::string PROJECTION_MARIX_NAME = "projectionMatrix";
+	const std::string VIEW_MARIX_NAME = "viewMatrix";
 	const std::string LIGHT_MATRIX_NAME = "lightMatrix";
 	const std::string HDR_EXPOSURE_NAME = "exposure";
 	// Blinn-Phong.

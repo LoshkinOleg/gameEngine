@@ -54,7 +54,5 @@ namespace gl {
 
         const float CAMERA_MOV_SPEED_ = 0.1f;
         const float CAMERA_MOUSE_SENSITIVITY_ = 0.001f;
-        const glm::mat4 PERSPECTIVE_ = glm::perspective(glm::radians(45.0f), SCREEN_RESOLUTION[0] / SCREEN_RESOLUTION[1], 0.1f, 100.0f);
-        const glm::mat4 ORTHO_ = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.0f, 100.0f);
 	};
 }//!gl.
