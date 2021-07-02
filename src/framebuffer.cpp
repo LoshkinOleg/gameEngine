@@ -55,10 +55,11 @@ void gl::Framebuffer::Create(Definition def)
             glGenTextures(1, &TEXs_.back());
             glBindTexture(GL_TEXTURE_2D, TEXs_.back());
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, def.resolution[0], def.resolution[1], 0, GL_RGB, GL_FLOAT, nullptr);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); // We want GL_LINEAR here to be able to blur textures as they get smaller.
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glGenerateMipmap(GL_TEXTURE_2D);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + colorAttachment, GL_TEXTURE_2D, TEXs_.back(), 0);
             glBindTexture(GL_TEXTURE_2D, 0);
             CheckGlError();
@@ -121,13 +122,18 @@ void gl::Framebuffer::Bind() const
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     CheckGlError();
 }
-void gl::Framebuffer::BindGBuffer() const
+void gl::Framebuffer::BindGBuffer(bool generateMipmaps) const
 {
     CheckGlError();
     for (size_t i = 0; i < TEXs_.size(); i++)
     {
         glActiveTexture(GL_TEXTURE0 + FRAMEBUFFER_TEXTURE0_UNIT + i);
         glBindTexture(GL_TEXTURE_2D, TEXs_[i]);
+        if (generateMipmaps)
+        {
+            // TODO: this generates mipmaps for ALL framebuffer textures, which isn't necessary. We could specify for which index of TEXs_ we want to generate a mipmap...
+            glGenerateMipmap(GL_TEXTURE_2D);
+        }
         CheckGlError();
     }
 }
@@ -144,5 +150,6 @@ void gl::Framebuffer::Unbind(const std::array<size_t, 2> screenResolution) const
     // glCullFace(GL_BACK);
     glViewport(0, 0, screenResolution[0], screenResolution[1]);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    // glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
     CheckGlError();
 }

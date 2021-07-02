@@ -8,6 +8,8 @@
     an apparance somewhat similar to intense light being refracted through a faceted diamond.
 */
 
+// TODO: figure out why the bloom darkens the outside of edges.
+
 #version 440 core
 out vec4 FragColor;
 

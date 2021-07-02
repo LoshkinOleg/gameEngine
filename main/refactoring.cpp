@@ -10,7 +10,6 @@
 
 // TODO: try out Gouraud shader
 // TODO: try out mipmap blurring
-// TODO: try out big box blur for bloom
 
 #include <vector>
 
@@ -60,8 +59,8 @@ public:
             };
 
             Material::Definition matdef = ResourceManager::PreprocessMaterialData(objData)[0];
-            matdef.shader.vertexPath = "../data/shaders/hello_bloom.vert";
-            matdef.shader.fragmentPath = "../data/shaders/hello_bloom.frag";
+            matdef.shader.vertexPath = "../data/shaders/hello_bloom_object.vert";
+            matdef.shader.fragmentPath = "../data/shaders/hello_bloom_object.frag";
             matdef.shader.staticMat4s.insert({PROJECTION_MARIX_NAME, PERSPECTIVE});
             matdef.shader.dynamicMat4s.insert({VIEW_MARIX_NAME, resourceManager_.GetCamera().GetViewMatrixPtr()});
             matdef.shader.dynamicVec3s.insert({VIEW_POSITION_NAME, resourceManager_.GetCamera().GetPositionPtr()});
@@ -85,8 +84,8 @@ public:
         vbdef.dataLayout = {2};
 
         Material::Definition matdef;
-        matdef.shader.vertexPath = "../data/shaders/hello_bloom_quad.vert";
-        matdef.shader.fragmentPath = "../data/shaders/hello_bloom_quad.frag";
+        matdef.shader.vertexPath = "../data/shaders/hello_bloom_mipmaps.vert";
+        matdef.shader.fragmentPath = "../data/shaders/hello_bloom_mipmaps.frag";
         matdef.shader.staticInts.insert({FRAMEBUFFER_SAMPLER0_NAME, FRAMEBUFFER_TEXTURE0_UNIT});
         matdef.shader.staticInts.insert({FRAMEBUFFER_SAMPLER1_NAME, FRAMEBUFFER_TEXTURE1_UNIT});
 
@@ -102,7 +101,7 @@ public:
         model_.Draw();
         fb_.Unbind();
 
-        fb_.BindGBuffer();
+        fb_.BindGBuffer(true);
         displayQuad_.Draw();
         fb_.UnbindGBuffer();
     }
