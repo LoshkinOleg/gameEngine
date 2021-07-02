@@ -1,5 +1,5 @@
 #pragma once
-#include <string_view>
+#include <string>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -10,8 +10,6 @@ namespace gl
 {
 	// Window parameters.
 	const float SCREEN_RESOLUTION[2] = { 1024.0f, 720.0f };
-	const glm::mat4 PERSPECTIVE = glm::perspective(glm::radians(45.0f), SCREEN_RESOLUTION[0] / SCREEN_RESOLUTION[1], 0.1f, 100.0f);
-	const glm::mat4 ORTHO = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.0f, 100.0f);
 
 	// Error and warning aliases.
 #ifndef glErrorGuard
@@ -26,10 +24,6 @@ namespace gl
 #ifndef glCheckFramebufferStatusGuard
 #define CheckFramebufferStatus() gl::CheckFramebufferStatus(__FILE__, __LINE__)
 #endif //!glCheckFramebufferStatusGuard
-
-	// Camera parameters.
-	const float CAMERA_MOV_SPEED = 0.1f;
-	const float CAMERA_MOUSE_SENSITIVITY = 0.001f;
 
 	// GLM default values.
 	const glm::mat4 IDENTITY_MAT4 = glm::mat4(1.0f);
@@ -58,45 +52,44 @@ namespace gl
 	const bool DEFAULT_GENERATE_MIPMAPS = true;
 
 	// Common shader variables.
-	const std::string_view ALPHA_SAMPLER_NAME = "material.alphaMap";
+	const std::string ALPHA_SAMPLER_NAME = "material.alphaMap";
 	const int ALPHA_TEXTURE_UNIT = 0;
-	const std::string_view NORMALMAP_SAMPLER_NAME = "material.normalMap";
+	const std::string NORMALMAP_SAMPLER_NAME = "material.normalMap";
 	const int NORMALMAP_TEXTURE_UNIT = 1;
-	const std::string_view CUBEMAP_SAMPLER_NAME = "cubemap";
+	const std::string CUBEMAP_SAMPLER_NAME = "cubemap";
 	const int CUBEMAP_TEXTURE_UNIT = 5;
 	const int RESERVED_TEXTURE_UNIT6 = 6; // Reserved for consistent use: 0-9 for material textures, 10+ for framebuffer texture units.
 	const int RESERVED_TEXTURE_UNIT7 = 7;
 	const int RESERVED_TEXTURE_UNIT8 = 8;
 	const int RESERVED_TEXTURE_UNIT9 = 9;
-	const std::string_view FRAMEBUFFER_SAMPLER0_NAME = "fbTexture0";
+	const std::string FRAMEBUFFER_SAMPLER0_NAME = "fbTexture0";
 	const int FRAMEBUFFER_TEXTURE0_UNIT = 10;
-	const std::string_view FRAMEBUFFER_SAMPLER1_NAME = "fbTexture1";
+	const std::string FRAMEBUFFER_SAMPLER1_NAME = "fbTexture1";
 	const int FRAMEBUFFER_TEXTURE1_UNIT = 11;
-	const std::string_view FRAMEBUFFER_SAMPLER2_NAME = "fbTexture2";
+	const std::string FRAMEBUFFER_SAMPLER2_NAME = "fbTexture2";
 	const int FRAMEBUFFER_TEXTURE2_UNIT = 12;
-	const std::string_view FRAMEBUFFER_SAMPLER3_NAME = "fbTexture3";
+	const std::string FRAMEBUFFER_SAMPLER3_NAME = "fbTexture3";
 	const int FRAMEBUFFER_TEXTURE3_UNIT = 13;
-	const std::string_view VIEW_POSITION_NAME = "viewPos";
-	const std::string_view PROJECTION_MARIX_NAME = "projection";
-	const std::string_view VIEW_MARIX_NAME = "view";
-	const std::string_view LIGHT_MATRIX_NAME = "lightMatrix";
-	const std::string_view HDR_EXPOSURE_NAME = "exposure";
+	const std::string VIEW_POSITION_NAME = "viewPos";
+	const std::string CAMERA_MARIX_NAME = "cameraMatrix";
+	const std::string LIGHT_MATRIX_NAME = "lightMatrix";
+	const std::string HDR_EXPOSURE_NAME = "exposure";
 	// Blinn-Phong.
-	const std::string_view AMBIENT_SAMPLER_NAME = "material.ambientMap";
+	const std::string AMBIENT_SAMPLER_NAME = "material.ambientMap";
 	const int AMBIENT_TEXTURE_UNIT = 2;
-	const std::string_view DIFFUSE_SAMPLER_NAME = "material.diffuseMap";
+	const std::string DIFFUSE_SAMPLER_NAME = "material.diffuseMap";
 	const int DIFFUSE_TEXTURE_UNIT = 3;
-	const std::string_view SPECULAR_SAMPLER_NAME = "material.specularMap";
+	const std::string SPECULAR_SAMPLER_NAME = "material.specularMap";
 	const int SPECULAR_TEXTURE_UNIT = 4;
-	const std::string_view SHININESS_NAME = "material.shininess";
+	const std::string SHININESS_NAME = "material.shininess";
 	// PBR.
-	const std::string_view ALBEDO_SAMPLER_NAME = "material.albedoMap";
+	const std::string ALBEDO_SAMPLER_NAME = "material.albedoMap";
 	const int ALBEDO_TEXTURE_UNIT = 2;
-	const std::string_view ROUGHNESS_SAMPLER_NAME = "material.roughnessMap";
+	const std::string ROUGHNESS_SAMPLER_NAME = "material.roughnessMap";
 	const int ROUGHNESS_TEXTURE_UNIT = 3;
-	const std::string_view METALLIC_SAMPLER_NAME = "material.metallicMap";
+	const std::string METALLIC_SAMPLER_NAME = "material.metallicMap";
 	const int METALLIC_TEXTURE_UNIT = 4;
-	const std::string_view IOR_NAME = "material.ior";
+	const std::string IOR_NAME = "material.ior";
 
 	const int POSITION_LOCATION = 0;
 	const int TEXCOORD_LOCATION = 1;
@@ -105,9 +98,9 @@ namespace gl
 	const int MODEL_MATRIX_LOCATION = 4;
 
 	// Default shaders.
-	const std::string_view ILLUM2_SHADER[2] = {"../data/shaders/illum2.vert", "../data/shaders/illum2.frag" };
-	const std::string_view FRAMEBUFFER_RGB_SHADER[2] = {"../data/shaders/fb.vert", "../data/shaders/fb_rgb.frag" };
-	const std::string_view FRAMEBUFFER_HDR_REINHARD_SHADER[2] = {"../data/shaders/fb.vert", "../data/shaders/fb_hdr_reinhard.frag" };
-	const std::string_view SKYBOX_SHADER[2] = {"../data/shaders/skybox.vert", "../data/shaders/skybox.frag" };
+	const std::string ILLUM2_SHADER[2] = {"../data/shaders/illum2.vert", "../data/shaders/illum2.frag" };
+	const std::string FRAMEBUFFER_RGB_SHADER[2] = {"../data/shaders/fb.vert", "../data/shaders/fb_rgb.frag" };
+	const std::string FRAMEBUFFER_HDR_REINHARD_SHADER[2] = {"../data/shaders/fb.vert", "../data/shaders/fb_hdr_reinhard.frag" };
+	const std::string SKYBOX_SHADER[2] = {"../data/shaders/skybox.vert", "../data/shaders/skybox.frag" };
 
 }//!gl

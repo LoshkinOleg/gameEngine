@@ -53,8 +53,8 @@ void gl::VertexBuffer::Create(Definition def)
     size_t accumulatedOffset = 0;
     for (size_t i = 0; i < def.dataLayout.size(); i++)
     {
-        glEnableVertexAttribArray((GLuint)i);
-        glVertexAttribPointer((GLuint)i, def.dataLayout[i], GL_FLOAT, GL_FALSE, (GLsizei)(stride * sizeof(float)), (void*)accumulatedOffset);
+        glEnableVertexAttribArray((unsigned int)i);
+        glVertexAttribPointer((unsigned int)i, def.dataLayout[i], GL_FLOAT, GL_FALSE, (size_t)(stride * sizeof(float)), (void*)accumulatedOffset);
         accumulatedOffset += def.dataLayout[i] * sizeof(float);
         CheckGlError();
     }
@@ -67,9 +67,9 @@ void gl::VertexBuffer::Create(Definition def)
     ResourceManager::Get().AppendNewVBO(VBO_, hash);
 }
 
-std::array<GLuint, 2> gl::VertexBuffer::GetVAOandVBO() const
+std::array<unsigned int, 2> gl::VertexBuffer::GetVAOandVBO() const
 {
-    return std::array<GLuint, 2>{VAO_, VBO_};
+    return std::array<unsigned int, 2>{VAO_, VBO_};
 }
 
 void gl::VertexBuffer::Bind() const

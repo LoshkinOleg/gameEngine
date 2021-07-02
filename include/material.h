@@ -1,13 +1,11 @@
 #pragma once
 
+#include <string>
 #include <vector>
 #include <utility>
-#include <string>
 
 #include "texture.h"
 #include "shader.h"
-
-#include <glm/glm.hpp>
 
 namespace gl
 {

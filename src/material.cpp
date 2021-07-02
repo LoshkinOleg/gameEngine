@@ -21,7 +21,7 @@ void gl::Material::Create(Definition def)
         Texture tex;
         if (def.texturePathsAndTypes[i].second != Texture::Type::CUBEMAP)
         {
-            tex.Create(def.texturePathsAndTypes[i].second, def.texturePathsAndTypes[i].first, def.flipImages, def.correctGamma, true);
+            tex.CreateTexture2d(def.texturePathsAndTypes[i].second, def.texturePathsAndTypes[i].first, def.flipImages, def.correctGamma, true);
         }
         else
         {
@@ -35,7 +35,7 @@ void gl::Material::Create(Definition def)
                 def.texturePathsAndTypes[i + 4].first,
                 def.texturePathsAndTypes[i + 5].first
             };
-            tex.Create(paths, def.flipImages, def.correctGamma);
+            tex.CreateCubemap(paths, def.flipImages, def.correctGamma);
             i += 5;
         }
         textures_.push_back(tex);

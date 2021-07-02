@@ -71,8 +71,7 @@ void gl::Skybox::Create(Definition def)
         def.shader.vertexPath = SKYBOX_SHADER[0];
         def.shader.fragmentPath = SKYBOX_SHADER[1];
         def.shader.staticInts.insert({CUBEMAP_SAMPLER_NAME, CUBEMAP_TEXTURE_UNIT});
-        def.shader.staticMat4s.insert({PROJECTION_MARIX_NAME, PERSPECTIVE});
-        def.shader.dynamicMat4s.insert({VIEW_MARIX_NAME, rm.GetCamera().GetViewMatrixPtr()});
+        def.shader.dynamicMat4s.insert({CAMERA_MARIX_NAME, rm.GetCamera().GetCameraMatrixPtr()});
         def.shader.dynamicVec3s.insert({VIEW_POSITION_NAME, rm.GetCamera().GetPositionPtr()});
     }
     shader_.Create(def.shader);
@@ -81,7 +80,7 @@ void gl::Skybox::Create(Definition def)
     {
         assert(!path.empty());
     }
-    cubemap_.Create(def.paths, def.flipImages, def.correctGamma);
+    cubemap_.CreateCubemap(def.paths, def.flipImages, def.correctGamma);
 }
 
 void gl::Skybox::Draw()

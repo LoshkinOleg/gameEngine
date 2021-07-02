@@ -14,8 +14,7 @@ out VS_OUT {
     vec3 TangentFragPos;
 } vs_out;
 
-uniform mat4 projection;
-uniform mat4 view;
+uniform mat4 cameraMatrix;
 uniform vec3 viewPos;
 
 const vec3 lightDir = normalize(vec3(-1.0, -1.0, -1.0));
@@ -36,5 +35,5 @@ void main()
     vs_out.TangentViewPos  = TBN * viewPos;
     vs_out.TangentFragPos  = TBN * vs_out.FragPos;
         
-    gl_Position = projection * view * aModel * vec4(aPos, 1.0);
+    gl_Position = cameraMatrix * aModel * vec4(aPos, 1.0);
 }

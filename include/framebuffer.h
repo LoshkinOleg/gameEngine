@@ -1,13 +1,8 @@
 #pragma once
 #include <array>
 #include <vector>
-#include <map>
 
-#include "texture.h"
-#include "shader.h"
-#include "vertex_buffer.h"
 #include "defines.h"
-
 
 namespace gl
 {

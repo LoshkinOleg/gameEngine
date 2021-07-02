@@ -4,8 +4,6 @@
 
 #include "defines.h"
 
-// TODO: simplify camera to view and perspective matrices
-
 namespace gl {
 
     using CameraId = unsigned int;
@@ -29,34 +27,34 @@ namespace gl {
             glm::vec3 front = BACK_VEC3;
             glm::vec3 up = UP_VEC3;
             float pitch = 0.0f;
+            bool usePerspective = true;
         };
 
         void Create(Definition def);
 
-        void Translate(glm::vec3 dir);
-        void SetPosition(glm::vec3 v);
         void LookAt(const glm::vec3 pos, const glm::vec3 up = UP_VEC3);
-        void SetCameraState(const State& state);
 
         void ProcessKeyboard(const glm::vec3 direction);
         void ProcessMouseMovement(int x, int y);
 
-        State GetCameraState() const;
         // These get functions return read-only references, allowing the Material class to update dynamic(ie: the ones that change on every frame) shader uniforms.
-        const glm::mat4& GetViewMatrix();
-        const glm::vec3& GetPosition() const;
-        const glm::mat4* GetViewMatrixPtr();
+        const glm::mat4* GetCameraMatrixPtr();
+        const glm::mat4* GetViewMatrixPtr(); // NOTE: this is needed for skybox since it needs to multiply projection * mat3(view)...
         const glm::vec3* GetPositionPtr() const;
-        const glm::vec3& GetFront() const;
-        const glm::vec3& GetRight() const;
-        const glm::vec3& GetUp() const;
 
 	private:
 
         void UpdateCameraVectors();
-        void UpdateViewModel();
+        void UpdateCameraMatrix();
 
         State state_ = {};
-        glm::mat4 view_ = IDENTITY_MAT4;
+        glm::mat4 cameraMatrix_ = IDENTITY_MAT4;
+        glm::mat4 viewMatrix_ = IDENTITY_MAT4; // Annoyingly this is still needed for the skybox shader.
+        bool usePerspective_ = true;
+
+        const float CAMERA_MOV_SPEED_ = 0.1f;
+        const float CAMERA_MOUSE_SENSITIVITY_ = 0.001f;
+        const glm::mat4 PERSPECTIVE_ = glm::perspective(glm::radians(45.0f), SCREEN_RESOLUTION[0] / SCREEN_RESOLUTION[1], 0.1f, 100.0f);
+        const glm::mat4 ORTHO_ = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.0f, 100.0f);
 	};
 }//!gl.

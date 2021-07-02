@@ -6,8 +6,6 @@
 
 namespace gl
 {
-    using GLuint = unsigned int;
-
     class Texture
     {
     public:
@@ -24,10 +22,10 @@ namespace gl
         };
 
         // Those are hashed.
-        void Create(Type textureType, std::string_view path, bool flipImage = DEFAULT_FLIP_IMAGES, bool correctGamma = DEFAULT_CORRECT_GAMMA, bool generateMipMaps = DEFAULT_GENERATE_MIPMAPS);
-        void Create(std::array<std::string_view, 6> paths, bool flipImages = DEFAULT_FLIP_IMAGES, bool correctGamma = DEFAULT_CORRECT_GAMMA);
+        void CreateTexture2d(Type textureType, std::string_view path, bool flipImage = DEFAULT_FLIP_IMAGES, bool correctGamma = DEFAULT_CORRECT_GAMMA, bool generateMipMaps = DEFAULT_GENERATE_MIPMAPS);
+        void CreateCubemap(std::array<std::string_view, 6> paths, bool flipImages = DEFAULT_FLIP_IMAGES, bool correctGamma = DEFAULT_CORRECT_GAMMA);
 
-        GLuint GetTEX() const;
+        unsigned int GetTEX() const;
 
         void Bind() const;
         void Unbind() const;

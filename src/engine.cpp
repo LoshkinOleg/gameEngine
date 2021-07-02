@@ -32,18 +32,13 @@ void Engine::Init()
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
-
-	const auto flags = SDL_WINDOW_RESIZABLE |
-		SDL_WINDOW_OPENGL;
-
-
 	window_ = SDL_CreateWindow(
-		"GPR5300",
+		"GPR5300 Demo",
 		SDL_WINDOWPOS_UNDEFINED,
 		SDL_WINDOWPOS_UNDEFINED,
 		(int)windowSize_.x,
 		(int)windowSize_.y,
-		flags);
+		/*SDL_WINDOW_RESIZABLE | */ SDL_WINDOW_OPENGL);
 
 	// Check that everything worked out okay
 	if (window_ == nullptr)

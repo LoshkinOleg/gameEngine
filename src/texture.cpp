@@ -14,7 +14,7 @@
 
 #include "resource_manager.h"
 
-void gl::Texture::Create(Type textureType, std::string_view path, bool flipImage, bool correctGamma, bool generateMipMaps)
+void gl::Texture::CreateTexture2d(Type textureType, std::string_view path, bool flipImage, bool correctGamma, bool generateMipMaps)
 {
     if (TEX_ != 0)
     {
@@ -72,7 +72,7 @@ void gl::Texture::Create(Type textureType, std::string_view path, bool flipImage
     ResourceManager::Get().AppendNewTEX(TEX_, hash);
 }
 
-void gl::Texture::Create(std::array<std::string_view, 6> paths, bool flipImages, bool correctGamma)
+void gl::Texture::CreateCubemap(std::array<std::string_view, 6> paths, bool flipImages, bool correctGamma)
 {
     if (TEX_ != 0)
     {

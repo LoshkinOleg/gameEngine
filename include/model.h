@@ -26,7 +26,7 @@ namespace gl
     private:
 
         std::vector<Mesh> meshes_ = {};
-        std::vector<glm::mat4> modelMatrices_ = {}; // TODO: move these away? A single Model should have a single transformModel. Move transforms to ResourceManager?
+        std::vector<glm::mat4> modelMatrices_ = {};
         unsigned int modelMatricesVBO_ = 0;
     };
 }//!gl

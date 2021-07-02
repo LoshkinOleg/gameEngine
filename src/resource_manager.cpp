@@ -39,10 +39,6 @@ void gl::ResourceManager::Shutdown() const
     {
         glDeleteVertexArrays(1, &pair.second);
     }
-    for (const auto& vbo : transformModelVBOs_)
-    {
-        glDeleteBuffers(1, &vbo);
-    }
 }
 
 GLuint gl::ResourceManager::RequestVAO(XXH32_hash_t hash) const
@@ -56,9 +52,9 @@ GLuint gl::ResourceManager::RequestVAO(XXH32_hash_t hash) const
     else return 0; // No VAO with such data exists, let the caller create a new VBO.
 }
 
-void gl::ResourceManager::AppendNewVAO(GLuint gpuName, XXH32_hash_t hash)
+void gl::ResourceManager::AppendNewVAO(unsigned int gpuName, XXH32_hash_t hash)
 {
-    if (hash == 0) hash = VAOs_.size();
+    if (hash == 0) hash = (unsigned int)VAOs_.size();
     assert(VAOs_.find(hash) == VAOs_.end());
 
     VAOs_.insert({ hash, gpuName });
@@ -75,19 +71,12 @@ GLuint gl::ResourceManager::RequestVBO(XXH32_hash_t hash) const
     else return 0;
 }
 
-void gl::ResourceManager::AppendNewVBO(GLuint gpuName, XXH32_hash_t hash)
+void gl::ResourceManager::AppendNewVBO(unsigned int gpuName, XXH32_hash_t hash)
 {
-    if (hash == 0) hash = VBOs_.size();
+    if (hash == 0) hash = (unsigned int)VBOs_.size();
     assert(VBOs_.find(hash) == VBOs_.end());
 
     VBOs_.insert({ hash, gpuName });
-}
-
-void gl::ResourceManager::AppendNewTransformModelVBO(GLuint gpuName)
-{
-    const auto match = std::find(transformModelVBOs_.begin(), transformModelVBOs_.end(), gpuName);
-    assert(match == transformModelVBOs_.end());
-    transformModelVBOs_.push_back(gpuName);
 }
 
 GLuint gl::ResourceManager::RequestTEX(XXH32_hash_t hash) const
@@ -101,15 +90,15 @@ GLuint gl::ResourceManager::RequestTEX(XXH32_hash_t hash) const
     else return 0;
 }
 
-void gl::ResourceManager::AppendNewTEX(GLuint gpuName, XXH32_hash_t hash)
+void gl::ResourceManager::AppendNewTEX(unsigned int gpuName, XXH32_hash_t hash)
 {
-    if (hash == 0) hash = TEXs_.size();
+    if (hash == 0) hash = (unsigned int)TEXs_.size();
     assert(TEXs_.find(hash) == TEXs_.end());
 
     TEXs_.insert({ hash, gpuName });
 }
 
-GLuint gl::ResourceManager::RequestPROGRAM(XXH32_hash_t hash) const
+unsigned int gl::ResourceManager::RequestPROGRAM(XXH32_hash_t hash) const
 {
     const auto match = PROGRAMs_.find(hash);
     if (match != PROGRAMs_.end())
@@ -120,15 +109,15 @@ GLuint gl::ResourceManager::RequestPROGRAM(XXH32_hash_t hash) const
     else return 0;
 }
 
-void gl::ResourceManager::AppendNewPROGRAM(GLuint gpuName, XXH32_hash_t hash)
+void gl::ResourceManager::AppendNewPROGRAM(unsigned int gpuName, XXH32_hash_t hash)
 {
-    if (hash == 0) hash = PROGRAMs_.size();
+    if (hash == 0) hash = (unsigned int)PROGRAMs_.size();
     assert(PROGRAMs_.find(hash) == PROGRAMs_.end());
 
     PROGRAMs_.insert({ hash, gpuName });
 }
 
-void gl::ResourceManager::DeleteVAO(GLuint gpuName)
+void gl::ResourceManager::DeleteVAO(unsigned int gpuName)
 {
     for (const auto& pair : VAOs_)
     {
@@ -142,7 +131,7 @@ void gl::ResourceManager::DeleteVAO(GLuint gpuName)
     EngineError("Trying to delete a non existent VAO!");
 }
 
-void gl::ResourceManager::DeleteVBO(GLuint gpuName)
+void gl::ResourceManager::DeleteVBO(unsigned int gpuName)
 {
     for (const auto& pair : VBOs_)
     {
@@ -156,14 +145,7 @@ void gl::ResourceManager::DeleteVBO(GLuint gpuName)
     EngineError("Trying to delete a non existent VBO!");
 }
 
-void gl::ResourceManager::DeleteTransformModelVBO(GLuint gpuName)
-{
-    const auto match = std::find(transformModelVBOs_.begin(), transformModelVBOs_.end(), gpuName);
-    assert(match != transformModelVBOs_.end());
-    glDeleteBuffers(1, &gpuName);
-}
-
-void gl::ResourceManager::DeleteTEX(GLuint gpuName)
+void gl::ResourceManager::DeleteTEX(unsigned int gpuName)
 {
     for (const auto& pair : TEXs_)
     {
@@ -177,7 +159,7 @@ void gl::ResourceManager::DeleteTEX(GLuint gpuName)
     EngineError("Trying to delete a non existent TEX!");
 }
 
-void gl::ResourceManager::DeletePROGRAM(GLuint gpuName)
+void gl::ResourceManager::DeletePROGRAM(unsigned int gpuName)
 {
     for (const auto& pair : PROGRAMs_)
     {
@@ -314,8 +296,7 @@ std::vector<gl::ResourceManager::ObjData> gl::ResourceManager::ReadObj(std::stri
         assert(std::accumulate(mesh.material_ids.begin(), mesh.material_ids.end(), 0) / mesh.material_ids.size() == mesh.material_ids[0]); // All vertices should have the same material.
         const int matId = mesh.material_ids[0]; // Only 1 material per mesh, so just take the one that's at index 0.
 
-        // TODO: fill out objdata mat data
-        bool isPBR = materials[matId].illum == 2 ? false : true; // Interpreting illum = 2 as Blinn-Phong, anything else as PBR.
+        bool isPBR = materials[matId].illum == 1 ? true : false; // Interpreting illum = 1 as PBR, anything else as Blinn-Phong.
 
         std::string alphaMap = materials[matId].alpha_texname; // map_d
         std::string normalMap = materials[matId].bump_texname; // map_Bump
