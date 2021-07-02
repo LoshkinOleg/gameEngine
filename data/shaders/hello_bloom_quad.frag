@@ -1,3 +1,13 @@
+/*
+    Implementation of a single pass bloom effect using kernels to apply a blur on the high luminosity areas.
+    Very simple but to obtain convincing results, the kernel needs to be very large, which is probably rather costly.
+
+    Note that interestingly enough, a simple mean blur is both simpler from a computation point of view AND gives better results.
+    This is because a gaussian blur tends to preserve edges, which is the opposite of what we want a bloom shader to look like.
+    A gaussian blur might be useful however for very faceted and transparent objects like a cut diamond since the phantom edges produced by a gaussian blur when texelSizeFactor is large give
+    an apparance somewhat similar to intense light being refracted through a faceted diamond.
+*/
+
 #version 440 core
 out vec4 FragColor;
 
@@ -6,7 +16,7 @@ in vec2 TexCoord;
 uniform sampler2D fbTexture0; // FragColor
 uniform sampler2D fbTexture1; // BrightColor
 
-const float offset = 1.0 / 100.0;
+const int meanBlurMatrixOrder = 23;
 const float gaussianKernel3x3[9] = float[]
 (
     1.0 / 16.0,  2.0 / 16.0,  1.0 / 16.0,
@@ -93,7 +103,31 @@ vec4 GaussianBlur(float texelSizeFactor)
 	return vec4(color, 1.0);
 }
 
+vec3 MeanBlur()
+{
+    vec2 texelSize = 1.0 / textureSize(fbTexture1, 0);
+    vec3 blurredSamples[meanBlurMatrixOrder * meanBlurMatrixOrder];
+
+    for(int y = 0; y < meanBlurMatrixOrder; y++)
+    {
+        for(int x = 0; x < meanBlurMatrixOrder; x++)
+        {
+            vec2 sampledCoord = TexCoord + (texelSize * vec2(x - floor(meanBlurMatrixOrder * 0.5), y - floor(meanBlurMatrixOrder * 0.5)));
+            blurredSamples[y * meanBlurMatrixOrder + x] = texture(fbTexture1, sampledCoord).rgb / (meanBlurMatrixOrder * meanBlurMatrixOrder);
+        }   
+    }
+
+    vec3 result = vec3(0.0);
+    for(int i = 0; i < meanBlurMatrixOrder * meanBlurMatrixOrder; i++)
+    {
+        result += blurredSamples[i];
+    }
+
+    const vec3 color = texture(fbTexture0, TexCoord).rgb + result;
+	return color;
+}
+
 void main()
 {
-    FragColor = vec4(ExtendedReinhard(GaussianBlur(5.0).rgb, 1.0), 1.0);
+    FragColor = vec4(ExtendedReinhard(MeanBlur(), 1.0), 1.0);
 }

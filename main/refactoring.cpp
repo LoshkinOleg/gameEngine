@@ -8,12 +8,9 @@
 // TODO: add frustrum culling
 // TODO: handle resizing of window? glViewport and framebuffer too
 
-// TODO: fix multi mesh models'es transformModels
-
-// TODO: hdr bloom
-
 // TODO: try out Gouraud shader
-// TODO: test multiple multi mesh models with unbinding enabled
+// TODO: try out mipmap blurring
+// TODO: try out big box blur for bloom
 
 #include <vector>
 
