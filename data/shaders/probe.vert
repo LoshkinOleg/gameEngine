@@ -1,18 +1,18 @@
 #version 440 core
+
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec2 aTexCoord;
 layout (location = 2) in vec3 aNormal;
 layout (location = 3) in vec3 aTangent;
 layout (location = 4) in mat4 aModel;
 
-out vec3 FragPos;
-out vec3 Normal;
+out vec2 TexCoords;
 
-uniform mat4 cameraMatrix;
+uniform mat4 viewMatrix;
+uniform mat4 projectionMatrix;
 
 void main()
 {
-	FragPos = (aModel * vec4(aPos, 1.0)).xyz;
-	Normal = transpose(inverse(mat3(aModel))) * aPos;
-	gl_Position = cameraMatrix * aModel * vec4(aPos, 1.0);
+	TexCoords = aTexCoord;
+	gl_Position = projectionMatrix * mat4(mat3(viewMatrix)) * aModel * vec4(aPos, 1.0);
 }

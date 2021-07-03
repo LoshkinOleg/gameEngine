@@ -12,8 +12,9 @@ void gl::Model::Create(std::vector<VertexBuffer::Definition> vb, std::vector<Mat
     assert(vb.size() == mat.size());
 
     glGenBuffers(1, &modelMatricesVBO_);
+    ResourceManager::Get().AppendNewVBO(modelMatricesVBO_);
     glBindBuffer(GL_ARRAY_BUFFER, modelMatricesVBO_);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::mat4) * modelMatrices_.size(), &modelMatrices[0][0][0], GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::mat4) * modelMatrices_.size(), &modelMatrices_[0][0], GL_DYNAMIC_DRAW);
 
     for (size_t i = 0; i < vb.size(); i++)
     {
@@ -46,6 +47,7 @@ void gl::Model::Create(std::vector<VertexBuffer::Definition> vb, std::vector<Mat
 
         meshes_.push_back(Mesh());
         meshes_.back().Create(vertbuff, material);
+
         CheckGlError();
     }
 }
@@ -56,10 +58,9 @@ void gl::Model::Draw()
     // TODO: add a way to check if the models need updating, no need to update the transformModels every frame...
     glBindBuffer(GL_ARRAY_BUFFER, modelMatricesVBO_);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::mat4) * modelMatrices_.size(), (void*)&modelMatrices_[0][0]);
-    // glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
     for (size_t i = 0; i < meshes_.size(); i++)
     {
-        // glBindBuffer(GL_ARRAY_BUFFER, modelMatricesVBO_);
         meshes_[i].Draw((int)modelMatrices_.size());
     }
 }
@@ -73,7 +74,7 @@ void gl::Model::DrawUsingShader(Shader& shader)
 {
     glBindBuffer(GL_ARRAY_BUFFER, modelMatricesVBO_);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::mat4) * modelMatrices_.size(), (void*)&modelMatrices_[0][0]);
-    // glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
     for (size_t i = 0; i < meshes_.size(); i++)
     {
         meshes_[i].DrawUsingShader(shader, (int)modelMatrices_.size());

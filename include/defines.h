@@ -71,6 +71,10 @@ namespace gl
 	const int FRAMEBUFFER_TEXTURE2_UNIT = 12;
 	const std::string FRAMEBUFFER_SAMPLER3_NAME = "fbTexture3";
 	const int FRAMEBUFFER_TEXTURE3_UNIT = 13;
+	const std::string FRAMEBUFFER_SAMPLER4_NAME = "fbTexture4";
+	const int FRAMEBUFFER_TEXTURE4_UNIT = 14;
+	const std::string FRAMEBUFFER_SAMPLER5_NAME = "fbTexture5";
+	const int FRAMEBUFFER_TEXTURE5_UNIT = 15;
 	const std::string VIEW_POSITION_NAME = "viewPos";
 	const std::string CAMERA_MARIX_NAME = "cameraMatrix";
 	const std::string PROJECTION_MARIX_NAME = "projectionMatrix";

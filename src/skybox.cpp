@@ -90,7 +90,7 @@ void gl::Skybox::Draw()
     shader_.Bind();
     cubemap_.Bind();
     vb_.Draw();
-    // cubemap_.Unbind();
-    // shader_.Unbind();
+    cubemap_.Unbind();
+    shader_.Unbind();
     glDepthFunc(GL_LESS);
 }

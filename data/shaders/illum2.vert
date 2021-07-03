@@ -4,7 +4,7 @@ layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec2 aTexCoord;
 layout (location = 2) in vec3 aNormal;
 layout (location = 3) in vec3 aTangent;
-layout (location = 4) in mat4 aModel; // TODO: this only works when there's a single mesh. If there's multiple, all the meshes beyond the model's 1st use inappropriate model matrices...
+layout (location = 4) in mat4 aModel;
 
 out VS_OUT {
     vec3 FragPos;

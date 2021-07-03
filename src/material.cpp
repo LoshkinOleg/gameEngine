@@ -12,7 +12,6 @@ void gl::Material::Create(Definition def)
     // assert(def.texturePathsAndTypes.size() > 0); // We might actually want to create materials without textures. Like blank meshes
     for (const auto& pair : def.texturePathsAndTypes)
     {
-        // We don't want framebuffers to have materials.
         assert(!pair.first.empty() && (int)pair.second < (int)Texture::Type::INVALID);
     }
 
@@ -54,9 +53,9 @@ void gl::Material::Bind()
 }
 void gl::Material::Unbind()
 {
-	// for (const auto& texture : textures_)
-	// {
-	// 	texture.Unbind();
-	// }
-    // shader_.Unbind();
+	for (const auto& texture : textures_)
+	{
+		texture.Unbind();
+	}
+    shader_.Unbind();
 }

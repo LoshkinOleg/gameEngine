@@ -26,19 +26,22 @@ void gl::Framebuffer::Create(Definition def)
             !(def.type & Type::FBO_RGBA0) && // Don't want to draw anything if we're using a shadowmap.
             !(def.type & Type::FBO_RGBA1) &&
             !(def.type & Type::FBO_RGBA2) &&
-            !(def.type & Type::FBO_RGBA3)
+            !(def.type & Type::FBO_RGBA3) &&
+            !(def.type & Type::FBO_RGBA4) &&
+            !(def.type & Type::FBO_RGBA5)
         );
 
         CheckGlError();
-        TEXs_.push_back(0);
-        glGenTextures(1, &TEXs_.back());
-        glBindTexture(GL_TEXTURE_2D, TEXs_.back());
+        TEXs_.push_back({ 0, 0 });
+        glGenTextures(1, &TEXs_.back().first);
+        assert(TEXs_.back().first != 0);
+        glBindTexture(GL_TEXTURE_2D, TEXs_.back().first);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, def.resolution[0], def.resolution[1], 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, TEXs_.back(), 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, TEXs_.back().first, 0);
         glBindTexture(GL_TEXTURE_2D, 0);
         CheckGlError();
         GLenum drawBuffers = GL_NONE;
@@ -48,33 +51,28 @@ void gl::Framebuffer::Create(Definition def)
     }
 
     std::vector<unsigned int> attachments;
-    for (size_t colorAttachment = 0; colorAttachment < 4; colorAttachment++) // Max 4 color attachments, either a drawable ones or non drawable ones.
+    for (size_t colorAttachment = 0; colorAttachment < 6; colorAttachment++) // Max 6 color attachments.
     {
         if (def.type & (Type::FBO_RGBA0 << colorAttachment))
         {
-            if (colorAttachment > 0)
-            {
-                // Make sure we're using color attachments in order. We don't want to allow GL_COLOR_ATTACHMENT2 to be used when GL_COLOR_ATTACHMENT1 is not used.
-                assert(def.type & (Type::FBO_RGBA0 << (colorAttachment - 1)));
-            }
-
             CheckGlError();
             attachments.push_back(GL_COLOR_ATTACHMENT0 + colorAttachment);
-            TEXs_.push_back(0);
-            glGenTextures(1, &TEXs_.back());
-            glBindTexture(GL_TEXTURE_2D, TEXs_.back());
+            TEXs_.push_back({0, (unsigned int)colorAttachment});
+            glGenTextures(1, &TEXs_.back().first);
+            assert(TEXs_.back().first != 0);
+            glBindTexture(GL_TEXTURE_2D, TEXs_.back().first);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, def.resolution[0], def.resolution[1], 0, GL_RGBA, GL_FLOAT, nullptr);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); // We want GL_LINEAR here to be able to blur textures as they get smaller.
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
             glGenerateMipmap(GL_TEXTURE_2D);
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + colorAttachment, GL_TEXTURE_2D, TEXs_.back(), 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + colorAttachment, GL_TEXTURE_2D, TEXs_.back().first, 0);
             glBindTexture(GL_TEXTURE_2D, 0);
             CheckGlError();
         }
     }
-    assert(attachments.size() < 5); // 4 color attachments max.
+    assert(attachments.size() < 7); // 6 color attachments max.
     glDrawBuffers(attachments.size(), attachments.data());
     // glReadBuffer(GL_NONE);
     CheckGlError();
@@ -98,13 +96,16 @@ void gl::Framebuffer::Create(Definition def)
 
     for (const auto& tex : TEXs_)
     {
-        ResourceManager::Get().AppendNewTEX(tex);
+        ResourceManager::Get().AppendNewTEX(tex.first);
     }
 }
 void gl::Framebuffer::Resize(std::array<size_t, 2> newResolution)
 {
     defCopy_.resolution = newResolution;
-    glDeleteTextures(TEXs_.size(), TEXs_.data());
+    for (const auto& tex : TEXs_)
+    {
+        ResourceManager::Get().DeleteTEX(tex.first);
+    }
     TEXs_.clear();
     glDeleteRenderbuffers(1, &RBO_);
     RBO_ = 0;
@@ -125,10 +126,10 @@ void gl::Framebuffer::Bind() const
 void gl::Framebuffer::BindGBuffer(bool generateMipmaps) const
 {
     CheckGlError();
-    for (size_t i = 0; i < TEXs_.size(); i++)
+    for (const auto& tex : TEXs_)
     {
-        glActiveTexture(GL_TEXTURE0 + FRAMEBUFFER_TEXTURE0_UNIT + i);
-        glBindTexture(GL_TEXTURE_2D, TEXs_[i]);
+        glActiveTexture(GL_TEXTURE0 + FRAMEBUFFER_TEXTURE0_UNIT + tex.second);
+        glBindTexture(GL_TEXTURE_2D, tex.first);
         if (generateMipmaps)
         {
             // TODO: this generates mipmaps for ALL framebuffer textures, which isn't necessary. We could specify for which index of TEXs_ we want to generate a mipmap...
@@ -139,11 +140,14 @@ void gl::Framebuffer::BindGBuffer(bool generateMipmaps) const
 }
 void gl::Framebuffer::UnbindGBuffer() const
 {
-    // for (const auto& tex : textures_)
-    // {
-    //     tex.Unbind();
-    // }
+    for (const auto& tex : TEXs_)
+    {
+        glActiveTexture(GL_TEXTURE0 + FRAMEBUFFER_TEXTURE0_UNIT + tex.second);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        CheckGlError();
+    }
 }
+
 void gl::Framebuffer::Unbind(const std::array<size_t, 2> screenResolution) const
 {
     CheckGlError();

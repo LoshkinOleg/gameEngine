@@ -256,7 +256,7 @@ void gl::Shader::Bind()
 
 void gl::Shader::Unbind()
 {
-    // glUseProgram(0);
+    glUseProgram(0);
     isBound_ = false;
 }
 

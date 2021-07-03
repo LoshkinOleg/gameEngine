@@ -25,63 +25,124 @@ namespace gl
             glEnable(GL_BLEND);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-            // Model creation.
-            {
-                const auto objData = ResourceManager::ReadObj("../data/models/brickSphere/brickSphere.obj");
-                VertexBuffer::Definition vbdef;
-                for (size_t vertex = 0; vertex < objData[0].positions.size(); vertex++)
-                {
-                    vbdef.data.push_back(objData[0].positions[vertex].x);
-                    vbdef.data.push_back(objData[0].positions[vertex].y);
-                    vbdef.data.push_back(objData[0].positions[vertex].z);
-
-                    vbdef.data.push_back(objData[0].uvs[vertex].x);
-                    vbdef.data.push_back(objData[0].uvs[vertex].y);
-
-                    vbdef.data.push_back(objData[0].normals[vertex].x);
-                    vbdef.data.push_back(objData[0].normals[vertex].y);
-                    vbdef.data.push_back(objData[0].normals[vertex].z);
-
-                    vbdef.data.push_back(objData[0].tangents[vertex].x);
-                    vbdef.data.push_back(objData[0].tangents[vertex].y);
-                    vbdef.data.push_back(objData[0].tangents[vertex].z);
-                }
-                vbdef.dataLayout =
-                {
-                    3,2,3,3
-                };
-
-                Material::Definition matdef = ResourceManager::PreprocessMaterialData(objData)[0];
-                matdef.shader.vertexPath = "../data/shaders/hello_bloom_object.vert";
-                matdef.shader.fragmentPath = "../data/shaders/hello_bloom_object.frag";
-                matdef.shader.dynamicMat4s.insert({ CAMERA_MARIX_NAME, resourceManager_.GetCamera().GetCameraMatrixPtr() });
-                matdef.shader.dynamicVec3s.insert({VIEW_POSITION_NAME, resourceManager_.GetCamera().GetPositionPtr()});
-
-                std::vector<glm::mat4> transformModels;
-                transformModels.push_back(glm::translate(IDENTITY_MAT4, glm::vec3(0.0f, 0.0f, 0.0f)));
-                transformModels.push_back(glm::translate(IDENTITY_MAT4, glm::vec3(5.0f, 0.0f, 0.0f)));
-                transformModels.push_back(glm::translate(IDENTITY_MAT4, glm::vec3(5.0f, 0.0f, -5.0f)));
-
-                model_.Create({ vbdef }, { matdef }, transformModels);
-            }
-
-            VertexBuffer::Definition vbdef;
-            vbdef.data = QUAD_POSITIONS;
-            vbdef.dataLayout = {2};
-
-            Material::Definition matdef;
-            matdef.shader.vertexPath = "../data/shaders/hello_bloom_kernel.vert";
-            matdef.shader.fragmentPath = "../data/shaders/hello_bloom_kernel.frag";
-            matdef.shader.staticInts.insert({FRAMEBUFFER_SAMPLER0_NAME, FRAMEBUFFER_TEXTURE0_UNIT});
-            matdef.shader.staticInts.insert({FRAMEBUFFER_SAMPLER1_NAME, FRAMEBUFFER_TEXTURE1_UNIT});
-
-            quad_.Create({ vbdef }, {matdef});
-
+            // Init reflection framebuffers.
             Framebuffer::Definition fbdef;
-            fbdef.type = (Framebuffer::Type)(Framebuffer::Type::FBO_RGBA0 | Framebuffer::Type::FBO_RGBA1 | Framebuffer::Type::RBO);
-            fb_.Create(fbdef);
+            fbdef.resolution = { 1024, 1024 };
 
-            skybox_.Create({});
+            fbdef.type = (Framebuffer::Type)
+                (
+                    Framebuffer::Type::FBO_RGBA0 |
+                    Framebuffer::Type::RBO
+                );
+            fb_[0].Create(fbdef);
+
+            fbdef.type = (Framebuffer::Type)
+                (
+                    Framebuffer::Type::FBO_RGBA1 |
+                    Framebuffer::Type::RBO
+                );
+            fb_[1].Create(fbdef);
+            fbdef.type = (Framebuffer::Type)
+                (
+                    Framebuffer::Type::FBO_RGBA2 |
+                    Framebuffer::Type::RBO
+                );
+            fb_[2].Create(fbdef);
+            fbdef.type = (Framebuffer::Type)
+                (
+                    Framebuffer::Type::FBO_RGBA3 |
+                    Framebuffer::Type::RBO
+                );
+            fb_[3].Create(fbdef);
+            fbdef.type = (Framebuffer::Type)
+                (
+                    Framebuffer::Type::FBO_RGBA4 |
+                    Framebuffer::Type::RBO
+                );
+            fb_[4].Create(fbdef);
+            fbdef.type = (Framebuffer::Type)
+                (
+                    Framebuffer::Type::FBO_RGBA5 |
+                    Framebuffer::Type::RBO
+                );
+            fb_[5].Create(fbdef);
+
+            // Load sphere mesh.
+            VertexBuffer::Definition vbdef;
+            const auto objData = ResourceManager::ReadObj("../data/models/brickSphere/brickSphere.obj");
+            for (size_t vertex = 0; vertex < objData[0].positions.size(); vertex++)
+            {
+                vbdef.data.push_back(objData[0].positions[vertex].x);
+                vbdef.data.push_back(objData[0].positions[vertex].y);
+                vbdef.data.push_back(objData[0].positions[vertex].z);
+
+                vbdef.data.push_back(objData[0].uvs[vertex].x);
+                vbdef.data.push_back(objData[0].uvs[vertex].y);
+
+                vbdef.data.push_back(objData[0].normals[vertex].x);
+                vbdef.data.push_back(objData[0].normals[vertex].y);
+                vbdef.data.push_back(objData[0].normals[vertex].z);
+
+                vbdef.data.push_back(objData[0].tangents[vertex].x);
+                vbdef.data.push_back(objData[0].tangents[vertex].y);
+                vbdef.data.push_back(objData[0].tangents[vertex].z);
+            }
+            vbdef.dataLayout =
+            {
+                3,2,3,3
+            };
+
+            // Create reflection models that are drawn to the reflection framebuffers.
+            Material::Definition matdef;
+            matdef.shader.vertexPath = "../data/shaders/probe.vert";
+            matdef.shader.fragmentPath = "../data/shaders/probe.frag";
+            matdef.shader.staticMat4s.insert({ PROJECTION_MARIX_NAME, glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 100.0f) });
+            matdef.shader.dynamicMat4s.insert({VIEW_MARIX_NAME, &probeViewMatrix_});
+            matdef.texturePathsAndTypes.push_back({"../data/textures/brickwall.jpg", Texture::Type::ALPHA}); // tex unit 0 is used for alpha
+            matdef.shader.staticInts.insert({"tex", 0});
+
+            std::vector<glm::mat4> matrices;
+            matrices.push_back(glm::translate(IDENTITY_MAT4, RIGHT_VEC3 * 4.0f));
+            matrices.push_back(glm::translate(IDENTITY_MAT4, -RIGHT_VEC3 * 4.0f));
+            matrices.push_back(glm::translate(IDENTITY_MAT4, UP_VEC3 * 4.0f));
+            matrices.push_back(glm::translate(IDENTITY_MAT4, -UP_VEC3 * 4.0f));
+            matrices.push_back(glm::translate(IDENTITY_MAT4, FRONT_VEC3 * 4.0f));
+            matrices.push_back(glm::translate(IDENTITY_MAT4, -FRONT_VEC3 * 4.0f));
+
+            modelReflection_.Create({ vbdef }, { matdef }, matrices);
+
+            // Create real models that are being reflected.
+            Material::Definition realMatdef;
+            realMatdef.shader.vertexPath = "../data/shaders/textured.vert";
+            realMatdef.shader.fragmentPath = "../data/shaders/textured.frag";
+            realMatdef.shader.dynamicMat4s.insert({ CAMERA_MARIX_NAME, resourceManager_.GetCamera().GetCameraMatrixPtr() });
+            realMatdef.texturePathsAndTypes.push_back({ "../data/textures/brickwall.jpg", Texture::Type::AMBIENT_OR_ALBEDO });
+            realMatdef.shader.staticInts.insert({ AMBIENT_SAMPLER_NAME, AMBIENT_TEXTURE_UNIT });
+
+
+            // Create a model that has a reflective surface.
+            Material::Definition reflMatdef;
+            reflMatdef.shader.vertexPath = "../data/shaders/environmentmap.vert";
+            reflMatdef.shader.fragmentPath = "../data/shaders/environmentmap.frag";
+            reflMatdef.shader.dynamicMat4s.insert({ CAMERA_MARIX_NAME, resourceManager_.GetCamera().GetCameraMatrixPtr() });
+            reflMatdef.shader.dynamicVec3s.insert({ VIEW_POSITION_NAME, resourceManager_.GetCamera().GetPositionPtr() });
+            reflMatdef.shader.staticInts.insert({ "PosX", FRAMEBUFFER_TEXTURE0_UNIT });
+            reflMatdef.shader.staticInts.insert({ "NegX", FRAMEBUFFER_TEXTURE1_UNIT });
+            reflMatdef.shader.staticInts.insert({ "PosY", FRAMEBUFFER_TEXTURE2_UNIT });
+            reflMatdef.shader.staticInts.insert({ "NegY", FRAMEBUFFER_TEXTURE3_UNIT });
+            reflMatdef.shader.staticInts.insert({ "PosZ", FRAMEBUFFER_TEXTURE4_UNIT });
+            reflMatdef.shader.staticInts.insert({ "NegZ", FRAMEBUFFER_TEXTURE5_UNIT });
+
+            modelReal_.Create({ vbdef }, { realMatdef }, matrices);
+            modelReflective_.Create({ vbdef }, { reflMatdef });
+
+            Skybox::Definition sbdef;
+            sbdef.shader.vertexPath = "../data/shaders/skybox.vert";
+            sbdef.shader.fragmentPath = "../data/shaders/skybox.frag";
+            sbdef.shader.staticMat4s.insert({ PROJECTION_MARIX_NAME, glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 100.0f) });
+            sbdef.shader.dynamicMat4s.insert({ VIEW_MARIX_NAME, &probeViewMatrix_ });
+            sbdef.shader.staticInts.insert({CUBEMAP_SAMPLER_NAME, CUBEMAP_TEXTURE_UNIT});
+            skybox_.Create(sbdef);
         }
         void Update(seconds dt) override
         {
@@ -89,14 +150,48 @@ namespace gl
             glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            fb_.Bind();
-            model_.Draw();
-            skybox_.Draw();
-            fb_.Unbind();
+            // Reflection pass.
+            // fb_[0].Bind();
+            // probeViewMatrix_ = glm::lookAt(glm::vec3(-1.0f, 0.0f, 0.0f), ZERO_VEC3, UP_VEC3);
+            // modelReflection_.Draw();
+            // skybox_.Draw();
+            // fb_[0].Unbind();
+            // 
+            // fb_[1].Bind();
+            // probeViewMatrix_ = glm::lookAt(glm::vec3(1.0f, 0.0f, 0.0f), ZERO_VEC3, UP_VEC3);
+            // modelReflection_.Draw();
+            // skybox_.Draw();
+            // fb_[1].Unbind();
+            // 
+            // fb_[2].Bind();
+            // probeViewMatrix_ = glm::lookAt(glm::vec3(0.0f, -1.0f, 0.0f), ZERO_VEC3, FRONT_VEC3);
+            // modelReflection_.Draw();
+            // skybox_.Draw();
+            // fb_[2].Unbind();
+            // 
+            // fb_[3].Bind();
+            // probeViewMatrix_ = glm::lookAt(glm::vec3(0.0f, 1.0f, 0.0f), ZERO_VEC3, FRONT_VEC3);
+            // modelReflection_.Draw();
+            // skybox_.Draw();
+            // fb_[3].Unbind();
+            // 
+            // fb_[4].Bind();
+            // probeViewMatrix_ = glm::lookAt(glm::vec3(0.0f, 0.0f, -1.0f), ZERO_VEC3, UP_VEC3);
+            // modelReflection_.Draw();
+            // skybox_.Draw();
+            // fb_[4].Unbind();
+            // 
+            // fb_[5].Bind();
+            // probeViewMatrix_ = glm::lookAt(glm::vec3(0.0f, 0.0f, 1.0f), ZERO_VEC3, UP_VEC3);
+            // modelReflection_.Draw();
+            // skybox_.Draw();
+            // fb_[5].Unbind();
 
-            fb_.BindGBuffer();
-            quad_.Draw();
-            fb_.UnbindGBuffer();
+            // Render onto backbuffer.
+
+            // skybox_.Draw();
+            modelReal_.Draw();
+            // modelReflective_.Draw();
         }
         void Destroy() override
         {
@@ -160,9 +255,11 @@ namespace gl
     private:
         float timer_ = 0.0f;
         bool mouseButtonDown_ = false;
-        Model model_, quad_;
+        Model modelReflection_, modelReal_, modelReflective_;
         Skybox skybox_;
-        Framebuffer fb_;
+        Framebuffer fb_[6];
+        int faceToRender_ = 0;
+        glm::mat4 probeViewMatrix_ = IDENTITY_MAT4;
         ResourceManager& resourceManager_ = ResourceManager::Get();
     };
 

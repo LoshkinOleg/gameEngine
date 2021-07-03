@@ -6,6 +6,8 @@
 
 namespace gl
 {
+    using TextureUnitOffset = unsigned int;
+
 class Framebuffer
 {
 public:
@@ -20,7 +22,9 @@ public:
         FBO_RGBA2 =             1 << 3,
 
         FBO_RGBA3 =             1 << 4,  
-        FBO_DEPTH0_NO_DRAW =    1 << 5
+        FBO_RGBA4 =             1 << 5,  
+        FBO_RGBA5 =             1 << 6,  
+        FBO_DEPTH0_NO_DRAW =    1 << 7
     };
 
     struct Definition
@@ -39,7 +43,7 @@ public:
 private:
 
     unsigned int FBO_ = 0, RBO_ = 0;
-    std::vector<unsigned int> TEXs_ = {};
+    std::vector<std::pair<unsigned int, TextureUnitOffset>> TEXs_ = {};
     Definition defCopy_ = {}; // To be able to easilly recreate a resized framebuffer.
 };
 

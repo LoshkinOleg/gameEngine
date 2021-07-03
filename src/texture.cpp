@@ -149,7 +149,7 @@ void gl::Texture::Unbind() const
 {
     CheckGlError();
     assert((int)type_ > -1 && (int)type_ < (int)Type::INVALID);
-    // glActiveTexture(GL_TEXTURE0 + (int)type_);
-    // glBindTexture((int)type_ == (int)Type::CUBEMAP ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D, 0);
+    glActiveTexture(GL_TEXTURE0 + (int)type_);
+    glBindTexture((int)type_ == (int)Type::CUBEMAP ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D, 0);
     CheckGlError();
 }

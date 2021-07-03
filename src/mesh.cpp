@@ -15,14 +15,14 @@ void gl::Mesh::Draw(int nrOfInstances)
 {
     material_.Bind();
     vb_.Draw(nrOfInstances);
-    // material_.Unbind();
+    material_.Unbind();
 }
 
 void gl::Mesh::DrawSingle()
 {
     material_.Bind();
     vb_.DrawSingle();
-    // material_.Unbind();
+    material_.Unbind();
 }
 
 void gl::Mesh::DrawUsingShader(Shader& shader, int nrOfInstances)
@@ -30,6 +30,6 @@ void gl::Mesh::DrawUsingShader(Shader& shader, int nrOfInstances)
     material_.Bind();
     shader.Bind();
     vb_.Draw(nrOfInstances);
-    // shader.Unbind();
-    // material_.Unbind();
+    shader.Unbind();
+    material_.Unbind();
 }
