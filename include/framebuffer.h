@@ -12,16 +12,15 @@ public:
     // NOTE: annoyingly, you can't define bitwise operators for nested enums... int casting it is whenever you want to use it then...
     enum Type
     {
-        INVALID =       0,
+        INVALID =               0,
 
-        RBO =           1 << 0, // 0000 0001 : GL_DEPTH24_STENCIL8 in RBO.
-        NO_DRAW =       1 << 1, // 0000 0010
-        FBO_RGBA0 =     1 << 2, // 0000 0100
-        FBO_RGBA1 =     1 << 3, // 0000 1000
-                                   
-        FBO_RGBA2 =     1 << 4, // 0001 0000
-        FBO_RGBA3 =     1 << 5, // 0010 0000     
-        FBO_DEPTH0 =    1 << 6  // 0100 0000
+        RBO =                   1 << 0, // GL_DEPTH24_STENCIL8 in RBO.
+        FBO_RGBA0 =             1 << 1,
+        FBO_RGBA1 =             1 << 2,             
+        FBO_RGBA2 =             1 << 3,
+
+        FBO_RGBA3 =             1 << 4,  
+        FBO_DEPTH0_NO_DRAW =    1 << 5
     };
 
     struct Definition

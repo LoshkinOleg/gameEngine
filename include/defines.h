@@ -47,8 +47,7 @@ namespace gl
 	const uint32_t HASHING_SEED = 0xFFFF1337;
 
 	// GL parameters.
-	const float CLEAR_SCREEN_COLOR[4] = { 0.0f, 0.0f, 0.3f, 1.0f };
-	// const float CLEAR_SCREEN_COLOR[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	const float CLEAR_SCREEN_COLOR[4] = { 0.3f, 0.0f, 0.3f, 1.0f };
 	const bool DEFAULT_FLIP_IMAGES = true;
 	const bool DEFAULT_CORRECT_GAMMA = false;
 	const bool DEFAULT_GENERATE_MIPMAPS = true;

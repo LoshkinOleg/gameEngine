@@ -57,18 +57,21 @@ vec3 ExtendedReinhard(vec3 color, float maxWhite)
 
 vec4 GaussianBlur(float texelSizeFactor)
 {
+    const vec4 color = texture(fbTexture0, TexCoord);
+    if (color.a == 0.0) discard;
+
     vec2 texelSize = 1.0 / textureSize(fbTexture1, 0);
     texelSize *= texelSizeFactor;
-    vec3 blurredSamples3x3[9];
-    vec3 blurredSamples5x5[25];
-    vec3 blurredSamples7x7[49];
+    vec4 blurredSamples3x3[9];
+    vec4 blurredSamples5x5[25];
+    vec4 blurredSamples7x7[49];
 
     for(int y = 0; y < 7; y++)
     {
         for(int x = 0; x < 7; x++)
         {
             vec2 sampledCoord = TexCoord + (texelSize * vec2(x - 3,y - 3));
-            blurredSamples7x7[y * 7 + x] = texture(fbTexture1, sampledCoord).rgb * gaussianKernel7x7[y * 7 + x];
+            blurredSamples7x7[y * 7 + x] = texture(fbTexture1, sampledCoord) * gaussianKernel7x7[y * 7 + x];
         }   
     }
     for(int y = 0; y < 5; y++)
@@ -76,7 +79,7 @@ vec4 GaussianBlur(float texelSizeFactor)
         for(int x = 0; x < 5; x++)
         {
             vec2 sampledCoord = TexCoord + (texelSize * vec2(x - 2,y - 2));
-            blurredSamples5x5[y * 5 + x] = texture(fbTexture1, sampledCoord).rgb * gaussianKernel5x5[y * 5 + x];
+            blurredSamples5x5[y * 5 + x] = texture(fbTexture1, sampledCoord) * gaussianKernel5x5[y * 5 + x];
         }   
     }
     for(int y = 0; y < 3; y++)
@@ -84,29 +87,32 @@ vec4 GaussianBlur(float texelSizeFactor)
         for(int x = 0; x < 3; x++)
         {
             vec2 sampledCoord = TexCoord + (texelSize * vec2(x - 1,y - 1));
-            blurredSamples3x3[y * 3 + x] = texture(fbTexture1, sampledCoord).rgb * gaussianKernel3x3[y * 3 + x];
+            blurredSamples3x3[y * 3 + x] = texture(fbTexture1, sampledCoord) * gaussianKernel3x3[y * 3 + x];
         }   
     }
-    vec3 result = vec3(0.0);
+    vec4 accumulatedBlur = vec4(0.0);
     for(int i = 0; i < 9; i++)
     {
-        result += blurredSamples3x3[i] * (2.0 / 3.0);
+        accumulatedBlur += blurredSamples3x3[i] * (2.0 / 3.0);
     }
     for(int i = 0; i < 25; i++)
     {
-        result += blurredSamples5x5[i] * (0.7 / 3.0);
+        accumulatedBlur += blurredSamples5x5[i] * (0.7 / 3.0);
     }
     for(int i = 0; i < 49; i++)
     {
-        result += blurredSamples7x7[i] * (0.3 / 3.0);
+        accumulatedBlur += blurredSamples7x7[i] * (0.3 / 3.0);
     }
 
-    const vec3 color = texture(fbTexture0, TexCoord).rgb + result;
-	return vec4(color, 1.0);
+    const vec4 result = color + accumulatedBlur;
+	return result;
 }
 
-vec3 MeanBlur()
+vec4 MeanBlur()
 {
+    const vec4 color = texture(fbTexture0, TexCoord);
+    // if (color.a == 0.0) discard; // Process only pixels that have a non zero alpha.
+
     vec2 texelSize = 1.0 / textureSize(fbTexture1, 0);
     vec3 blurredSamples[meanBlurMatrixOrder * meanBlurMatrixOrder];
 
@@ -119,17 +125,17 @@ vec3 MeanBlur()
         }   
     }
 
-    vec3 result = vec3(0.0);
+    vec3 accumulatedBlur = vec3(0.0);
     for(int i = 0; i < meanBlurMatrixOrder * meanBlurMatrixOrder; i++)
     {
-        result += blurredSamples[i];
+        accumulatedBlur += blurredSamples[i];
     }
 
-    const vec3 color = texture(fbTexture0, TexCoord).rgb + result;
-	return color;
+    const vec3 result = color.rgb + accumulatedBlur;
+	return vec4(result, color.a);
 }
 
 void main()
 {
-    FragColor = vec4(ExtendedReinhard(MeanBlur(), 1.0), 1.0);
+    FragColor = MeanBlur();
 }

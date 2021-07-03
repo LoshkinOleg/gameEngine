@@ -62,7 +62,8 @@ namespace gl
         void DeleteTEX(unsigned int gpuName);
         void DeletePROGRAM(unsigned int gpuName);
 
-        static std::vector<ObjData> ReadObj(std::string_view path);
+        // TODO: add option to load obj normals instead of generating them, add o
+        static std::vector<ObjData> ReadObj(std::string_view path, bool generateOwnNormals = true, bool flipNormals = false, bool reverseWindingOrder = false);
         /*
         @brief: This function returns a list of per mesh materials with material related data filled out. Use it to avoid having repetitive sections in a Program::Init().
         */

@@ -178,7 +178,7 @@ gl::Camera& gl::ResourceManager::GetCamera()
     return camera_;
 }
 
-std::vector<gl::ResourceManager::ObjData> gl::ResourceManager::ReadObj(std::string_view path)
+std::vector<gl::ResourceManager::ObjData> gl::ResourceManager::ReadObj(std::string_view path, bool generateOwnNormals, bool flipNormals, bool reverseWindingOrder)
 {
     std::vector<ObjData> returnVal;
 
@@ -275,21 +275,50 @@ std::vector<gl::ResourceManager::ObjData> gl::ResourceManager::ReadObj(std::stri
                 F * (deltaUv1.y * deltaPos0.z - deltaUv0.y * deltaPos1.z)
             ));
 
-            const glm::vec3 normal = glm::normalize(glm::cross(deltaPos0, deltaPos1));
-
-            positions.push_back(pos0);
+            positions.push_back(reverseWindingOrder ? pos2 : pos0);
             positions.push_back(pos1);
-            positions.push_back(pos2);
-            texcoords.push_back(uv0);
+            positions.push_back(reverseWindingOrder ? pos0 : pos2);
+            texcoords.push_back(reverseWindingOrder ? uv2 : uv0);
             texcoords.push_back(uv1);
-            texcoords.push_back(uv2);
-            normals.push_back(normal);
-            normals.push_back(normal);
-            normals.push_back(normal);
+            texcoords.push_back(reverseWindingOrder ? uv0 : uv2);
             tangents.push_back(tangent);
             tangents.push_back(tangent);
             tangents.push_back(tangent);
 
+            if (generateOwnNormals)
+            {
+                const glm::vec3 normal = glm::normalize(glm::cross(deltaPos0, deltaPos1));
+                normals.push_back(flipNormals ? -normal : normal);
+                normals.push_back(flipNormals ? -normal : normal);
+                normals.push_back(flipNormals ? -normal : normal);
+            }
+            else // Load obj normals.
+            {
+                // Make sure obj has normals data if we're not generating our own.
+                assert(idx0.normal_index > -1 && idx1.normal_index > -1 && idx2.normal_index > -1);
+
+                const glm::vec3 normal0 =
+                {
+                    attrib.normals[3 * size_t(idx0.normal_index) + 0],
+                    attrib.normals[3 * size_t(idx0.normal_index) + 1],
+                    attrib.normals[3 * size_t(idx0.normal_index) + 2]
+                };
+                const glm::vec3 normal1 =
+                {
+                    attrib.normals[3 * size_t(idx1.normal_index) + 0],
+                    attrib.normals[3 * size_t(idx1.normal_index) + 1],
+                    attrib.normals[3 * size_t(idx1.normal_index) + 2]
+                };
+                const glm::vec3 normal2 =
+                {
+                    attrib.normals[3 * size_t(idx2.normal_index) + 0],
+                    attrib.normals[3 * size_t(idx2.normal_index) + 1],
+                    attrib.normals[3 * size_t(idx2.normal_index) + 2]
+                };
+                normals.push_back(flipNormals ? -normal0 : normal0);
+                normals.push_back(flipNormals ? -normal1 : normal1);
+                normals.push_back(flipNormals ? -normal2 : normal2);
+            }
         }
 
         // Process material.

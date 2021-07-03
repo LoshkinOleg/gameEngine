@@ -90,8 +90,8 @@ namespace gl
             Material::Definition matdef;
             matdef.shader.vertexPath = "../data/shaders/hello_deferred_quad.vert";
             matdef.shader.fragmentPath = "../data/shaders/hello_deferred_quad.frag";
-            matdef.shader.staticInts.insert({ FRAMEBUFFER_SAMPLER0_NAME, FRAMEBUFFER_TEXTURE0_UNIT }); // Positions
-            matdef.shader.staticInts.insert({ FRAMEBUFFER_SAMPLER1_NAME, FRAMEBUFFER_TEXTURE1_UNIT }); // Albedo + Specular multiplier
+            matdef.shader.staticInts.insert({ FRAMEBUFFER_SAMPLER0_NAME, FRAMEBUFFER_TEXTURE0_UNIT }); // Albedo
+            matdef.shader.staticInts.insert({ FRAMEBUFFER_SAMPLER1_NAME, FRAMEBUFFER_TEXTURE1_UNIT }); // Positions
             matdef.shader.staticInts.insert({ FRAMEBUFFER_SAMPLER2_NAME, FRAMEBUFFER_TEXTURE2_UNIT }); // Normals
             matdef.shader.dynamicVec3s.insert({VIEW_POSITION_NAME, resourceManager_.GetCamera().GetPositionPtr()});
 
@@ -130,13 +130,13 @@ namespace gl
             glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            // TODO: find a way around glitchy clear color.
-
+            // Draw model on Gbuffer.
             fb_.Bind();
-            skybox_.Draw();
             model_.Draw();
+            skybox_.Draw();
             fb_.Unbind();
 
+            // Draw the Gbuffer to backbuffer for areas of the Gbuffer that have data.
             fb_.BindGBuffer();
             displayQuad_.Draw();
             fb_.UnbindGBuffer();

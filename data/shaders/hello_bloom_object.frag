@@ -27,7 +27,7 @@ in VS_OUT {
 
 uniform Material material;
 
-uniform float lightMultiplier = 1.0f;
+uniform float lightMultiplier = 15.0;
 
 void main()
 {
@@ -35,13 +35,16 @@ void main()
     vec3 normal = texture(material.normalMap, fs_in.TexCoords).rgb;
     // transform normal vector to range [-1,1]
     normal = normalize(normal * 2.0 - 1.0);  // this normal is in tangent space
-   
+    
+    const vec3 color = texture(material.diffuseMap, fs_in.TexCoords).rgb;
+    const float alpha = texture(material.alphaMap, fs_in.TexCoords).r;
+
     // ambient
     const float ambientIntensity = 0.1;
-    vec4 ambient = vec4((ambientIntensity * texture(material.ambientMap, fs_in.TexCoords).rgb) , texture(material.alphaMap, fs_in.TexCoords).r);
+    vec3 ambient = ambientIntensity * color;
     // diffuse
     float diffuseIntensity = max(dot(-fs_in.TangentLightDir, normal), 0.0);
-    vec4 diffuse = vec4((diffuseIntensity * texture(material.diffuseMap, fs_in.TexCoords).rgb), texture(material.alphaMap, fs_in.TexCoords).r);
+    vec3 diffuse = diffuseIntensity * color;
     diffuse *= lightMultiplier;
 
     // specular
@@ -50,11 +53,12 @@ void main()
     vec3 halfwayDir = normalize(-fs_in.TangentLightDir + viewDir);  
     float spec = pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
 
-    vec4 specular = vec4((texture(material.specularMap, fs_in.TexCoords).rgb * spec), texture(material.alphaMap, fs_in.TexCoords).r);
+    vec3 specular = spec * texture(material.specularMap, fs_in.TexCoords).rgb;
     specular *= lightMultiplier;
 
-    FragColor = ambient + diffuse + specular;
+    FragColor.rgb = ambient + diffuse + specular;
+    FragColor.a = alpha;
     
     const float brightness = dot(FragColor.rgb, vec3(0.2126, 0.7152, 0.0722));
-    BrightColor = brightness > 1.0 ? FragColor : vec4(0.0, 0.0, 0.0, 1.0);
+    BrightColor = brightness > 1.0 ? FragColor : vec4(0.0, 0.0, 0.0, 0.0);
 }

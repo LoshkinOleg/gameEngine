@@ -19,12 +19,17 @@ void gl::Framebuffer::Create(Definition def)
     CheckGlError();
 
     // I think FBO_DEPTH and RGBA0 uses the same attachment slot?
-    assert(!(def.type & Framebuffer::Type::FBO_DEPTH0 && def.type & Framebuffer::Type::FBO_RGBA0));
 
-    if (def.type & Type::FBO_DEPTH0)
+    if (def.type & Type::FBO_DEPTH0_NO_DRAW)
     {
+        assert(
+            !(def.type & Type::FBO_RGBA0) && // Don't want to draw anything if we're using a shadowmap.
+            !(def.type & Type::FBO_RGBA1) &&
+            !(def.type & Type::FBO_RGBA2) &&
+            !(def.type & Type::FBO_RGBA3)
+        );
+
         CheckGlError();
-        assert((int)def.type & (int)Type::NO_DRAW);
         TEXs_.push_back(0);
         glGenTextures(1, &TEXs_.back());
         glBindTexture(GL_TEXTURE_2D, TEXs_.back());
@@ -36,10 +41,14 @@ void gl::Framebuffer::Create(Definition def)
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, TEXs_.back(), 0);
         glBindTexture(GL_TEXTURE_2D, 0);
         CheckGlError();
+        GLenum drawBuffers = GL_NONE;
+        glDrawBuffers(1, &drawBuffers);
+        glReadBuffer(GL_NONE);
+        CheckGlError();
     }
 
     std::vector<unsigned int> attachments;
-    for (size_t colorAttachment = 0; colorAttachment < 4; colorAttachment++) // Max 4 color attachments.
+    for (size_t colorAttachment = 0; colorAttachment < 4; colorAttachment++) // Max 4 color attachments, either a drawable ones or non drawable ones.
     {
         if (def.type & (Type::FBO_RGBA0 << colorAttachment))
         {
@@ -65,17 +74,10 @@ void gl::Framebuffer::Create(Definition def)
             CheckGlError();
         }
     }
+    assert(attachments.size() < 5); // 4 color attachments max.
     glDrawBuffers(attachments.size(), attachments.data());
+    // glReadBuffer(GL_NONE);
     CheckGlError();
-
-    if (def.type & Type::NO_DRAW)
-    {
-        CheckGlError();
-        GLenum drawBuffers = GL_NONE;
-        glDrawBuffers(1, &drawBuffers);
-        glReadBuffer(GL_NONE);
-        CheckGlError();
-    }
 
     if (def.type & Type::RBO)
     {
@@ -113,12 +115,10 @@ void gl::Framebuffer::Resize(std::array<size_t, 2> newResolution)
 
 void gl::Framebuffer::Bind() const
 {
-    // TODO: come up with a better name for the function...
     CheckGlError();
-    // glCullFace(GL_FRONT);
     glViewport(0, 0, defCopy_.resolution[0], defCopy_.resolution[1]);
     glBindFramebuffer(GL_FRAMEBUFFER, FBO_);
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f); // We want all framebuffer values set to 0,0,0,0 set by default. Especially the last one since that's used to determine whether the quad should be drawn or the background.
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     CheckGlError();
 }
@@ -147,10 +147,9 @@ void gl::Framebuffer::UnbindGBuffer() const
 void gl::Framebuffer::Unbind(const std::array<size_t, 2> screenResolution) const
 {
     CheckGlError();
-    // glCullFace(GL_BACK);
     glViewport(0, 0, screenResolution[0], screenResolution[1]);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
+    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     CheckGlError();
 }

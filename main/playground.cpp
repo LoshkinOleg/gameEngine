@@ -9,6 +9,7 @@
 #include "engine.h"
 #include "model.h"
 #include "framebuffer.h"
+#include "skybox.h"
 #include "resource_manager.h"
 
 namespace gl
@@ -21,6 +22,8 @@ namespace gl
         {
             glEnable(GL_DEPTH_TEST);
             glEnable(GL_CULL_FACE);
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
             // Model creation.
             {
@@ -49,8 +52,8 @@ namespace gl
                 };
 
                 Material::Definition matdef = ResourceManager::PreprocessMaterialData(objData)[0];
-                matdef.shader.vertexPath = "../data/shaders/illum2.vert";
-                matdef.shader.fragmentPath = "../data/shaders/illum2.frag";
+                matdef.shader.vertexPath = "../data/shaders/hello_bloom_object.vert";
+                matdef.shader.fragmentPath = "../data/shaders/hello_bloom_object.frag";
                 matdef.shader.dynamicMat4s.insert({ CAMERA_MARIX_NAME, resourceManager_.GetCamera().GetCameraMatrixPtr() });
                 matdef.shader.dynamicVec3s.insert({VIEW_POSITION_NAME, resourceManager_.GetCamera().GetPositionPtr()});
 
@@ -61,6 +64,24 @@ namespace gl
 
                 model_.Create({ vbdef }, { matdef }, transformModels);
             }
+
+            VertexBuffer::Definition vbdef;
+            vbdef.data = QUAD_POSITIONS;
+            vbdef.dataLayout = {2};
+
+            Material::Definition matdef;
+            matdef.shader.vertexPath = "../data/shaders/hello_bloom_kernel.vert";
+            matdef.shader.fragmentPath = "../data/shaders/hello_bloom_kernel.frag";
+            matdef.shader.staticInts.insert({FRAMEBUFFER_SAMPLER0_NAME, FRAMEBUFFER_TEXTURE0_UNIT});
+            matdef.shader.staticInts.insert({FRAMEBUFFER_SAMPLER1_NAME, FRAMEBUFFER_TEXTURE1_UNIT});
+
+            quad_.Create({ vbdef }, {matdef});
+
+            Framebuffer::Definition fbdef;
+            fbdef.type = (Framebuffer::Type)(Framebuffer::Type::FBO_RGBA0 | Framebuffer::Type::FBO_RGBA1 | Framebuffer::Type::RBO);
+            fb_.Create(fbdef);
+
+            skybox_.Create({});
         }
         void Update(seconds dt) override
         {
@@ -68,7 +89,14 @@ namespace gl
             glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+            fb_.Bind();
             model_.Draw();
+            skybox_.Draw();
+            fb_.Unbind();
+
+            fb_.BindGBuffer();
+            quad_.Draw();
+            fb_.UnbindGBuffer();
         }
         void Destroy() override
         {
@@ -132,7 +160,9 @@ namespace gl
     private:
         float timer_ = 0.0f;
         bool mouseButtonDown_ = false;
-        Model model_;
+        Model model_, quad_;
+        Skybox skybox_;
+        Framebuffer fb_;
         ResourceManager& resourceManager_ = ResourceManager::Get();
     };
 

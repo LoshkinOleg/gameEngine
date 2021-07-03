@@ -7,7 +7,7 @@ layout (location = 3) in vec3 aTangent;
 layout (location = 4) in mat4 aModel;
 
 out VS_OUT {
-    vec4 w_FragPos;
+    vec3 w_FragPos;
     vec2 TexCoords;
     vec3 w_Normal;
     vec3 w_Tangent;
@@ -25,10 +25,10 @@ void main()
     vec3 B = cross(N, T);
     vs_out.TangentToWorld = mat3(T, B, N);
 
-    vs_out.w_FragPos = aModel * vec4(aPos, 1.0);   
+    vs_out.w_FragPos = (aModel * vec4(aPos, 1.0)).rgb;   
     vs_out.TexCoords = aTexCoord;
     vs_out.w_Normal = N;
     vs_out.w_Tangent = T;
 
-    gl_Position = cameraMatrix * vs_out.w_FragPos;
+    gl_Position = cameraMatrix * vec4(vs_out.w_FragPos, 1.0);
 }
