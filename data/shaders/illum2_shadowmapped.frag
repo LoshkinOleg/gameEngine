@@ -3,24 +3,20 @@ out vec4 FragColor;
 
 in VS_OUT
 {
-	vec3 FragPos;
-	vec4 LightSpaceFragPos;
-    vec3 TangentFragPos;
-    vec3 LightDir;
-	vec3 TangentLightDir;
-    vec3 ViewPos;
-    vec3 TangentViewPos;
-	vec2 TexCoords;
-	vec3 Normal;
+    vec2 TexCoords;
+	vec3 t_FragPos;
+	vec4 l_FragPos;
+	vec3 t_LightDir;
+	vec3 t_ViewPos;
 } fs_in;
 
 struct Material
 {
-    sampler2D ambientMap;
     sampler2D alphaMap;
+    sampler2D normalMap;
+    sampler2D ambientMap;
     sampler2D diffuseMap;
     sampler2D specularMap;
-    sampler2D normalMap;
     float shininess;
 };
 
@@ -75,17 +71,17 @@ void main()
     const float ambientIntensity = 0.2;
     vec4 ambient = vec4((ambientIntensity * texture(material.ambientMap, fs_in.TexCoords).rgb) , alpha);
     // diffuse
-    float diffuseIntensity = max(dot(-fs_in.TangentLightDir, normal), 0.0);
+    float diffuseIntensity = max(dot(-fs_in.t_LightDir, normal), 0.0);
     vec4 diffuse = vec4((diffuseIntensity * texture(material.diffuseMap, fs_in.TexCoords).rgb), alpha);
 
     // specular
-    vec3 viewDir = normalize(fs_in.TangentViewPos - fs_in.TangentFragPos);
-    vec3 reflectDir = reflect(fs_in.TangentLightDir, normal);
-    vec3 halfwayDir = normalize(-fs_in.TangentLightDir + viewDir);  
+    vec3 viewDir = normalize(fs_in.t_ViewPos - fs_in.t_FragPos);
+    vec3 reflectDir = reflect(fs_in.t_LightDir, normal);
+    vec3 halfwayDir = normalize(-fs_in.t_LightDir + viewDir);
     float spec = pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
     vec4 specular = vec4((texture(material.specularMap, fs_in.TexCoords).rgb * spec), alpha);
 
-    float directShadow = ShadowCalculation(fs_in.LightSpaceFragPos);
+    float directShadow = ShadowCalculation(fs_in.l_FragPos);
 
     FragColor = ambient + directShadow * (diffuse + specular);
 }

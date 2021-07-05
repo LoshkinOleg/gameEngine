@@ -116,23 +116,13 @@ void gl::Model::Draw(bool drawAll)
     }
 }
 
-void gl::Model::DrawSingle()
-{
-    // TODO: update this code
-    abort();
-    meshes_[0].DrawSingle();
-}
-
 void gl::Model::DrawUsingShader(Shader& shader)
 {
-    // TODO: update this code
-    abort();
     glBindBuffer(GL_ARRAY_BUFFER, modelMatricesVBO_);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::mat4) * modelMatrices_.size(), (void*)&modelMatrices_[0][0]);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
     for (size_t i = 0; i < meshes_.size(); i++)
     {
-        meshes_[i].DrawUsingShader(shader, (int)modelMatrices_.size());
+        meshes_[i].DrawUsingShader(modelMatrices_, shader);
     }
 }
 

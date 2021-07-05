@@ -14,7 +14,6 @@ namespace gl
         void Create(std::vector<VertexBuffer::Definition> vb, std::vector<Material::Definition> mat, std::vector<glm::mat4> modelMatrices = { IDENTITY_MAT4 });
 
         void Draw(bool drawAll = false);
-        void DrawSingle();
         void DrawUsingShader(Shader& shader);
 
         void Translate(glm::vec3 v, size_t modelMatrixIndex = 0);
