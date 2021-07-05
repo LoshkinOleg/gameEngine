@@ -10,8 +10,12 @@ namespace gl
 {
 	// Window parameters.
 	const float SCREEN_RESOLUTION[2] = { 1024.0f, 720.0f };
-	const glm::mat4 PERSPECTIVE = glm::perspective(glm::radians(45.0f), SCREEN_RESOLUTION[0] / SCREEN_RESOLUTION[1], 0.1f, 100.0f);
-	const glm::mat4 ORTHO = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.0f, 100.0f);
+	const float PROJECTION_NEAR = 0.1f;
+	const float PROJECTION_FAR = 100.0f;
+	const float PROJECTION_FOV = glm::radians(45.0f);
+	const float PROJECTION_BOUNDS = 10.0f;
+	const glm::mat4 PERSPECTIVE = glm::perspective(PROJECTION_FOV, SCREEN_RESOLUTION[0] / SCREEN_RESOLUTION[1], PROJECTION_NEAR, PROJECTION_FAR);
+	const glm::mat4 ORTHO = glm::ortho(-PROJECTION_BOUNDS, PROJECTION_BOUNDS, -PROJECTION_BOUNDS, PROJECTION_BOUNDS, PROJECTION_NEAR, PROJECTION_FAR);
 
 	// Error and warning aliases.
 #ifndef glErrorGuard

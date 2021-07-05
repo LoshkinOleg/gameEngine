@@ -33,6 +33,22 @@ const glm::vec3* gl::Camera::GetPositionPtr() const
 {
     return &state_.position;
 }
+glm::vec3 gl::Camera::GetPosition() const
+{
+    return state_.position;
+}
+glm::vec3 gl::Camera::GetRight() const
+{
+    return state_.right;
+}
+glm::vec3 gl::Camera::GetUp() const
+{
+    return state_.up;
+}
+glm::vec3 gl::Camera::GetFront() const
+{
+    return state_.front;
+}
 void gl::Camera::Create(Definition def)
 {
     // NOTE: no checking for duplicates of cameras, we don't mind them having identical data.

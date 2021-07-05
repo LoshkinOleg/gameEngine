@@ -42,6 +42,11 @@ namespace gl {
         const glm::mat4* GetViewMatrixPtr(); // NOTE: this is needed for skybox since it needs to multiply projection * mat3(view)...
         const glm::vec3* GetPositionPtr() const;
 
+        glm::vec3 GetPosition() const;
+        glm::vec3 GetRight() const;
+        glm::vec3 GetUp() const;
+        glm::vec3 GetFront() const;
+
 	private:
 
         void UpdateCameraVectors();
