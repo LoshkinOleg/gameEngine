@@ -1,5 +1,9 @@
 #pragma once
 
+#include <vector>
+
+#include <glm/glm.hpp>
+
 #include "vertex_buffer.h"
 #include "material.h"
 #include "defines.h"
@@ -11,7 +15,7 @@ namespace gl
     public:
         void Create(VertexBuffer vb, Material mat);
 
-        void Draw(int nrOfInstances = 1);
+        void Draw(const std::vector<glm::mat4>& modelMatrices);
         void DrawSingle();
         void DrawUsingShader(Shader& shader, int nrOfInstances = 1);
     private:

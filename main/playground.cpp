@@ -151,47 +151,47 @@ namespace gl
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             // Reflection pass.
-            // fb_[0].Bind();
-            // probeViewMatrix_ = glm::lookAt(glm::vec3(-1.0f, 0.0f, 0.0f), ZERO_VEC3, UP_VEC3);
-            // modelReflection_.Draw();
-            // skybox_.Draw();
-            // fb_[0].Unbind();
-            // 
-            // fb_[1].Bind();
-            // probeViewMatrix_ = glm::lookAt(glm::vec3(1.0f, 0.0f, 0.0f), ZERO_VEC3, UP_VEC3);
-            // modelReflection_.Draw();
-            // skybox_.Draw();
-            // fb_[1].Unbind();
-            // 
-            // fb_[2].Bind();
-            // probeViewMatrix_ = glm::lookAt(glm::vec3(0.0f, -1.0f, 0.0f), ZERO_VEC3, FRONT_VEC3);
-            // modelReflection_.Draw();
-            // skybox_.Draw();
-            // fb_[2].Unbind();
-            // 
-            // fb_[3].Bind();
-            // probeViewMatrix_ = glm::lookAt(glm::vec3(0.0f, 1.0f, 0.0f), ZERO_VEC3, FRONT_VEC3);
-            // modelReflection_.Draw();
-            // skybox_.Draw();
-            // fb_[3].Unbind();
-            // 
-            // fb_[4].Bind();
-            // probeViewMatrix_ = glm::lookAt(glm::vec3(0.0f, 0.0f, -1.0f), ZERO_VEC3, UP_VEC3);
-            // modelReflection_.Draw();
-            // skybox_.Draw();
-            // fb_[4].Unbind();
-            // 
-            // fb_[5].Bind();
-            // probeViewMatrix_ = glm::lookAt(glm::vec3(0.0f, 0.0f, 1.0f), ZERO_VEC3, UP_VEC3);
-            // modelReflection_.Draw();
-            // skybox_.Draw();
-            // fb_[5].Unbind();
+            fb_[0].Bind();
+            probeViewMatrix_ = glm::lookAt(glm::vec3(-1.0f, 0.0f, 0.0f), ZERO_VEC3, UP_VEC3);
+            modelReflection_.Draw();
+            skybox_.Draw();
+            fb_[0].Unbind();
+            
+            fb_[1].Bind();
+            probeViewMatrix_ = glm::lookAt(glm::vec3(1.0f, 0.0f, 0.0f), ZERO_VEC3, UP_VEC3);
+            modelReflection_.Draw();
+            skybox_.Draw();
+            fb_[1].Unbind();
+            
+            fb_[2].Bind();
+            probeViewMatrix_ = glm::lookAt(glm::vec3(0.0f, -1.0f, 0.0f), ZERO_VEC3, FRONT_VEC3);
+            modelReflection_.Draw();
+            skybox_.Draw();
+            fb_[2].Unbind();
+            
+            fb_[3].Bind();
+            probeViewMatrix_ = glm::lookAt(glm::vec3(0.0f, 1.0f, 0.0f), ZERO_VEC3, FRONT_VEC3);
+            modelReflection_.Draw();
+            skybox_.Draw();
+            fb_[3].Unbind();
+            
+            fb_[4].Bind();
+            probeViewMatrix_ = glm::lookAt(glm::vec3(0.0f, 0.0f, -1.0f), ZERO_VEC3, UP_VEC3);
+            modelReflection_.Draw();
+            skybox_.Draw();
+            fb_[4].Unbind();
+            
+            fb_[5].Bind();
+            probeViewMatrix_ = glm::lookAt(glm::vec3(0.0f, 0.0f, 1.0f), ZERO_VEC3, UP_VEC3);
+            modelReflection_.Draw();
+            skybox_.Draw();
+            fb_[5].Unbind();
 
             // Render onto backbuffer.
 
-            // skybox_.Draw();
+            skybox_.Draw();
             modelReal_.Draw();
-            // modelReflective_.Draw();
+            modelReflective_.Draw();
         }
         void Destroy() override
         {
