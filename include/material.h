@@ -16,8 +16,6 @@ namespace gl
         {
             Shader::Definition shader = {};
             std::vector<std::pair<std::string, Texture::Type>> texturePathsAndTypes = {};
-            bool flipImages = DEFAULT_FLIP_IMAGES;
-            bool correctGamma = DEFAULT_CORRECT_GAMMA;
         };
 
         void Create(Definition def);

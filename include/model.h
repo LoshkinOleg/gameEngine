@@ -13,7 +13,7 @@ namespace gl
         // TODO: the passing of the uniform scale is a hack. You'd get wierd frustum culling behaviour if you forget to pass it or if different instances have different scales.
         void Create(std::vector<VertexBuffer::Definition> vb, std::vector<Material::Definition> mat, std::vector<glm::mat4> modelMatrices = { IDENTITY_MAT4 }, const float uniformScale = 1.0f);
 
-        void Draw(bool bypassFrustumCulling = false);
+        void Draw(bool bypassFrustumCulling = false, const size_t transformModelOffset = MODEL_MATRIX_LOCATION);
         void DrawUsingShader(Shader& shader);
 
         void Translate(glm::vec3 v, size_t modelMatrixIndex = 0);

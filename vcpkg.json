@@ -4,6 +4,7 @@
     "dependencies":
     [
         "glm",
+		"gli",
         "sdl2",
 		"tinyobjloader",
 		"xxhash",

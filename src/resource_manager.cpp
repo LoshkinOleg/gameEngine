@@ -267,7 +267,9 @@ std::vector<gl::ResourceManager::ObjData> gl::ResourceManager::ReadObj(std::stri
             const glm::vec2 deltaUv0 = uv1 - uv0;
             const glm::vec2 deltaUv1 = uv2 - uv1;
 
-            const float F = 1.0f / (deltaUv0.x * deltaUv1.y - deltaUv1.x * deltaUv0.y);
+            const float denom = (deltaUv0.x * deltaUv1.y - deltaUv1.x * deltaUv0.y);
+            assert(denom != 0.0f);
+            const float F = 1.0f / denom;
             const glm::vec3 tangent = glm::normalize(glm::vec3
             (
                 F * (deltaUv1.y * deltaPos0.x - deltaUv0.y * deltaPos1.x),

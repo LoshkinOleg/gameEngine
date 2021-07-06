@@ -25,7 +25,7 @@ void gl::Model::Create(std::vector<VertexBuffer::Definition> vb, std::vector<Mat
     }
 }
 
-void gl::Model::Draw(bool bypassFrustumCulling)
+void gl::Model::Draw(bool bypassFrustumCulling, const size_t transformModelOffset)
 {
     if (!bypassFrustumCulling)
     {
@@ -102,7 +102,7 @@ void gl::Model::Draw(bool bypassFrustumCulling)
             glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::mat4) * modelMatricesToDraw.size(), (void*)&modelMatricesToDraw[0][0]);
             for (size_t i = 0; i < meshes_.size(); i++)
             {
-                meshes_[i].Draw(modelMatricesToDraw);
+                meshes_[i].Draw(modelMatricesToDraw, transformModelOffset);
             }
         }
     }
@@ -112,7 +112,7 @@ void gl::Model::Draw(bool bypassFrustumCulling)
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::mat4) * modelMatrices_.size(), (void*)&modelMatrices_[0][0]);
         for (size_t i = 0; i < meshes_.size(); i++)
         {
-            meshes_[i].Draw(modelMatrices_);
+            meshes_[i].Draw(modelMatrices_, transformModelOffset);
         }
     }
 }

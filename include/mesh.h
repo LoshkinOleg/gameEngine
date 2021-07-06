@@ -15,7 +15,7 @@ namespace gl
     public:
         void Create(const VertexBuffer::Definition vbdef, const Material::Definition matdef, const float uniformScale = 1.0f);
 
-        void Draw(const std::vector<glm::mat4>& modelMatrices);
+        void Draw(const std::vector<glm::mat4>& modelMatrices, size_t transformModelOffset = MODEL_MATRIX_LOCATION);
         void DrawUsingShader(const std::vector<glm::mat4>& modelMatrices, Shader& shader);
 
         float GetBoundingSphereRadius() const;

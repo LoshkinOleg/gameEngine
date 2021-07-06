@@ -37,24 +37,24 @@ void gl::Mesh::Create(const VertexBuffer::Definition vbdef, const Material::Defi
     CheckGlError();
 }
 
-void gl::Mesh::Draw(const std::vector<glm::mat4>& modelMatrices)
+void gl::Mesh::Draw(const std::vector<glm::mat4>& modelMatrices, size_t transformModelOffset)
 {
     const auto& vaoAndVbo = vb_.GetVAOandVBO();
     glBindVertexArray(vaoAndVbo[0]);
 
     // Update pointers here in case multiple models use the same VAO/VBO.
-    glEnableVertexAttribArray(MODEL_MATRIX_LOCATION);
-    glVertexAttribPointer(MODEL_MATRIX_LOCATION, 4, GL_FLOAT, GL_FALSE, 4 * 4 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(MODEL_MATRIX_LOCATION + 1);
-    glVertexAttribPointer(MODEL_MATRIX_LOCATION + 1, 4, GL_FLOAT, GL_FALSE, 4 * 4 * sizeof(float), (void*)(4 * sizeof(float)));
-    glEnableVertexAttribArray(MODEL_MATRIX_LOCATION + 2);
-    glVertexAttribPointer(MODEL_MATRIX_LOCATION + 2, 4, GL_FLOAT, GL_FALSE, 4 * 4 * sizeof(float), (void*)(2 * 4 * sizeof(float)));
-    glEnableVertexAttribArray(MODEL_MATRIX_LOCATION + 3);
-    glVertexAttribPointer(MODEL_MATRIX_LOCATION + 3, 4, GL_FLOAT, GL_FALSE, 4 * 4 * sizeof(float), (void*)(3 * 4 * sizeof(float)));
-    glVertexAttribDivisor(MODEL_MATRIX_LOCATION, 1);
-    glVertexAttribDivisor(MODEL_MATRIX_LOCATION + 1, 1);
-    glVertexAttribDivisor(MODEL_MATRIX_LOCATION + 2, 1);
-    glVertexAttribDivisor(MODEL_MATRIX_LOCATION + 3, 1);
+    glEnableVertexAttribArray(transformModelOffset);
+    glVertexAttribPointer(transformModelOffset, 4, GL_FLOAT, GL_FALSE, 4 * 4 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(transformModelOffset + 1);
+    glVertexAttribPointer(transformModelOffset + 1, 4, GL_FLOAT, GL_FALSE, 4 * 4 * sizeof(float), (void*)(4 * sizeof(float)));
+    glEnableVertexAttribArray(transformModelOffset + 2);
+    glVertexAttribPointer(transformModelOffset + 2, 4, GL_FLOAT, GL_FALSE, 4 * 4 * sizeof(float), (void*)(2 * 4 * sizeof(float)));
+    glEnableVertexAttribArray(transformModelOffset + 3);
+    glVertexAttribPointer(transformModelOffset + 3, 4, GL_FLOAT, GL_FALSE, 4 * 4 * sizeof(float), (void*)(3 * 4 * sizeof(float)));
+    glVertexAttribDivisor(transformModelOffset, 1);
+    glVertexAttribDivisor(transformModelOffset + 1, 1);
+    glVertexAttribDivisor(transformModelOffset + 2, 1);
+    glVertexAttribDivisor(transformModelOffset + 3, 1);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);

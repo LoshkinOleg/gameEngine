@@ -77,11 +77,7 @@ void gl::Skybox::Create(Definition def)
     }
     shader_.Create(def.shader);
 
-    for (const auto& path : def.paths)
-    {
-        assert(!path.empty());
-    }
-    cubemap_.CreateCubemap(def.paths, def.flipImages, def.correctGamma);
+    cubemap_.Create(Texture::Type::CUBEMAP, def.path);
 }
 
 void gl::Skybox::Draw()

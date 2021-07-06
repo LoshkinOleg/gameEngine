@@ -11,6 +11,8 @@
 #include "skybox.h"
 #include "resource_manager.h"
 
+// TODO: fix the horse's UV's
+
 namespace gl
 {
     float RemapToRangeOne(const float inputRangeLower, const float inputRangeUpper, const float value)
@@ -97,6 +99,54 @@ namespace gl
                 floor_.Create({ vbdef }, {matdef}, modelMatrices, scale);
             }
 
+            // Load horse.
+            {
+                const auto objData0 = ResourceManager::ReadObj(dataPath + "models/horse/horse_default.obj");
+                const auto objData1 = ResourceManager::ReadObj(dataPath + "models/horse/horse_sphere.obj");
+                assert(objData0[0].positions.size() == objData1[0].positions.size());
+                VertexBuffer::Definition vbdef;
+                for (size_t i = 0; i < objData0[0].positions.size(); i++)
+                {
+                    vbdef.data.push_back(objData0[0].positions[i].x);
+                    vbdef.data.push_back(objData0[0].positions[i].y);
+                    vbdef.data.push_back(objData0[0].positions[i].z);
+                    vbdef.data.push_back(objData1[0].positions[i].x);
+                    vbdef.data.push_back(objData1[0].positions[i].y);
+                    vbdef.data.push_back(objData1[0].positions[i].z);
+
+                    vbdef.data.push_back(objData0[0].uvs[i].x);
+                    vbdef.data.push_back(objData0[0].uvs[i].y);
+
+                    vbdef.data.push_back(objData0[0].normals[i].x);
+                    vbdef.data.push_back(objData0[0].normals[i].y);
+                    vbdef.data.push_back(objData0[0].normals[i].z);
+                    vbdef.data.push_back(objData1[0].normals[i].x);
+                    vbdef.data.push_back(objData1[0].normals[i].y);
+                    vbdef.data.push_back(objData1[0].normals[i].z);
+
+                    vbdef.data.push_back(objData0[0].tangents[i].x);
+                    vbdef.data.push_back(objData0[0].tangents[i].y);
+                    vbdef.data.push_back(objData0[0].tangents[i].z);
+                    vbdef.data.push_back(objData1[0].tangents[i].x);
+                    vbdef.data.push_back(objData1[0].tangents[i].y);
+                    vbdef.data.push_back(objData1[0].tangents[i].z);
+                }
+                vbdef.dataLayout = { 3,3,2,3,3,3,3};
+
+                Material::Definition matdef = ResourceManager::PreprocessMaterialData(objData0)[0];
+                matdef.shader.vertexPath = dataPath + "shaders/horse.vert";
+                matdef.shader.fragmentPath = dataPath + "shaders/horse.frag";
+                matdef.shader.staticMat4s.insert({ PROJECTION_MARIX_NAME, PERSPECTIVE });
+                matdef.shader.dynamicMat4s.insert({ CAMERA_MARIX_NAME, resourceManager_.GetCamera().GetCameraMatrixPtr() });
+                matdef.shader.dynamicVec3s.insert({ VIEW_POSITION_NAME, resourceManager_.GetCamera().GetPositionPtr() });
+                // matdef.shader.dynamicFloats.insert({"interpolationFactor", &horseMorphingFactor_});
+
+                std::vector<glm::mat4> modelMatrices;
+                modelMatrices.push_back(glm::translate(IDENTITY_MAT4, FRONT_VEC3 * 7.0f));
+
+                horse_.Create({ vbdef }, { matdef }, modelMatrices);
+            }
+
             skybox_.Create(Skybox::Definition());
 
             camera_.SetPosition(UP_VEC3);
@@ -120,21 +170,27 @@ namespace gl
             if (fdt > SKIP_FRAME_THRESHOLD_) return;
             timer_ += fdt;
 
+            horseMorphingFactor_ = glm::cos(timer_) * 0.5f + 0.5f;
+
             glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            camera_.SetPosition(camera_.GetPosition() + BACK_VEC3 * dt.count());
-
-            for (const auto& region : regions_)
+            if (!CONTROL_CAMERA_)
             {
-                if (region.IsActive(timer_))
+                camera_.SetPosition(camera_.GetPosition() + BACK_VEC3 * dt.count());
+
+                for (const auto& region : regions_)
                 {
-                    region.Play();
-                    break;
+                    if (region.IsActive(timer_))
+                    {
+                        region.Play();
+                        break;
+                    }
                 }
             }
 
             floor_.Draw();
+            horse_.Draw(HORSE_MODEL_OFFSET_);
             skybox_.Draw();
         }
         void Destroy() override
@@ -204,15 +260,19 @@ namespace gl
         ResourceManager& resourceManager_ = ResourceManager::Get();
 
         Camera& camera_ = resourceManager_.GetCamera();
-        const bool CONTROL_CAMERA_ = false;
+        const bool CONTROL_CAMERA_ = true;
         const float SKIP_FRAME_THRESHOLD_ = 1.0f / 30.0f; // Prevents the camera from jumping forward suddently if there's a lag spike like when we start the program.
 
         std::vector<Region> regions_;
 
+        const size_t HORSE_MODEL_OFFSET_ = 3 + 3 + 2 + 3 + 3 + 3 + 3;
+        float horseMorphingFactor_ = 0.0f;
+
         Skybox skybox_;
 
         Model
-            floor_;
+            floor_,
+            horse_;
     };
 
 } // End namespace gl.

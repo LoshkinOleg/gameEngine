@@ -9,7 +9,6 @@ void gl::Material::Create(Definition def)
         EngineError("Calling Create() a second time...");
     }
 
-    // assert(def.texturePathsAndTypes.size() > 0); // We might actually want to create materials without textures. Like blank meshes
     for (const auto& pair : def.texturePathsAndTypes)
     {
         assert(!pair.first.empty() && (int)pair.second < (int)Texture::Type::INVALID);
@@ -18,25 +17,7 @@ void gl::Material::Create(Definition def)
     for (size_t i = 0; i < def.texturePathsAndTypes.size(); i++)
     {
         Texture tex;
-        if (def.texturePathsAndTypes[i].second != Texture::Type::CUBEMAP)
-        {
-            tex.CreateTexture2d(def.texturePathsAndTypes[i].second, def.texturePathsAndTypes[i].first, def.flipImages, def.correctGamma, true);
-        }
-        else
-        {
-            assert(def.texturePathsAndTypes.size() >= i + 6); // A cubemap needs 6 textures.
-            std::array<std::string_view, 6> paths =
-            {
-                def.texturePathsAndTypes[i].first,
-                def.texturePathsAndTypes[i + 1].first,
-                def.texturePathsAndTypes[i + 2].first,
-                def.texturePathsAndTypes[i + 3].first,
-                def.texturePathsAndTypes[i + 4].first,
-                def.texturePathsAndTypes[i + 5].first
-            };
-            tex.CreateCubemap(paths, def.flipImages, def.correctGamma);
-            i += 5;
-        }
+        tex.Create(def.texturePathsAndTypes[i].second, def.texturePathsAndTypes[i].first);
         textures_.push_back(tex);
     }
 
