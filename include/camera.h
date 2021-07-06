@@ -33,6 +33,7 @@ namespace gl {
         void Create(Definition def);
 
         void LookAt(const glm::vec3 pos, const glm::vec3 up = UP_VEC3);
+        void SetPosition(const glm::vec3 pos);
 
         void ProcessKeyboard(const glm::vec3 direction);
         void ProcessMouseMovement(int x, int y);

@@ -41,6 +41,7 @@ namespace gl
 	const glm::vec3 DOWN_VEC3 = glm::vec3(0.0f, -1.0f, 0.0f);
 	const glm::vec3 FRONT_VEC3 = glm::vec3(0.0f, 0.0f, 1.0f);
 	const glm::vec3 BACK_VEC3 = glm::vec3(0.0f, 0.0f, -1.0f);
+	const float PI = 3.14f;
 
 	// Common geometry.
 #ifndef QUAD_POSITIONS

@@ -5,25 +5,31 @@
 
 #include <glad/glad.h>
 
-void gl::Mesh::Create(const VertexBuffer::Definition vbdef, const Material::Definition matdef)
+void gl::Mesh::Create(const VertexBuffer::Definition vbdef, const Material::Definition matdef, const float uniformScale)
 {
     if (vb_.GetVAOandVBO()[0] != 0)
     {
         EngineError("Calling Create() a second time...");
     }
 
-    // Compute spherical bounds by using the distance to the furthest vertex of the mesh as a radius.
-    float furthestDistanceToVertex = 0.0f;
-    const size_t stride = (size_t)std::accumulate(vbdef.dataLayout.begin(), vbdef.dataLayout.end(), 0u);
-    // Assuming the very first element in vbdef.data is a position.
-    for (size_t vertex = 0; vertex < vbdef.data.size(); vertex += stride)
+    if (vbdef.generateBoundingSphereRadius)
     {
-        const glm::vec3 currentVertexPos = { vbdef.data[vertex], vbdef.data[vertex + 1], vbdef.data[vertex + 2] };
-        furthestDistanceToVertex = std::max(furthestDistanceToVertex, glm::length(currentVertexPos));
+        // Compute spherical bounds by using the distance to the furthest vertex of the mesh as a radius.
+        float furthestDistanceToVertex = 0.0f;
+        const size_t stride = (size_t)std::accumulate(vbdef.dataLayout.begin(), vbdef.dataLayout.end(), 0u);
+        // Assuming the very first element in vbdef.data is a position.
+        for (size_t vertex = 0; vertex < vbdef.data.size(); vertex += stride)
+        {
+            const glm::vec3 currentVertexPos = { vbdef.data[vertex], vbdef.data[vertex + 1], vbdef.data[vertex + 2] };
+            furthestDistanceToVertex = std::max(furthestDistanceToVertex, glm::length(currentVertexPos));
+        }
+        boundingSphereRadius_ = furthestDistanceToVertex;
     }
-    // Make sure we've actually computed something.
-    assert(furthestDistanceToVertex > 0.0f);
-    boundingSphereRadius_ = furthestDistanceToVertex;
+    else
+    {
+        boundingSphereRadius_ = 0.0f;
+    }
+    uniformScale_ = uniformScale;
 
     vb_.Create(vbdef);
     CheckGlError();
@@ -92,4 +98,9 @@ void gl::Mesh::DrawUsingShader(const std::vector<glm::mat4>& modelMatrices, Shad
 float gl::Mesh::GetBoundingSphereRadius() const
 {
     return boundingSphereRadius_;
+}
+
+float gl::Mesh::GetUniformScale() const
+{
+    return uniformScale_;
 }

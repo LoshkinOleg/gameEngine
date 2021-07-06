@@ -15,6 +15,7 @@ namespace gl
                 3 // Position 3D
             };
             std::vector<float> data = {};
+            bool generateBoundingSphereRadius = true;
         };
 
         void Create(Definition def);

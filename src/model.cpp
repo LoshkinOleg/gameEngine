@@ -6,7 +6,7 @@
 
 #include "resource_manager.h"
 
-void gl::Model::Create(std::vector<VertexBuffer::Definition> vb, std::vector<Material::Definition> mat, std::vector<glm::mat4> modelMatrices)
+void gl::Model::Create(std::vector<VertexBuffer::Definition> vb, std::vector<Material::Definition> mat, std::vector<glm::mat4> modelMatrices, const float uniformScale)
 {
     modelMatrices_ = modelMatrices;
 
@@ -20,14 +20,14 @@ void gl::Model::Create(std::vector<VertexBuffer::Definition> vb, std::vector<Mat
     for (size_t i = 0; i < vb.size(); i++)
     {
         meshes_.push_back(Mesh());
-        meshes_.back().Create(vb[i], mat[i]);
+        meshes_.back().Create(vb[i], mat[i], uniformScale);
         CheckGlError();
     }
 }
 
-void gl::Model::Draw(bool drawAll)
+void gl::Model::Draw(bool bypassFrustumCulling)
 {
-    if (!drawAll)
+    if (!bypassFrustumCulling)
     {
         // Cull off screen meshes.
         const float near = PROJECTION_NEAR;
@@ -50,10 +50,11 @@ void gl::Model::Draw(bool drawAll)
             {
                 glm::vec3 relativeMeshPosition = glm::vec3(modelMatrices_[i][3].x, modelMatrices_[i][3].y, modelMatrices_[i][3].z) - cameraPos;
                 const float boundingSphereRadius = meshes_[mesh].GetBoundingSphereRadius();
+                const float uniformScale = meshes_[mesh].GetUniformScale();
 
                 { // Front and back.
                     const float projection = glm::dot(front, relativeMeshPosition);
-                    if (projection < (near - boundingSphereRadius) || projection >(far + boundingSphereRadius))
+                    if (projection < (near - boundingSphereRadius * uniformScale) || projection >(far + boundingSphereRadius * uniformScale))
                     {
                         continue;
                     }
@@ -62,7 +63,7 @@ void gl::Model::Draw(bool drawAll)
                     // Q: @Elias: can you explain angleAxis function in detail?
                     const glm::vec3 normal = glm::angleAxis(fovX, up) * -right; // Normal to the left side of the frustum.
                     const float projection = glm::dot(normal, relativeMeshPosition);
-                    if (projection > boundingSphereRadius) // projection is positive, meaning the position is outside the frustrum on the left.
+                    if (projection > boundingSphereRadius * uniformScale) // projection is positive, meaning the position is outside the frustrum on the left.
                     {
                         continue;
                     }
@@ -70,7 +71,7 @@ void gl::Model::Draw(bool drawAll)
                 { // Right.
                     const glm::vec3 normal = glm::angleAxis(-fovX, up) * right;
                     const float projection = glm::dot(normal, relativeMeshPosition);
-                    if (projection > boundingSphereRadius)
+                    if (projection > boundingSphereRadius * uniformScale)
                     {
                         continue;
                     }
@@ -78,7 +79,7 @@ void gl::Model::Draw(bool drawAll)
                 { // Bottom.
                     const glm::vec3 normal = glm::angleAxis(fovY, -right) * -up;
                     const float projection = glm::dot(normal, relativeMeshPosition);
-                    if (projection > boundingSphereRadius)
+                    if (projection > boundingSphereRadius * uniformScale)
                     {
                         continue;
                     }
@@ -86,7 +87,7 @@ void gl::Model::Draw(bool drawAll)
                 { // Top.
                     const glm::vec3 normal = glm::angleAxis(-fovY, -right) * up;
                     const float projection = glm::dot(normal, relativeMeshPosition);
-                    if (projection > boundingSphereRadius)
+                    if (projection > boundingSphereRadius * uniformScale)
                     {
                         continue;
                     }

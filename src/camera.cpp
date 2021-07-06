@@ -83,6 +83,12 @@ void gl::Camera::LookAt(const glm::vec3 pos, const glm::vec3 up)
     if (state_.pitch < glm::radians(-89.0f)) state_.pitch = glm::radians(-89.0f);
 }
 
+void gl::Camera::SetPosition(const glm::vec3 pos)
+{
+    state_.position = pos;
+    UpdateCameraMatrix();
+}
+
 void gl::Camera::UpdateCameraVectors()
 {
     // calculate the new Front vector in relation to world axis using yaw and pitch.
