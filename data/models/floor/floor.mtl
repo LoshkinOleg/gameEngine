@@ -1,6 +1,0 @@
-newmtl Material.001
-Ns 64.0
-map_d blank2x2.ktx
-map_Kd diffuse.ktx
-map_Ks specular.ktx
-map_Bump normals.ktx
