@@ -67,13 +67,7 @@ void gl::Skybox::Create(Definition def)
 
     if (def.shader.vertexPath.empty())
     {
-        EngineWarning("Skybox has no shader specified. Using default skybox shader.");
-        def.shader.vertexPath = SKYBOX_SHADER[0];
-        def.shader.fragmentPath = SKYBOX_SHADER[1];
-        def.shader.staticInts.insert({CUBEMAP_SAMPLER_NAME, CUBEMAP_TEXTURE_UNIT});
-        def.shader.staticMat4s.insert({PROJECTION_MARIX_NAME, PERSPECTIVE});
-        def.shader.dynamicMat4s.insert({VIEW_MARIX_NAME, rm.GetCamera().GetViewMatrixPtr()});
-        def.shader.dynamicVec3s.insert({VIEW_POSITION_NAME, rm.GetCamera().GetPositionPtr()});
+        EngineError("Skybox has no shader!");
     }
     shader_.Create(def.shader);
 

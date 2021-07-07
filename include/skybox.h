@@ -12,7 +12,7 @@ class Skybox
 public:
     struct Definition
     {
-        std::string_view path = "../data/textures/skybox/skybox.ktx";
+        std::string path = "";
         Shader::Definition shader = {};
     };
 

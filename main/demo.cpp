@@ -11,6 +11,8 @@
 #include "skybox.h"
 #include "resource_manager.h"
 
+// TODO: use basisu to convert to ktx instead of toktx
+
 namespace gl
 {
     float RemapToRangeOne(const float inputRangeLower, const float inputRangeUpper, const float value)
@@ -53,7 +55,7 @@ namespace gl
             glEnable(GL_BLEND);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-            const std::string dataPath = "../data/";
+            const std::string dataPath = "C:/Users/admin/Desktop/demoAssets/";
 
             // Load floor.
             {
@@ -79,8 +81,8 @@ namespace gl
                 vbdef.dataLayout = { 3,2,3,3 };
 
                 Material::Definition matdef = ResourceManager::PreprocessMaterialData(objData)[0];
-                matdef.shader.vertexPath = dataPath + "shaders/floor.vert";
-                matdef.shader.fragmentPath = dataPath + "shaders/floor.frag";
+                matdef.shader.vertexPath = "../data/shaders/floor.vert";
+                matdef.shader.fragmentPath = "../data/shaders/floor.frag";
                 matdef.shader.staticMat4s.insert({ PROJECTION_MARIX_NAME, PERSPECTIVE });
                 matdef.shader.dynamicMat4s.insert({ CAMERA_MARIX_NAME, resourceManager_.GetCamera().GetCameraMatrixPtr() });
                 matdef.shader.dynamicVec3s.insert({ VIEW_POSITION_NAME, resourceManager_.GetCamera().GetPositionPtr() });
@@ -99,8 +101,8 @@ namespace gl
 
             // Load horse.
             {
-                const auto objData0 = ResourceManager::ReadObj(dataPath + "models/horse/horse_base.obj");
-                const auto objData1 = ResourceManager::ReadObj(dataPath + "models/horse/horse_sphere.obj");
+                const auto objData0 = ResourceManager::ReadObj(dataPath + "models/horse/horse_base.obj", false);
+                const auto objData1 = ResourceManager::ReadObj(dataPath + "models/horse/horse_sphere.obj", false);
                 assert(objData0[0].positions.size() == objData1[0].positions.size());
                 VertexBuffer::Definition vbdef;
                 for (size_t i = 0; i < objData0[0].positions.size(); i++)
@@ -130,35 +132,71 @@ namespace gl
                     vbdef.data.push_back(objData1[0].tangents[i].z);
                 }
                 vbdef.dataLayout = { 3,3,2,3,3,3,3};
-                // vbdef.dataLayout = { 3,2,3,3};
 
                 Material::Definition matdef = ResourceManager::PreprocessMaterialData(objData0)[0];
-                matdef.shader.vertexPath = dataPath + "shaders/horse.vert";
-                matdef.shader.fragmentPath = dataPath + "shaders/horse.frag";
+                matdef.shader.vertexPath = "../data/shaders/horse.vert";
+                matdef.shader.fragmentPath = "../data/shaders/horse.frag";
                 matdef.shader.staticMat4s.insert({ PROJECTION_MARIX_NAME, PERSPECTIVE });
                 matdef.shader.dynamicMat4s.insert({ CAMERA_MARIX_NAME, resourceManager_.GetCamera().GetCameraMatrixPtr() });
                 matdef.shader.dynamicVec3s.insert({ VIEW_POSITION_NAME, resourceManager_.GetCamera().GetPositionPtr() });
                 matdef.shader.dynamicFloats.insert({"interpolationFactor", &horseMorphingFactor_});
 
                 std::vector<glm::mat4> modelMatrices;
-                modelMatrices.push_back(glm::translate(IDENTITY_MAT4, BACK_VEC3));
+                const glm::vec3 horsePos = RIGHT_VEC3 * 6.0f + UP_VEC3 * 2.0f + BACK_VEC3 * 8.0f;
+                const float uniformScale = 5.0f;
+                modelMatrices.push_back(glm::translate(IDENTITY_MAT4, horsePos));
+                modelMatrices[0] = glm::rotate(modelMatrices[0], glm::radians(-90.0f), UP_VEC3);
+                modelMatrices[0] = glm::scale(modelMatrices[0], glm::vec3(uniformScale));
 
-                horse_.Create({ vbdef }, { matdef }, modelMatrices);
+                horse_.Create({ vbdef }, { matdef }, modelMatrices, uniformScale); // TODO: get rid of this uniform scale argument
             }
 
-            skybox_.Create(Skybox::Definition());
+            Skybox::Definition skdef;
+            skdef.path = dataPath + "textures/skybox/skybox.ktx";
+            skdef.shader.vertexPath = "../data/shaders/skybox.vert";
+            skdef.shader.fragmentPath = "../data/shaders/skybox.frag";
+            skdef.shader.staticMat4s.insert({PROJECTION_MARIX_NAME, PERSPECTIVE});
+            skdef.shader.dynamicMat4s.insert({VIEW_MARIX_NAME, camera_.GetViewMatrixPtr()});
+            skdef.shader.staticInts.insert({CUBEMAP_SAMPLER_NAME, CUBEMAP_TEXTURE_UNIT});
+            skybox_.Create(skdef);
 
-            // camera_.SetPosition(UP_VEC3);
-            // camera_.LookAt(FRONT_VEC3 + UP_VEC3, UP_VEC3);
+            camera_.SetPosition(UP_VEC3);
+            camera_.LookAt(FRONT_VEC3 + UP_VEC3, UP_VEC3);
 
             // Define camera movements.
             regions_.push_back(Region(0.5f, 2.0f, [this](const float start, const float end)->void
             {
                 // Turn around.
                 const float current = RemapToRangeOne(start, end, timer_);
-                const glm::quat startingRot = glm::angleAxis(glm::radians(180.0f), UP_VEC3);
-                const glm::quat endingRot = glm::angleAxis(glm::radians(0.0f), UP_VEC3);
+                const float currentAngle = std::lerp(glm::radians(180.0f), glm::radians(0.0f), current);
+                const glm::quat currentRotation = glm::angleAxis(currentAngle, UP_VEC3);
+                const glm::vec3 newFront = currentRotation * BACK_VEC3;
+                camera_.LookAt(camera_.GetPosition() + newFront, UP_VEC3);
+            }));
+            regions_.push_back(Region(2.0f, 3.0f, [this](const float start, const float end)->void
+            {
+                // Turn towards horse.
+                const float current = RemapToRangeOne(start, end, timer_);
+                const glm::quat startingRot = glm::angleAxis(glm::radians(0.0f), UP_VEC3);
+                const glm::quat endingRot = glm::quatLookAt(glm::normalize(horsePosition_ - camera_.GetPosition()), UP_VEC3);
                 const glm::quat interpolatedRot = glm::lerp(startingRot, endingRot, current);
+                const glm::vec3 newFront = interpolatedRot * BACK_VEC3;
+                camera_.LookAt(camera_.GetPosition() + newFront, UP_VEC3);
+            }));
+            regions_.push_back(Region(3.0f, 13.0f, [this](const float start, const float end)->void
+            {
+                // Look at horse.
+                const float current = RemapToRangeOne(start, end, timer_);
+                const glm::vec3 newFront = glm::normalize(horsePosition_ - camera_.GetPosition());
+                camera_.LookAt(camera_.GetPosition() + newFront, UP_VEC3);
+            }));
+            regions_.push_back(Region(13.0f, 15.0f, [this](const float start, const float end)->void
+            {
+                // Turn back forwards.
+                const float current = RemapToRangeOne(start, end, timer_);
+                const glm::quat startingRot = glm::quatLookAt(glm::normalize(horsePosition_ - camera_.GetPosition()), UP_VEC3);
+                const glm::quat endingRot = glm::angleAxis(glm::radians(0.0f), UP_VEC3);
+                const glm::quat interpolatedRot = glm::slerp(startingRot, endingRot, current);
                 const glm::vec3 newFront = interpolatedRot * BACK_VEC3;
                 camera_.LookAt(camera_.GetPosition() + newFront, UP_VEC3);
             }));
@@ -170,6 +208,7 @@ namespace gl
             timer_ += fdt;
 
             horseMorphingFactor_ = glm::cos(timer_) * 0.5f + 0.5f;
+            horsePosition_ = horse_.GetModelMatrices()[0][3];
 
             glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -188,7 +227,7 @@ namespace gl
                 }
             }
 
-            // floor_.Draw();
+            floor_.Draw();
             // TODO: CHANGE ARGUMENTS to prevent accidental casting of size_t to bool -_-
             horse_.Draw(false, HORSE_MODEL_OFFSET_);
             skybox_.Draw();
@@ -260,13 +299,14 @@ namespace gl
         ResourceManager& resourceManager_ = ResourceManager::Get();
 
         Camera& camera_ = resourceManager_.GetCamera();
-        const bool CONTROL_CAMERA_ = true;
+        const bool CONTROL_CAMERA_ = false;
         const float SKIP_FRAME_THRESHOLD_ = 1.0f / 30.0f; // Prevents the camera from jumping forward suddently if there's a lag spike like when we start the program.
 
         std::vector<Region> regions_;
 
         const size_t HORSE_MODEL_OFFSET_ = 7; // 7 bc there's 7 elements in vbdef.dataLayout
         float horseMorphingFactor_ = 0.0f;
+        glm::vec3 horsePosition_ = ZERO_VEC3;
 
         Skybox skybox_;
 
