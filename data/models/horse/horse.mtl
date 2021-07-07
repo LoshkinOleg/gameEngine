@@ -1,10 +1,10 @@
-# Blender MTL File: 'butthorsefin.blend'
-# Material Count: 2
+# Blender MTL File: 'butthorsefin_editing.blend'
+# Material Count: 1
 
 newmtl Material.001
-Ns 225.000000
+Ns 256.000000
 illum 2
 map_d blank2x2.ktx
-map_Bump butthorsenorm.ktx
-map_Kd butthorse.ktx
-map_Ks butthorsespec.ktx
+map_Bump normals.ktx
+map_Kd diffuse.ktx
+map_Ks specular.ktx

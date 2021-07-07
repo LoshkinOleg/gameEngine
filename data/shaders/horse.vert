@@ -24,13 +24,13 @@ const vec3 lightDir = normalize(vec3(-1.0, -1.0, 1.0));
 
 void main()
 {
-    // const vec4 fragPos = aModel * vec4(mix(aPos0, aPos1, interpolationFactor), 1.0);
-    const vec4 fragPos = aModel * vec4(aPos0, 1.0);
+    const vec4 fragPos = aModel * vec4(mix(aPos0, aPos1, interpolationFactor), 1.0);
+    // const vec4 fragPos = aModel * vec4(aPos0, 1.0);
     mat3 normalMatrix = transpose(inverse(mat3(aModel)));
-    // vec3 T = normalize(normalMatrix * mix(aTangent0, aTangent1, interpolationFactor));
-    vec3 T = normalize(normalMatrix * aTangent0);
-    // vec3 N = normalize(normalMatrix * mix(aNormal0, aNormal1, interpolationFactor));
-    vec3 N = normalize(normalMatrix * aNormal0);
+    vec3 T = normalize(normalMatrix * mix(aTangent0, aTangent1, interpolationFactor));
+    // vec3 T = normalize(normalMatrix * aTangent0);
+    vec3 N = normalize(normalMatrix * mix(aNormal0, aNormal1, interpolationFactor));
+    // vec3 N = normalize(normalMatrix * aNormal0);
     T = normalize(T - dot(T, N) * N);
     vec3 B = cross(N, T);
     mat3 TBN = transpose(mat3(T, B, N));
