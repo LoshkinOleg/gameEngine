@@ -5,7 +5,7 @@
 
 #include <glad/glad.h>
 
-void gl::Mesh::Create(const VertexBuffer::Definition vbdef, const Material::Definition matdef, const float uniformScale)
+void gl::Mesh::Create(const VertexBuffer::Definition vbdef, const Material::Definition matdef)
 {
     if (vb_.GetVAOandVBO()[0] != 0)
     {
@@ -29,7 +29,6 @@ void gl::Mesh::Create(const VertexBuffer::Definition vbdef, const Material::Defi
     {
         boundingSphereRadius_ = 0.0f;
     }
-    uniformScale_ = uniformScale;
 
     vb_.Create(vbdef);
     CheckGlError();
@@ -98,9 +97,4 @@ void gl::Mesh::DrawUsingShader(const std::vector<glm::mat4>& modelMatrices, Shad
 float gl::Mesh::GetBoundingSphereRadius() const
 {
     return boundingSphereRadius_;
-}
-
-float gl::Mesh::GetUniformScale() const
-{
-    return uniformScale_;
 }

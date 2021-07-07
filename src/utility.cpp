@@ -28,6 +28,18 @@ void gl::Warning(const char* file, int line, const char* msg)
     std::cout << "WARNING at file: " << __FILE__ << ", line: " << __LINE__ << ": " << msg << std::endl;
 }
 
+void gl::Message(const char* file, int line, const char* msg, bool writeTriggerPoint)
+{
+    if (!writeTriggerPoint)
+    {
+        std::cout << msg << std::endl;
+    }
+    else
+    {
+        std::cout << "MESSAGE at file: " << __FILE__ << ", line: " << __LINE__ << ": " << msg << std::endl;
+    }
+}
+
 void gl::CheckFramebufferStatus(const char* file, int line)
 {
     const auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);

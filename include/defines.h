@@ -24,6 +24,9 @@ namespace gl
 #ifndef glDisplayWarningGuard
 #define EngineWarning(msg) gl::Warning(__FILE__, __LINE__, msg)
 #endif //!glDisplayWarningGuard
+#ifndef glDisplayMessageGuard
+#define EngineMessage(msg) gl::Message(__FILE__, __LINE__, msg)
+#endif //!glDisplayMessageGuard
 #ifndef glCheckGlErrorGuard
 #define CheckGlError() gl::CheckGlError(__FILE__, __LINE__)
 #endif //!glCheckGlErrorGuard

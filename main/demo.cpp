@@ -96,7 +96,7 @@ namespace gl
                     modelMatrices[i] = glm::scale(modelMatrices[i], ONE_VEC3 * scale);
                 }
 
-                floor_.Create({ vbdef }, {matdef}, modelMatrices, scale);
+                floor_.Create({ vbdef }, {matdef}, modelMatrices);
             }
 
             // Load horse.
@@ -143,12 +143,11 @@ namespace gl
 
                 std::vector<glm::mat4> modelMatrices;
                 const glm::vec3 horsePos = RIGHT_VEC3 * 6.0f + UP_VEC3 * 2.0f + BACK_VEC3 * 8.0f;
-                const float uniformScale = 5.0f;
                 modelMatrices.push_back(glm::translate(IDENTITY_MAT4, horsePos));
                 modelMatrices[0] = glm::rotate(modelMatrices[0], glm::radians(-90.0f), UP_VEC3);
-                modelMatrices[0] = glm::scale(modelMatrices[0], glm::vec3(uniformScale));
+                modelMatrices[0] = glm::scale(modelMatrices[0], glm::vec3(5.0f));
 
-                horse_.Create({ vbdef }, { matdef }, modelMatrices, uniformScale); // TODO: get rid of this uniform scale argument
+                horse_.Create({ vbdef }, { matdef }, modelMatrices);
             }
 
             Skybox::Definition skdef;
@@ -229,7 +228,7 @@ namespace gl
 
             floor_.Draw();
             // TODO: CHANGE ARGUMENTS to prevent accidental casting of size_t to bool -_-
-            horse_.Draw(false, HORSE_MODEL_OFFSET_);
+            horse_.Draw(true, HORSE_MODEL_OFFSET_);
             skybox_.Draw();
         }
         void Destroy() override

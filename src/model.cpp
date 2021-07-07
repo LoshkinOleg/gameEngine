@@ -6,7 +6,7 @@
 
 #include "resource_manager.h"
 
-void gl::Model::Create(std::vector<VertexBuffer::Definition> vb, std::vector<Material::Definition> mat, std::vector<glm::mat4> modelMatrices, const float uniformScale)
+void gl::Model::Create(std::vector<VertexBuffer::Definition> vb, std::vector<Material::Definition> mat, std::vector<glm::mat4> modelMatrices)
 {
     modelMatrices_ = modelMatrices;
 
@@ -20,7 +20,7 @@ void gl::Model::Create(std::vector<VertexBuffer::Definition> vb, std::vector<Mat
     for (size_t i = 0; i < vb.size(); i++)
     {
         meshes_.push_back(Mesh());
-        meshes_.back().Create(vb[i], mat[i], uniformScale);
+        meshes_.back().Create(vb[i], mat[i]);
         CheckGlError();
     }
 }
@@ -34,8 +34,7 @@ void gl::Model::Draw(bool bypassFrustumCulling, const size_t transformModelOffse
         const float far = PROJECTION_FAR;
         const float aspect = SCREEN_RESOLUTION[0] / SCREEN_RESOLUTION[1];
         const float fovY = PROJECTION_FOV * 0.5f;
-        // Q: @Elias: could you explain this fuckery?
-        const float fovX = std::atan(std::tan(PROJECTION_FOV * 0.5f) * aspect); // Black magic afoot.
+        const float fovX = std::atan(std::tan(PROJECTION_FOV * 0.5f) * aspect); // TODO: look more into this
         const glm::vec3 cameraPos = ResourceManager::Get().GetCamera().GetPosition();
         const glm::vec3 right = ResourceManager::Get().GetCamera().GetRight();
         const glm::vec3 up = ResourceManager::Get().GetCamera().GetUp();
@@ -43,18 +42,24 @@ void gl::Model::Draw(bool bypassFrustumCulling, const size_t transformModelOffse
 
         std::vector<glm::mat4> modelMatricesToDraw;
 
-        // TODO: account for scaling.
         for (size_t mesh = 0; mesh < meshes_.size(); mesh++)
         {
             for (size_t i = 0; i < modelMatrices_.size(); i++)
             {
-                glm::vec3 relativeMeshPosition = glm::vec3(modelMatrices_[i][3].x, modelMatrices_[i][3].y, modelMatrices_[i][3].z) - cameraPos;
-                const float boundingSphereRadius = meshes_[mesh].GetBoundingSphereRadius();
-                const float uniformScale = meshes_[mesh].GetUniformScale();
+                const glm::vec3 column0 = modelMatrices_[i][0];
+                const glm::vec3 column1 = modelMatrices_[i][1];
+                const glm::vec3 column2 = modelMatrices_[i][2];
+                const glm::vec3 column3 = modelMatrices_[i][3];
 
+                const glm::vec3 relativeMeshPosition = column3 - cameraPos;
+                const glm::vec3 scale = glm::vec3(glm::length(column0), glm::length(column1), glm::length(column2)); // This only works for scale values > 0.
+                const float biggestScale = std::max(std::max(scale.x, scale.y),scale.z);
+                const float boundingSphereRadius = meshes_[mesh].GetBoundingSphereRadius();
+
+                // TODO: suspicious culling behaviour when scaling is taken into account, culls the object when it's well off the screen. Look into it.
                 { // Front and back.
                     const float projection = glm::dot(front, relativeMeshPosition);
-                    if (projection < (near - boundingSphereRadius * uniformScale) || projection >(far + boundingSphereRadius * uniformScale))
+                    if (projection < (near - boundingSphereRadius * biggestScale) || projection > (far + boundingSphereRadius * biggestScale))
                     {
                         continue;
                     }
@@ -63,7 +68,7 @@ void gl::Model::Draw(bool bypassFrustumCulling, const size_t transformModelOffse
                     // Q: @Elias: can you explain angleAxis function in detail?
                     const glm::vec3 normal = glm::angleAxis(fovX, up) * -right; // Normal to the left side of the frustum.
                     const float projection = glm::dot(normal, relativeMeshPosition);
-                    if (projection > boundingSphereRadius * uniformScale) // projection is positive, meaning the position is outside the frustrum on the left.
+                    if (projection > boundingSphereRadius * biggestScale) // projection is positive, meaning the position is outside the frustrum on the left.
                     {
                         continue;
                     }
@@ -71,7 +76,7 @@ void gl::Model::Draw(bool bypassFrustumCulling, const size_t transformModelOffse
                 { // Right.
                     const glm::vec3 normal = glm::angleAxis(-fovX, up) * right;
                     const float projection = glm::dot(normal, relativeMeshPosition);
-                    if (projection > boundingSphereRadius * uniformScale)
+                    if (projection > boundingSphereRadius * biggestScale)
                     {
                         continue;
                     }
@@ -79,7 +84,7 @@ void gl::Model::Draw(bool bypassFrustumCulling, const size_t transformModelOffse
                 { // Bottom.
                     const glm::vec3 normal = glm::angleAxis(fovY, -right) * -up;
                     const float projection = glm::dot(normal, relativeMeshPosition);
-                    if (projection > boundingSphereRadius * uniformScale)
+                    if (projection > boundingSphereRadius * biggestScale)
                     {
                         continue;
                     }
@@ -87,7 +92,7 @@ void gl::Model::Draw(bool bypassFrustumCulling, const size_t transformModelOffse
                 { // Top.
                     const glm::vec3 normal = glm::angleAxis(-fovY, -right) * up;
                     const float projection = glm::dot(normal, relativeMeshPosition);
-                    if (projection > boundingSphereRadius * uniformScale)
+                    if (projection > boundingSphereRadius * biggestScale)
                     {
                         continue;
                     }

@@ -13,19 +13,17 @@ namespace gl
     class Mesh
     {
     public:
-        void Create(const VertexBuffer::Definition vbdef, const Material::Definition matdef, const float uniformScale = 1.0f);
+        void Create(const VertexBuffer::Definition vbdef, const Material::Definition matdef);
 
         void Draw(const std::vector<glm::mat4>& modelMatrices, size_t transformModelOffset = MODEL_MATRIX_LOCATION);
         void DrawUsingShader(const std::vector<glm::mat4>& modelMatrices, Shader& shader);
 
         float GetBoundingSphereRadius() const;
-        float GetUniformScale() const;
     private:
 
         VertexBuffer vb_ = {};
         Material material_ = {};
         float boundingSphereRadius_ = 0.0f;
-        float uniformScale_ = 1.0f;
     };
 
 }//!gl

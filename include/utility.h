@@ -18,4 +18,5 @@ namespace gl
     @brief: Ensures the currently bound framebuffer is complete, else throws an error with a brief reason for framebuffer incompleteness.
     */
     void CheckFramebufferStatus(const char* file, int line);
+    void Message(const char* file, int line, const char* msg, bool writeTriggerPoint = false);
 }//!gl

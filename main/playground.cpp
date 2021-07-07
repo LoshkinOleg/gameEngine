@@ -24,68 +24,9 @@ namespace gl
             glEnable(GL_BLEND);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-            Framebuffer::Definition fbdef;
-            fbdef.resolution = { 1024, 1024 };
-            fbdef.type = (Framebuffer::Type)
-                (
-                    Framebuffer::Type::FBO_DEPTH0_NO_DRAW
-                );
-            fb_.Create(fbdef);
-
-            const glm::mat4 lightMatrix = glm::mat4(glm::mat3((ORTHO * glm::lookAt(ONE_VEC3, ZERO_VEC3, UP_VEC3))));
-
-            {
-                // Load sphere mesh.
-                VertexBuffer::Definition vbdef;
-                const auto objData = ResourceManager::ReadObj("../data/models/brickSphere/brickSphere.obj");
-                for (size_t vertex = 0; vertex < objData[0].positions.size(); vertex++)
-                {
-                    vbdef.data.push_back(objData[0].positions[vertex].x);
-                    vbdef.data.push_back(objData[0].positions[vertex].y);
-                    vbdef.data.push_back(objData[0].positions[vertex].z);
-
-                    vbdef.data.push_back(objData[0].uvs[vertex].x);
-                    vbdef.data.push_back(objData[0].uvs[vertex].y);
-
-                    vbdef.data.push_back(objData[0].normals[vertex].x);
-                    vbdef.data.push_back(objData[0].normals[vertex].y);
-                    vbdef.data.push_back(objData[0].normals[vertex].z);
-
-                    vbdef.data.push_back(objData[0].tangents[vertex].x);
-                    vbdef.data.push_back(objData[0].tangents[vertex].y);
-                    vbdef.data.push_back(objData[0].tangents[vertex].z);
-                }
-                vbdef.dataLayout =
-                {
-                    3,2,3,3
-                };
-
-                Material::Definition matdef = resourceManager_.PreprocessMaterialData(objData)[0];
-                matdef.shader.vertexPath = "../data/shaders/illum2_shadowmapped.vert";
-                matdef.shader.fragmentPath = "../data/shaders/illum2_shadowmapped.frag";
-                matdef.shader.staticMat4s.insert({ LIGHT_MATRIX_NAME, lightMatrix });
-                matdef.shader.dynamicMat4s.insert({ CAMERA_MARIX_NAME, resourceManager_.GetCamera().GetCameraMatrixPtr() });
-                matdef.shader.dynamicVec3s.insert({ VIEW_POSITION_NAME, resourceManager_.GetCamera().GetPositionPtr() });
-                matdef.shader.staticInts.insert({ FRAMEBUFFER_SAMPLER0_NAME, FRAMEBUFFER_TEXTURE0_UNIT });
-
-                std::vector<glm::mat4> matrices;
-                const float spacing = 5.0f;
-                matrices.push_back(glm::translate(IDENTITY_MAT4, UP_VEC3));
-                matrices.push_back(glm::translate(IDENTITY_MAT4, UP_VEC3 + RIGHT_VEC3 * spacing));
-                matrices.push_back(glm::translate(IDENTITY_MAT4, UP_VEC3 + LEFT_VEC3  * spacing));
-                matrices.push_back(glm::translate(IDENTITY_MAT4, UP_VEC3 + FRONT_VEC3 * spacing));
-                matrices.push_back(glm::translate(IDENTITY_MAT4, UP_VEC3 + BACK_VEC3  * spacing));
-                matrices.push_back(glm::translate(IDENTITY_MAT4, UP_VEC3 + RIGHT_VEC3 * spacing + FRONT_VEC3 * spacing));
-                matrices.push_back(glm::translate(IDENTITY_MAT4, UP_VEC3 + RIGHT_VEC3 * spacing + BACK_VEC3  * spacing));
-                matrices.push_back(glm::translate(IDENTITY_MAT4, UP_VEC3 + LEFT_VEC3  * spacing + FRONT_VEC3 * spacing));
-                matrices.push_back(glm::translate(IDENTITY_MAT4, UP_VEC3 + LEFT_VEC3  * spacing + BACK_VEC3  * spacing));
-
-                model_.Create({ vbdef }, { matdef }, matrices);
-            }
-
             // Load floor mesh.
             VertexBuffer::Definition vbdef;
-            const auto objData = ResourceManager::ReadObj("../data/models/cratePlane/cratePlane.obj");
+            const auto objData = ResourceManager::ReadObj("C:/Users/admin/Desktop/demoAssets/models/floor/floor.obj");
             for (size_t vertex = 0; vertex < objData[0].positions.size(); vertex++)
             {
                 vbdef.data.push_back(objData[0].positions[vertex].x);
@@ -108,23 +49,14 @@ namespace gl
                 3,2,3,3
             };
 
-            Material::Definition matdef = resourceManager_.PreprocessMaterialData(objData)[0];
-            matdef.shader.vertexPath = "../data/shaders/illum2_shadowmapped.vert";
-            matdef.shader.fragmentPath = "../data/shaders/illum2_shadowmapped.frag";
-            matdef.shader.staticMat4s.insert({ LIGHT_MATRIX_NAME, lightMatrix });
+            Material::Definition matdef = ResourceManager::PreprocessMaterialData(objData)[0];
+            matdef.shader.vertexPath = "../data/shaders/floor.vert";
+            matdef.shader.fragmentPath = "../data/shaders/floor.frag";
+            matdef.shader.staticMat4s.insert({ PROJECTION_MARIX_NAME, PERSPECTIVE });
             matdef.shader.dynamicMat4s.insert({ CAMERA_MARIX_NAME, resourceManager_.GetCamera().GetCameraMatrixPtr() });
             matdef.shader.dynamicVec3s.insert({ VIEW_POSITION_NAME, resourceManager_.GetCamera().GetPositionPtr() });
-            matdef.shader.staticInts.insert({ FRAMEBUFFER_SAMPLER0_NAME, FRAMEBUFFER_TEXTURE0_UNIT });
 
             floor_.Create({ vbdef }, { matdef }, { glm::scale(IDENTITY_MAT4, ONE_VEC3 * 10.0f) });
-
-            Shader::Definition sdef;
-            sdef.vertexPath = "../data/shaders/shadowmapping.vert";
-            sdef.fragmentPath = "../data/shaders/empty.frag";
-            sdef.staticMat4s.insert({ LIGHT_MATRIX_NAME, lightMatrix });
-            shaderShadowpass_.Create(sdef);
-
-            skybox_.Create(Skybox::Definition());
         }
         void Update(seconds dt) override
         {
@@ -132,18 +64,7 @@ namespace gl
             glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            fb_.Bind();
-            glCullFace(GL_FRONT);
-            model_.DrawUsingShader(shaderShadowpass_);
-            floor_.DrawUsingShader(shaderShadowpass_);
-            glCullFace(GL_BACK);
-            fb_.Unbind();
-
-            fb_.BindGBuffer();
-            model_.Draw();
-            floor_.Draw(true);
-            skybox_.Draw();
-            fb_.UnbindGBuffer();
+            floor_.Draw();
         }
         void Destroy() override
         {
@@ -207,10 +128,7 @@ namespace gl
     private:
         float timer_ = 0.0f;
         bool mouseButtonDown_ = false;
-        Model model_, floor_;
-        Skybox skybox_;
-        Framebuffer fb_;
-        Shader shaderShadowpass_;
+        Model floor_;
         ResourceManager& resourceManager_ = ResourceManager::Get();
     };
 
