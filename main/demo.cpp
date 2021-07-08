@@ -15,6 +15,22 @@
 
 namespace gl
 {
+    const bool CONTROL_CAMERA = false;
+    const glm::vec3 CAMERA_STARTING_POS = UP_VEC3;
+    const glm::vec3 CAMERA_STARTING_FRONT = CAMERA_STARTING_POS + FRONT_VEC3;
+
+    const size_t HORSE_MODEL_OFFSET_ = 7; // 7 bc there's 7 elements in vbdef.dataLayout
+    const glm::vec3 HORSE_POS = RIGHT_VEC3 * 6.0f +
+                                UP_VEC3 * 2.0f +
+                                FRONT_VEC3 * -8.0f;
+
+    // Regions.
+    const float TURN_AROUND_START = 0.1f;
+    const float TURN_AROUND_END = 2.0f;
+    const float TURN_TOWARDS_HORSE_END = 3.0f;
+    const float FOLLOW_HORSE_END = 13.0f;
+    const float TURN_BACK_FORWARDS_END = 15.0f;
+
     float RemapToRangeOne(const float inputRangeLower, const float inputRangeUpper, const float value)
     {
         const float outputRangeLower = 0.0f;
@@ -139,11 +155,10 @@ namespace gl
                 matdef.shader.staticMat4s.insert({ PROJECTION_MARIX_NAME, PERSPECTIVE });
                 matdef.shader.dynamicMat4s.insert({ CAMERA_MARIX_NAME, resourceManager_.GetCamera().GetCameraMatrixPtr() });
                 matdef.shader.dynamicVec3s.insert({ VIEW_POSITION_NAME, resourceManager_.GetCamera().GetPositionPtr() });
-                matdef.shader.dynamicFloats.insert({"interpolationFactor", &horseMorphingFactor_});
+                matdef.shader.dynamicFloats.insert({"interpolationFactor", &morphingFactor_});
 
                 std::vector<glm::mat4> modelMatrices;
-                const glm::vec3 horsePos = RIGHT_VEC3 * 6.0f + UP_VEC3 * 2.0f + BACK_VEC3 * 8.0f;
-                modelMatrices.push_back(glm::translate(IDENTITY_MAT4, horsePos));
+                modelMatrices.push_back(glm::translate(IDENTITY_MAT4, HORSE_POS));
                 modelMatrices[0] = glm::rotate(modelMatrices[0], glm::radians(-90.0f), UP_VEC3);
                 modelMatrices[0] = glm::scale(modelMatrices[0], glm::vec3(5.0f));
 
@@ -159,11 +174,11 @@ namespace gl
             skdef.shader.staticInts.insert({CUBEMAP_SAMPLER_NAME, CUBEMAP_TEXTURE_UNIT});
             skybox_.Create(skdef);
 
-            camera_.SetPosition(UP_VEC3);
-            camera_.LookAt(FRONT_VEC3 + UP_VEC3, UP_VEC3);
+            camera_.SetPosition(CAMERA_STARTING_POS);
+            camera_.LookAt(CAMERA_STARTING_FRONT, UP_VEC3);
 
             // Define camera movements.
-            regions_.push_back(Region(0.5f, 2.0f, [this](const float start, const float end)->void
+            regions_.push_back(Region(TURN_AROUND_START, TURN_AROUND_END, [this](const float start, const float end)->void
             {
                 // Turn around.
                 const float current = RemapToRangeOne(start, end, timer_);
@@ -172,28 +187,28 @@ namespace gl
                 const glm::vec3 newFront = currentRotation * BACK_VEC3;
                 camera_.LookAt(camera_.GetPosition() + newFront, UP_VEC3);
             }));
-            regions_.push_back(Region(2.0f, 3.0f, [this](const float start, const float end)->void
+            regions_.push_back(Region(TURN_AROUND_END, TURN_TOWARDS_HORSE_END, [this](const float start, const float end)->void
             {
                 // Turn towards horse.
                 const float current = RemapToRangeOne(start, end, timer_);
                 const glm::quat startingRot = glm::angleAxis(glm::radians(0.0f), UP_VEC3);
-                const glm::quat endingRot = glm::quatLookAt(glm::normalize(horsePosition_ - camera_.GetPosition()), UP_VEC3);
+                const glm::quat endingRot = glm::quatLookAt(glm::normalize(HORSE_POS - camera_.GetPosition()), UP_VEC3);
                 const glm::quat interpolatedRot = glm::lerp(startingRot, endingRot, current);
                 const glm::vec3 newFront = interpolatedRot * BACK_VEC3;
                 camera_.LookAt(camera_.GetPosition() + newFront, UP_VEC3);
             }));
-            regions_.push_back(Region(3.0f, 13.0f, [this](const float start, const float end)->void
+            regions_.push_back(Region(TURN_TOWARDS_HORSE_END, FOLLOW_HORSE_END, [this](const float start, const float end)->void
             {
                 // Look at horse.
                 const float current = RemapToRangeOne(start, end, timer_);
-                const glm::vec3 newFront = glm::normalize(horsePosition_ - camera_.GetPosition());
+                const glm::vec3 newFront = glm::normalize(HORSE_POS - camera_.GetPosition());
                 camera_.LookAt(camera_.GetPosition() + newFront, UP_VEC3);
             }));
-            regions_.push_back(Region(13.0f, 15.0f, [this](const float start, const float end)->void
+            regions_.push_back(Region(FOLLOW_HORSE_END, TURN_BACK_FORWARDS_END, [this](const float start, const float end)->void
             {
                 // Turn back forwards.
                 const float current = RemapToRangeOne(start, end, timer_);
-                const glm::quat startingRot = glm::quatLookAt(glm::normalize(horsePosition_ - camera_.GetPosition()), UP_VEC3);
+                const glm::quat startingRot = glm::quatLookAt(glm::normalize(HORSE_POS - camera_.GetPosition()), UP_VEC3);
                 const glm::quat endingRot = glm::angleAxis(glm::radians(0.0f), UP_VEC3);
                 const glm::quat interpolatedRot = glm::slerp(startingRot, endingRot, current);
                 const glm::vec3 newFront = interpolatedRot * BACK_VEC3;
@@ -206,13 +221,12 @@ namespace gl
             if (fdt > SKIP_FRAME_THRESHOLD_) return;
             timer_ += fdt;
 
-            horseMorphingFactor_ = glm::cos(timer_) * 0.5f + 0.5f;
-            horsePosition_ = horse_.GetModelMatrices()[0][3];
+            morphingFactor_ = glm::cos(timer_) * 0.5f + 0.5f;
 
             glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            if (!CONTROL_CAMERA_)
+            if (!CONTROL_CAMERA)
             {
                 camera_.SetPosition(camera_.GetPosition() + BACK_VEC3 * dt.count());
 
@@ -243,7 +257,7 @@ namespace gl
                 exit(0);
             }
 
-            if (!CONTROL_CAMERA_) return;
+            if (!CONTROL_CAMERA) return;
 
             Camera& camera = resourceManager_.GetCamera();
             switch (event.type)
@@ -298,14 +312,11 @@ namespace gl
         ResourceManager& resourceManager_ = ResourceManager::Get();
 
         Camera& camera_ = resourceManager_.GetCamera();
-        const bool CONTROL_CAMERA_ = false;
         const float SKIP_FRAME_THRESHOLD_ = 1.0f / 30.0f; // Prevents the camera from jumping forward suddently if there's a lag spike like when we start the program.
 
         std::vector<Region> regions_;
 
-        const size_t HORSE_MODEL_OFFSET_ = 7; // 7 bc there's 7 elements in vbdef.dataLayout
-        float horseMorphingFactor_ = 0.0f;
-        glm::vec3 horsePosition_ = ZERO_VEC3;
+        float morphingFactor_ = 0.0f;
 
         Skybox skybox_;
 
