@@ -9,6 +9,10 @@
 #define XXH_INLINE_ALL
 #endif // !XXH_INLINE_ALL
 #include "xxhash.h"
+#ifdef TRACY_ENABLE
+#include <Tracy.hpp>
+#include <TracyOpenGL.hpp>
+#endif//!TRACY_ENABLE
 
 #include "defines.h"
 
@@ -19,10 +23,17 @@ GLint gl::Shader::GetUniformLocation(std::string_view uniformName)
     const auto match = uniformNames_.find(uniformName.data());
     if (match != uniformNames_.end()) // Name of uniform already known, use it.
     {
+#ifdef TRACY_ENABLE
+        ZoneNamedN(shaderGetUniformLocationHit, "Shader::GetUniformLocation(): Hit", true);
+#endif
         return match->second;
     }
     else
     {
+#ifdef TRACY_ENABLE
+        ZoneNamedN(shaderGetUniformLocationMiss, "Shader::GetUniformLocation(): Miss", true);
+        TracyGpuNamedZone(gpushaderGetUniformLocationMiss, "Shader::GetUniformLocation(): Miss", true);
+#endif
         const int uniformIntName = glGetUniformLocation(PROGRAM_, uniformName.data());
         CheckGlError();
         uniformNames_.insert({ uniformName.data(), uniformIntName }); // Add the new entry.
@@ -32,6 +43,10 @@ GLint gl::Shader::GetUniformLocation(std::string_view uniformName)
 
 void gl::Shader::SetInt(const std::pair<std::string_view, int> pair)
 {
+#ifdef TRACY_ENABLE
+    ZoneNamedN(shaderSetInt, "Shader::SetInt()", true);
+    TracyGpuNamedZone(gpushaderSetInt, "Shader::SetInt()", true);
+#endif
     assert(isBound_);
     const int gpuName = GetUniformLocation(pair.first);
     glUniform1i(gpuName, pair.second);
@@ -40,6 +55,10 @@ void gl::Shader::SetInt(const std::pair<std::string_view, int> pair)
 
 void gl::Shader::SetInt(const std::pair<std::string_view, const int*> pair)
 {
+#ifdef TRACY_ENABLE
+    ZoneNamedN(shaderSetIntPtr, "Shader::SetIntPtr()", true);
+    TracyGpuNamedZone(gpushaderSetIntPtr, "Shader::SetIntPtr()", true);
+#endif
     assert(isBound_);
     const int gpuName = GetUniformLocation(pair.first);
     glUniform1i(gpuName, *(pair.second));
@@ -48,6 +67,10 @@ void gl::Shader::SetInt(const std::pair<std::string_view, const int*> pair)
 
 void gl::Shader::SetVec3(const std::pair<std::string_view, glm::vec3> pair)
 {
+#ifdef TRACY_ENABLE
+    ZoneNamedN(shaderSetVec3, "Shader::SetVec3()", true);
+    TracyGpuNamedZone(gpushaderSetVec3, "Shader::SetVec3()", true);
+#endif
     assert(isBound_);
     const int gpuName = GetUniformLocation(pair.first);
     glUniform3fv(gpuName, 1, &pair.second[0]);
@@ -56,6 +79,10 @@ void gl::Shader::SetVec3(const std::pair<std::string_view, glm::vec3> pair)
 
 void gl::Shader::SetVec3(const std::pair<std::string_view, const glm::vec3*> pair)
 {
+#ifdef TRACY_ENABLE
+    ZoneNamedN(shaderSetVec3Ptr, "Shader::SetVec3Ptr()", true);
+    TracyGpuNamedZone(gpushaderSetVec3Ptr, "Shader::SetVec3Ptr()", true);
+#endif
     assert(isBound_);
     const int gpuName = GetUniformLocation(pair.first);
     glUniform3fv(gpuName, 1, &(*pair.second)[0]);
@@ -64,6 +91,10 @@ void gl::Shader::SetVec3(const std::pair<std::string_view, const glm::vec3*> pai
 
 void gl::Shader::SetMat4(const std::pair<std::string_view, glm::mat4> pair)
 {
+#ifdef TRACY_ENABLE
+    ZoneNamedN(shaderSetMat4, "Shader::SetMat4()", true);
+    TracyGpuNamedZone(gpushaderSetMat4, "Shader::SetMat4()", true);
+#endif
     assert(isBound_);
     const int gpuName = GetUniformLocation(pair.first);
     glUniformMatrix4fv(gpuName, 1, GL_FALSE, &pair.second[0][0]);
@@ -72,6 +103,10 @@ void gl::Shader::SetMat4(const std::pair<std::string_view, glm::mat4> pair)
 
 void gl::Shader::SetMat4(const std::pair<std::string_view, const glm::mat4*> pair)
 {
+#ifdef TRACY_ENABLE
+    ZoneNamedN(shaderSetMat4Ptr, "Shader::SetMat4Ptr()", true);
+    TracyGpuNamedZone(gpushaderSetMat4Ptr, "Shader::SetMat4Ptr()", true);
+#endif
     CheckGlError();
     assert(isBound_);
     const int gpuName = GetUniformLocation(pair.first);
@@ -83,6 +118,10 @@ void gl::Shader::SetMat4(const std::pair<std::string_view, const glm::mat4*> pai
 
 void gl::Shader::SetFloat(const std::pair<std::string_view, float> pair)
 {
+#ifdef TRACY_ENABLE
+    ZoneNamedN(shaderSetFloat, "Shader::SetFloat()", true);
+    TracyGpuNamedZone(gpushaderSetFloat, "Shader::SetFloat()", true);
+#endif
     assert(isBound_);
     const int gpuName = GetUniformLocation(pair.first);
     glUniform1f(gpuName, pair.second);
@@ -91,6 +130,10 @@ void gl::Shader::SetFloat(const std::pair<std::string_view, float> pair)
 
 void gl::Shader::SetFloat(const std::pair<std::string_view, const float*> pair)
 {
+#ifdef TRACY_ENABLE
+    ZoneNamedN(shaderSetFloatPtr, "Shader::SetFloatPtr()", true);
+    TracyGpuNamedZone(gpushaderSetFloatPtr, "Shader::SetFloatPtr()", true);
+#endif
     assert(isBound_);
     const int gpuName = GetUniformLocation(pair.first);
     glUniform1f(gpuName, *pair.second);
@@ -233,6 +276,10 @@ unsigned int gl::Shader::GetPROGRAM() const
 
 void gl::Shader::Bind()
 {
+#ifdef TRACY_ENABLE
+    ZoneNamedN(shaderBind, "Shader::Bind()", true);
+    TracyGpuNamedZone(gpushaderBind, "Shader::Bind()", true);
+#endif
     glUseProgram(PROGRAM_);
     isBound_ = true;
     // Update dynamic uniforms.
@@ -256,6 +303,10 @@ void gl::Shader::Bind()
 
 void gl::Shader::Unbind()
 {
+#ifdef TRACY_ENABLE
+    ZoneNamedN(shaderUnbind, "Shader::Unbind()", true);
+    TracyGpuNamedZone(gpushaderUnbind, "Shader::Unbind()", true);
+#endif
     glUseProgram(0);
     isBound_ = false;
 }

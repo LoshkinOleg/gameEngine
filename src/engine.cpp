@@ -6,6 +6,11 @@
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_sdl.h"
 
+#ifdef TRACY_ENABLE
+#include <Tracy.hpp>
+#include <TracyOpenGL.hpp>
+#endif//!TRACY_ENABLE
+
 namespace gl {
 
 Engine::Engine(Program& program) : program_(program)
@@ -14,6 +19,10 @@ Engine::Engine(Program& program) : program_(program)
 
 void Engine::Init()
 {
+#ifdef TRACY_ENABLE
+	ZoneScopedN("Engine Init");
+#endif
+
 	SDL_Init(SDL_INIT_VIDEO);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
@@ -50,11 +59,16 @@ void Engine::Init()
 	SDL_GL_MakeCurrent(window_, glRenderContext_);
 	SDL_GL_SetSwapInterval(1);
 
-	if (!gladLoadGLES2Loader((GLADloadproc)SDL_GL_GetProcAddress))
+	if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress))
 	{
 		std::cerr << "Failed to initialize OpenGL context\n";
 		assert(false);
 	}
+
+#ifdef TRACY_ENABLE
+	TracyGpuContext
+#endif
+
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO();
@@ -84,27 +98,37 @@ void Engine::Run()
 			std::chrono::system_clock::now();
 		while (isOpen)
 		{
+#ifdef TRACY_ENABLE
+			ZoneNamedN(engineLoop, "Engine Loop", true);
+			TracyGpuNamedZone(gpuEngineLoop, "Engine Loop", true);
+#endif
 			const auto start = std::chrono::system_clock::now();
 			const auto dt = std::chrono::duration_cast<seconds>(start - clock);
 			deltaTime_ = dt.count();
 			clock = start;
-			SDL_Event event;
-			while (SDL_PollEvent(&event))
 			{
-				ImGui_ImplSDL2_ProcessEvent(&event);
-				if (event.type == SDL_QUIT)
+#ifdef TRACY_ENABLE
+				ZoneNamedN(eventManagement, "Event Management", true);
+				TracyGpuNamedZone(eventManagementGpu, "Event Management", true);
+#endif
+				SDL_Event event;
+				while (SDL_PollEvent(&event))
 				{
-					isOpen = false;
-				}
-
-				if (event.type == SDL_WINDOWEVENT)
-				{
-					if (event.window.event == SDL_WINDOWEVENT_RESIZED)
+					ImGui_ImplSDL2_ProcessEvent(&event);
+					if (event.type == SDL_QUIT)
 					{
-						windowSize_ = glm::vec2(event.window.data1, event.window.data2);
+						isOpen = false;
 					}
+
+					if (event.type == SDL_WINDOWEVENT)
+					{
+						if (event.window.event == SDL_WINDOWEVENT_RESIZED)
+						{
+							windowSize_ = glm::vec2(event.window.data1, event.window.data2);
+						}
+					}
+					program_.OnEvent(event);
 				}
-				program_.OnEvent(event);
 			}
 			// Start the Dear ImGui frame
 			ImGui_ImplOpenGL3_NewFrame();
@@ -113,8 +137,24 @@ void Engine::Run()
 			DrawImGui();
 			ImGui::Render();
 			program_.Update(dt);
-			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+			{
+#ifdef TRACY_ENABLE
+				ZoneNamedN(imguiRender, "ImGui Render Data", true);
+				TracyGpuNamedZone(gpuImguiRender, "ImGui Render Data", true);
+#endif
+				ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+			}
+			{
+#ifdef TRACY_ENABLE
+			ZoneNamedN(swapWindow, "Swap Window", true);
+			TracyGpuNamedZone(gpuSwapWindow, "Swap Window", true);
+#endif
 			SDL_GL_SwapWindow(window_);
+			}
+#ifdef TRACY_ENABLE
+			TracyGpuCollect
+			FrameMark
+#endif
 		}
 
 		Destroy();

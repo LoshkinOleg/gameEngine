@@ -1,6 +1,10 @@
 #include "skybox.h"
 
 #include <glad/glad.h>
+#ifdef TRACY_ENABLE
+#include <Tracy.hpp>
+#include <TracyOpenGL.hpp>
+#endif//!TRACY_ENABLE
 
 #include "resource_manager.h"
 
@@ -76,6 +80,10 @@ void gl::Skybox::Create(Definition def)
 
 void gl::Skybox::Draw()
 {
+#ifdef TRACY_ENABLE
+    ZoneNamedN(skyboxDraw, "Skybox::Draw()", true);
+    TracyGpuNamedZone(gpuskyboxDraw, "Skybox::Draw()", true);
+#endif
     glDepthFunc(GL_LEQUAL);
     shader_.Bind();
     cubemap_.Bind();

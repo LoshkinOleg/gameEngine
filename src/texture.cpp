@@ -8,6 +8,10 @@
 #define XXH_INLINE_ALL
 #endif // !XXH_INLINE_ALL
 #include "xxhash.h"
+#ifdef TRACY_ENABLE
+#include <Tracy.hpp>
+#include <TracyOpenGL.hpp>
+#endif//!TRACY_ENABLE
 
 #include "resource_manager.h"
 
@@ -162,6 +166,10 @@ GLuint gl::Texture::GetTEX() const
 
 void gl::Texture::Bind() const
 {
+#ifdef TRACY_ENABLE
+    ZoneNamedN(textureBind, "Texture::Bind()", true);
+    TracyGpuNamedZone(gputextureBind, "Texture::Bind()", true);
+#endif
     CheckGlError();
     assert((int)type_ > -1 && (int)type_ < (int)Type::INVALID);
     glActiveTexture(GL_TEXTURE0 + (int)type_);
@@ -171,6 +179,10 @@ void gl::Texture::Bind() const
 
 void gl::Texture::Unbind() const
 {
+#ifdef TRACY_ENABLE
+    ZoneNamedN(textureUnbind, "Texture::Unbind()", true);
+    TracyGpuNamedZone(gputextureUnbind, "Texture::Unbind()", true);
+#endif
     CheckGlError();
     assert((int)type_ > -1 && (int)type_ < (int)Type::INVALID);
     glActiveTexture(GL_TEXTURE0 + (int)type_);

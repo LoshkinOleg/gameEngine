@@ -28,7 +28,8 @@ namespace gl
 #define EngineMessage(msg) gl::Message(__FILE__, __LINE__, msg)
 #endif //!glDisplayMessageGuard
 #ifndef glCheckGlErrorGuard
-#define CheckGlError() gl::CheckGlError(__FILE__, __LINE__)
+// #define CheckGlError() gl::CheckGlError(__FILE__, __LINE__)
+#define CheckGlError() [](){}
 #endif //!glCheckGlErrorGuard
 #ifndef glCheckFramebufferStatusGuard
 #define CheckFramebufferStatus() gl::CheckFramebufferStatus(__FILE__, __LINE__)

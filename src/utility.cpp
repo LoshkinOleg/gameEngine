@@ -2,9 +2,17 @@
 
 #include <iostream>
 #include <glad/glad.h>
+#ifdef TRACY_ENABLE
+#include <Tracy.hpp>
+#include <TracyOpenGL.hpp>
+#endif//!TRACY_ENABLE
 
 void gl::CheckGlError(const char* file, int line)
 {
+#ifdef TRACY_ENABLE
+    ZoneNamedN(utilityCheckGlError, "CheckGlError()", true);
+    TracyGpuNamedZone(gpuutilityCheckGlError, "CheckGlError()", true);
+#endif
     auto error_code = glGetError();
     if (error_code != GL_NO_ERROR)
     {

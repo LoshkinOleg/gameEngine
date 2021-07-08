@@ -4,6 +4,10 @@
 #include <glad/glad.h>
 #include "imgui.h"
 #include <glm/gtc/quaternion.hpp>
+#ifdef TRACY_ENABLE
+#include <Tracy.hpp>
+#include <TracyOpenGL.hpp>
+#endif//!TRACY_ENABLE
 
 #include "engine.h"
 #include "model.h"
@@ -66,6 +70,11 @@ namespace gl
     public:
         void Init() override
         {
+#ifdef TRACY_ENABLE
+            ZoneNamedN(demoInit, "Demo::Init()", true);
+            TracyGpuNamedZone(gpuDemoInit, "Demo::Init()", true);
+#endif
+
             glEnable(GL_DEPTH_TEST);
             glEnable(GL_CULL_FACE);
             glEnable(GL_BLEND);
@@ -217,6 +226,11 @@ namespace gl
         }
         void Update(seconds dt) override
         {
+#ifdef TRACY_ENABLE
+            ZoneNamedN(demoUpdate, "Demo::Update()", true);
+            TracyGpuNamedZone(gpuDemoUpdate, "Demo::Update()", true);
+#endif
+
             const float fdt = dt.count();
             if (fdt > SKIP_FRAME_THRESHOLD_) return;
             timer_ += fdt;
@@ -251,6 +265,10 @@ namespace gl
         }
         void OnEvent(SDL_Event& event) override
         {
+#ifdef TRACY_ENABLE
+            ZoneNamedN(demoEvent, "Demo::OnEvent()", true);
+            TracyGpuNamedZone(gpuDemoEvent, "Demo::OnEvent()", true);
+#endif
             if ((event.type == SDL_KEYDOWN) &&
                 (event.key.keysym.sym == SDLK_ESCAPE))
             {
