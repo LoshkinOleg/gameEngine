@@ -17,6 +17,7 @@ void gl::Camera::ProcessKeyboard(const glm::vec3 direction)
 }
 void gl::Camera::ProcessMouseMovement(int x, int y)
 {
+    // TODO: use quaternions for rotations.
     state_.yaw += (float)x * CAMERA_MOUSE_SENSITIVITY_;
     state_.pitch -= (float)y * CAMERA_MOUSE_SENSITIVITY_;
     if (state_.pitch > glm::radians(89.0f)) state_.pitch = glm::radians(89.0f);
@@ -87,8 +88,11 @@ void gl::Camera::LookAt(const glm::vec3 pos, const glm::vec3 up)
     const float yaw = glm::acos(front.x / glm::cos(pitch));
     state_.pitch = pitch;
     state_.yaw = yaw;
-    if (state_.pitch > glm::radians(89.0f)) state_.pitch = glm::radians(89.0f);
-    if (state_.pitch < glm::radians(-89.0f)) state_.pitch = glm::radians(-89.0f);
+    // if (state_.pitch > glm::radians(89.0f)) state_.pitch = glm::radians(89.0f);
+    // if (state_.pitch < glm::radians(-89.0f)) state_.pitch = glm::radians(-89.0f);
+
+    // UpdateCameraVectors();
+    // UpdateCameraMatrix();
 }
 
 void gl::Camera::SetPosition(const glm::vec3 pos)

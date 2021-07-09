@@ -6,12 +6,12 @@ in vec2 TexCoords;
 
 struct Material
 {
-	sampler2D ambientMap;
+	sampler2D diffuseMap;
 };
 
 uniform Material material;
 
 void main()
 {
-	FragColor = texture(material.ambientMap, TexCoords);
+	FragColor = texture(material.diffuseMap, TexCoords);
 }

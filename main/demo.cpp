@@ -1,5 +1,5 @@
 #include <functional>
-#include <iostream>
+#include <math.h>
 
 #include <glad/glad.h>
 #include "imgui.h"
@@ -15,8 +15,6 @@
 #include "skybox.h"
 #include "resource_manager.h"
 
-// TODO: use basisu to convert to ktx instead of toktx
-
 namespace gl
 {
     const bool CONTROL_CAMERA = false;
@@ -24,21 +22,33 @@ namespace gl
     const glm::vec3 CAMERA_STARTING_FRONT = CAMERA_STARTING_POS + FRONT_VEC3;
 
     const size_t HORSE_MODEL_OFFSET_ = 7; // 7 bc there's 7 elements in vbdef.dataLayout
-    const glm::vec3 HORSE_POS = RIGHT_VEC3 * 6.0f +
-                                UP_VEC3 * 2.0f +
-                                FRONT_VEC3 * -8.0f;
+    const glm::vec3 HORSE_POS =
+        RIGHT_VEC3 *  6.0f +
+        UP_VEC3 *     2.0f +
+        FRONT_VEC3 * -8.0f;
+    const glm::vec3 HORSE_SIZE =
+        RIGHT_VEC3 * 5.0f +
+        UP_VEC3 *    5.0f +
+        FRONT_VEC3 * 5.0f;
+
+    const size_t NR_OF_PARTICLES = 512;
+    const float PARTICLE_SPACING = 0.5f;
+    const float EMITTER_RADIUS = 2.5f;
+    const glm::vec3 EMITTER_POS =
+        RIGHT_VEC3 * 4.0f +
+        UP_VEC3 *    0.0f +
+        FRONT_VEC3 * -20.0f;
 
     // Regions.
     const float TURN_AROUND_START = 0.1f;
     const float TURN_AROUND_END = 2.0f;
     const float TURN_TOWARDS_HORSE_END = 3.0f;
     const float FOLLOW_HORSE_END = 13.0f;
-    const float TURN_BACK_FORWARDS_END = 15.0f;
+    const float TURN_TOWARDS_PARTICLES_END = 15.0f;
+    const float FOLLOW_PARTICLES_END = 25.0f;
 
-    float RemapToRangeOne(const float inputRangeLower, const float inputRangeUpper, const float value)
+    float RemapToRange(const float inputRangeLower, const float inputRangeUpper, const float outputRangeLower, const float outputRangeUpper, const float value)
     {
-        const float outputRangeLower = 0.0f;
-        const float outputRangeUpper = 1.0f;
         assert(value >= inputRangeLower && value <= inputRangeUpper);
         return outputRangeLower + (value - inputRangeLower) * (outputRangeUpper - outputRangeLower) / (inputRangeUpper - inputRangeLower);
     }
@@ -108,7 +118,6 @@ namespace gl
                 Material::Definition matdef = ResourceManager::PreprocessMaterialData(objData)[0];
                 matdef.shader.vertexPath = "../data/shaders/floor.vert";
                 matdef.shader.fragmentPath = "../data/shaders/floor.frag";
-                matdef.shader.staticMat4s.insert({ PROJECTION_MARIX_NAME, PERSPECTIVE });
                 matdef.shader.dynamicMat4s.insert({ CAMERA_MARIX_NAME, resourceManager_.GetCamera().GetCameraMatrixPtr() });
                 matdef.shader.dynamicVec3s.insert({ VIEW_POSITION_NAME, resourceManager_.GetCamera().GetPositionPtr() });
 
@@ -161,7 +170,6 @@ namespace gl
                 Material::Definition matdef = ResourceManager::PreprocessMaterialData(objData0)[0];
                 matdef.shader.vertexPath = "../data/shaders/horse.vert";
                 matdef.shader.fragmentPath = "../data/shaders/horse.frag";
-                matdef.shader.staticMat4s.insert({ PROJECTION_MARIX_NAME, PERSPECTIVE });
                 matdef.shader.dynamicMat4s.insert({ CAMERA_MARIX_NAME, resourceManager_.GetCamera().GetCameraMatrixPtr() });
                 matdef.shader.dynamicVec3s.insert({ VIEW_POSITION_NAME, resourceManager_.GetCamera().GetPositionPtr() });
                 matdef.shader.dynamicFloats.insert({"interpolationFactor", &morphingFactor_});
@@ -169,9 +177,66 @@ namespace gl
                 std::vector<glm::mat4> modelMatrices;
                 modelMatrices.push_back(glm::translate(IDENTITY_MAT4, HORSE_POS));
                 modelMatrices[0] = glm::rotate(modelMatrices[0], glm::radians(-90.0f), UP_VEC3);
-                modelMatrices[0] = glm::scale(modelMatrices[0], glm::vec3(5.0f));
+                modelMatrices[0] = glm::scale(modelMatrices[0], glm::vec3(HORSE_SIZE));
 
                 horse_.Create({ vbdef }, { matdef }, modelMatrices);
+            }
+
+            // Load particle model.
+            {
+                const auto objData = ResourceManager::ReadObj(dataPath + "models/particle/particle.obj");
+                VertexBuffer::Definition vbdef;
+                for (size_t i = 0; i < objData[0].positions.size(); i++)
+                {
+                    vbdef.data.push_back(objData[0].positions[i].x);
+                    vbdef.data.push_back(objData[0].positions[i].y);
+                    vbdef.data.push_back(objData[0].positions[i].z);
+
+                    vbdef.data.push_back(objData[0].uvs[i].x);
+                    vbdef.data.push_back(objData[0].uvs[i].y);
+                }
+                for (size_t i = 0; i < objData[1].positions.size(); i++)
+                {
+                    vbdef.data.push_back(objData[1].positions[i].x);
+                    vbdef.data.push_back(objData[1].positions[i].y);
+                    vbdef.data.push_back(objData[1].positions[i].z);
+
+                    vbdef.data.push_back(objData[1].uvs[i].x);
+                    vbdef.data.push_back(objData[1].uvs[i].y);
+                }
+                for (size_t i = 0; i < objData[2].positions.size(); i++)
+                {
+                    vbdef.data.push_back(objData[2].positions[i].x);
+                    vbdef.data.push_back(objData[2].positions[i].y);
+                    vbdef.data.push_back(objData[2].positions[i].z);
+
+                    vbdef.data.push_back(objData[2].uvs[i].x);
+                    vbdef.data.push_back(objData[2].uvs[i].y);
+                }
+                vbdef.dataLayout = { 3,2 };
+                particleVertexBuffer_.Create(vbdef);
+
+                Material::Definition matdef = ResourceManager::PreprocessMaterialData(objData)[0];
+                matdef.shader.vertexPath = "../data/shaders/particles.vert";
+                matdef.shader.fragmentPath = "../data/shaders/particles.frag";
+                matdef.shader.staticFloats.insert({"scale", 0.05f});
+                matdef.shader.staticFloats.insert({"emitterRadius", EMITTER_RADIUS });
+                matdef.shader.staticVec3s.insert({"emitterPos", EMITTER_POS});
+                matdef.shader.dynamicMat4s.insert({ CAMERA_MARIX_NAME, resourceManager_.GetCamera().GetCameraMatrixPtr() });
+                particleMaterial_.Create(matdef);
+
+                glBindVertexArray(particleVertexBuffer_.GetVAOandVBO()[0]);
+                CheckGlError();
+                glGenBuffers(1, &particleModelsVBO_);
+                glBindBuffer(GL_ARRAY_BUFFER, particleModelsVBO_);
+                glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * NR_OF_PARTICLES, particlePositionsAndDistToEmitter_, GL_DYNAMIC_DRAW);
+                CheckGlError();
+                glEnableVertexAttribArray(2);
+                glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+                glVertexAttribDivisor(2, 1);
+                CheckGlError();
+                glBindBuffer(GL_ARRAY_BUFFER, 0);
+                glBindVertexArray(0);
             }
 
             Skybox::Definition skdef;
@@ -190,7 +255,7 @@ namespace gl
             regions_.push_back(Region(TURN_AROUND_START, TURN_AROUND_END, [this](const float start, const float end)->void
             {
                 // Turn around.
-                const float current = RemapToRangeOne(start, end, timer_);
+                const float current = RemapToRange(start, end, 0.0f, 1.0f, timer_);
                 const float currentAngle = std::lerp(glm::radians(180.0f), glm::radians(0.0f), current);
                 const glm::quat currentRotation = glm::angleAxis(currentAngle, UP_VEC3);
                 const glm::vec3 newFront = currentRotation * BACK_VEC3;
@@ -199,7 +264,7 @@ namespace gl
             regions_.push_back(Region(TURN_AROUND_END, TURN_TOWARDS_HORSE_END, [this](const float start, const float end)->void
             {
                 // Turn towards horse.
-                const float current = RemapToRangeOne(start, end, timer_);
+                const float current = RemapToRange(start, end, 0.0f, 1.0f, timer_);
                 const glm::quat startingRot = glm::angleAxis(glm::radians(0.0f), UP_VEC3);
                 const glm::quat endingRot = glm::quatLookAt(glm::normalize(HORSE_POS - camera_.GetPosition()), UP_VEC3);
                 const glm::quat interpolatedRot = glm::lerp(startingRot, endingRot, current);
@@ -209,18 +274,25 @@ namespace gl
             regions_.push_back(Region(TURN_TOWARDS_HORSE_END, FOLLOW_HORSE_END, [this](const float start, const float end)->void
             {
                 // Look at horse.
-                const float current = RemapToRangeOne(start, end, timer_);
+                const float current = RemapToRange(start, end, 0.0f, 1.0f, timer_);
                 const glm::vec3 newFront = glm::normalize(HORSE_POS - camera_.GetPosition());
                 camera_.LookAt(camera_.GetPosition() + newFront, UP_VEC3);
             }));
-            regions_.push_back(Region(FOLLOW_HORSE_END, TURN_BACK_FORWARDS_END, [this](const float start, const float end)->void
+            regions_.push_back(Region(FOLLOW_HORSE_END, TURN_TOWARDS_PARTICLES_END, [this](const float start, const float end)->void
             {
-                // Turn back forwards.
-                const float current = RemapToRangeOne(start, end, timer_);
+                // Turn towards particles.
+                const float current = RemapToRange(start, end, 0.0f, 1.0f, timer_);
                 const glm::quat startingRot = glm::quatLookAt(glm::normalize(HORSE_POS - camera_.GetPosition()), UP_VEC3);
-                const glm::quat endingRot = glm::angleAxis(glm::radians(0.0f), UP_VEC3);
+                const glm::quat endingRot = glm::quatLookAt(glm::normalize(EMITTER_POS + UP_VEC3 * 1.5f - camera_.GetPosition()), UP_VEC3);
                 const glm::quat interpolatedRot = glm::slerp(startingRot, endingRot, current);
                 const glm::vec3 newFront = interpolatedRot * BACK_VEC3;
+                camera_.LookAt(camera_.GetPosition() + newFront, UP_VEC3);
+            }));
+            regions_.push_back(Region(TURN_TOWARDS_PARTICLES_END, FOLLOW_PARTICLES_END, [this](const float start, const float end)->void
+            {
+                // Look at particles.
+                const float current = RemapToRange(start, end, 0.0f, 1.0f, timer_);
+                const glm::vec3 newFront = glm::normalize(EMITTER_POS + UP_VEC3 * 1.5f - camera_.GetPosition());
                 camera_.LookAt(camera_.GetPosition() + newFront, UP_VEC3);
             }));
         }
@@ -237,9 +309,37 @@ namespace gl
 
             morphingFactor_ = glm::cos(timer_) * 0.5f + 0.5f;
 
-            glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            { // Update particles positions.
+#ifdef TRACY_ENABLE
+                ZoneNamedN(demoUpdateParticlesUpdateParticlesPos, "Demo::Update(): UpdateParticlesPos", true);
+#endif
+                for (size_t i = 0; i < NR_OF_PARTICLES; i++)
+                {
+                    float uselessIntegerPart; // Mandatory out argument for std::modf().
+                    const float elementOffset = (PARTICLE_SPACING * i) / NR_OF_PARTICLES;
+                    const float linearVal = RemapToRange(0.0f, 1.0f, 0.0f, PI, std::modf(timer_ + elementOffset, &uselessIntegerPart)); // Variable that increments linearly between 0 and PI.
+                    const float lastLinearVal = RemapToRange(0.0f, 1.0f, 0.0f, PI, std::modf((timer_ - fdt) + elementOffset, &uselessIntegerPart));
+                    if (linearVal < lastLinearVal) // Means we've wrapped around. Went from approaching PI to leaving 0.
+                    {
+                        // Define new direction in which the particle will fly away from emitter for the next sinusoidal half-period.
+                        particleXzPositions_[i].x = (rand() % 200 - 100) * 0.01f;
+                        particleXzPositions_[i].y = (rand() % 200 - 100) * 0.01f;
+                    }
+             
+                    const float yVal = (linearVal < PI * 0.5f) ? glm::sin(linearVal) : glm::sin(linearVal - PI * 0.5f); // Particles move from emitter and outwards only.
+                    const glm::vec3 position =
+                    {
+                        EMITTER_POS.x + (particleXzPositions_[i].x * yVal * yVal), // *yval^2 to give the particles trumpet like paths rather than straight ones.
+                        EMITTER_POS.y + (yVal * EMITTER_RADIUS),
+                        EMITTER_POS.z + (particleXzPositions_[i].y * yVal * yVal)
+                    };
+                    particlePositionsAndDistToEmitter_[i].x = position.x;
+                    particlePositionsAndDistToEmitter_[i].y = position.y;
+                    particlePositionsAndDistToEmitter_[i].z = position.z;
+                }
+            }
 
+            // Update camera position and rotation.
             if (!CONTROL_CAMERA)
             {
                 camera_.SetPosition(camera_.GetPosition() + BACK_VEC3 * dt.count());
@@ -254,10 +354,36 @@ namespace gl
                 }
             }
 
+            // Clear screen.
+            glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
             floor_.Draw();
             // TODO: CHANGE ARGUMENTS to prevent accidental casting of size_t to bool -_-
             horse_.Draw(true, HORSE_MODEL_OFFSET_);
-            skybox_.Draw();
+            // Q: @Elias, any ideas?
+            skybox_.Draw(); // Have to draw skybox before particles due to transparency annoyingly... don't know where the problem comes from.
+            { // Draw particles.
+#ifdef TRACY_ENABLE
+                ZoneNamedN(demoUpdateDrawParticles, "Demo::Update(): DrawParticles", true);
+                TracyGpuNamedZone(gpudemoUpdateDrawParticles, "Demo::Update(): DrawParticles", true);
+#endif
+                glDisable(GL_CULL_FACE);
+                {
+#ifdef TRACY_ENABLE
+                    ZoneNamedN(demoUpdateParticlesUploadParticlesPos, "Demo::Update(): UploadParticlesPos", true);
+                    TracyGpuNamedZone(gpudemoUpdateUploadParticlesPos, "Demo::Update(): UploadParticlesPos", true);
+#endif
+                    const auto vaoAndVbo = particleVertexBuffer_.GetVAOandVBO();
+                    glBindVertexArray(vaoAndVbo[0]);
+                    glBindBuffer(GL_ARRAY_BUFFER, particleModelsVBO_);
+                    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec3) * NR_OF_PARTICLES, particlePositionsAndDistToEmitter_);
+                }
+                particleMaterial_.Bind();
+                particleVertexBuffer_.Draw(NR_OF_PARTICLES);
+                particleMaterial_.Unbind();
+                glEnable(GL_CULL_FACE);
+            }
         }
         void Destroy() override
         {
@@ -335,6 +461,12 @@ namespace gl
         std::vector<Region> regions_;
 
         float morphingFactor_ = 0.0f;
+
+        unsigned int particleModelsVBO_ = 0;
+        glm::vec3 particlePositionsAndDistToEmitter_[NR_OF_PARTICLES];
+        glm::vec2 particleXzPositions_[NR_OF_PARTICLES];
+        VertexBuffer particleVertexBuffer_;
+        Material particleMaterial_;
 
         Skybox skybox_;
 

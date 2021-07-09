@@ -23,9 +23,6 @@ GLint gl::Shader::GetUniformLocation(std::string_view uniformName)
     const auto match = uniformNames_.find(uniformName.data());
     if (match != uniformNames_.end()) // Name of uniform already known, use it.
     {
-#ifdef TRACY_ENABLE
-        ZoneNamedN(shaderGetUniformLocationHit, "Shader::GetUniformLocation(): Hit", true);
-#endif
         return match->second;
     }
     else
@@ -35,6 +32,7 @@ GLint gl::Shader::GetUniformLocation(std::string_view uniformName)
         TracyGpuNamedZone(gpushaderGetUniformLocationMiss, "Shader::GetUniformLocation(): Miss", true);
 #endif
         const int uniformIntName = glGetUniformLocation(PROGRAM_, uniformName.data());
+        if (uniformIntName < 0) EngineError("Trying to get the location of a non existent uniform!");
         CheckGlError();
         uniformNames_.insert({ uniformName.data(), uniformIntName }); // Add the new entry.
         return uniformIntName;

@@ -342,7 +342,7 @@ std::vector<gl::ResourceManager::ObjData> gl::ResourceManager::ReadObj(std::stri
         assert( // Make sure we're not mixing Blinn-Phong and PBR materials together.
             (diffuseMap.empty() || roughnessMap.empty()) &&
             (specularMap.empty() || metallicMap.empty()) &&
-            (shininess == 0.0f || ior == 1.0f)
+            (shininess == 1.0f || ior == 1.0f)
         );
 
         returnVal.push_back(
@@ -432,8 +432,14 @@ std::vector<gl::Material::Definition> gl::ResourceManager::PreprocessMaterialDat
             returnVal[mesh].texturePathsAndTypes.push_back({ path, gl::Texture::Type::SPECULAR_OR_METALLIC });
             returnVal[mesh].shader.staticInts.insert({ gl::METALLIC_SAMPLER_NAME, gl::METALLIC_TEXTURE_UNIT });
         }
-        returnVal[mesh].shader.staticFloats.insert({gl::SHININESS_NAME, objData[mesh].shininess});
-        returnVal[mesh].shader.staticFloats.insert({gl::IOR_NAME, objData[mesh].ior});
+        if (objData[mesh].shininess > 1.0f)
+        {
+            returnVal[mesh].shader.staticFloats.insert({gl::SHININESS_NAME, objData[mesh].shininess});
+        }
+        if (objData[mesh].ior != 1.0f)
+        {
+            returnVal[mesh].shader.staticFloats.insert({gl::IOR_NAME, objData[mesh].ior});
+        }
     }
     return returnVal;
 }
