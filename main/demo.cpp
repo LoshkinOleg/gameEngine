@@ -15,9 +15,12 @@
 #include "skybox.h"
 #include "resource_manager.h"
 
+// TODO: see what the nsight errors are all about
+// TODO: see what the camera fuckery is all about
+
 namespace gl
 {
-    const bool CONTROL_CAMERA = false;
+    const bool CONTROL_CAMERA = true;
     const glm::vec3 CAMERA_STARTING_POS = UP_VEC3;
     const glm::vec3 CAMERA_STARTING_FRONT = CAMERA_STARTING_POS + FRONT_VEC3;
 
@@ -229,7 +232,7 @@ namespace gl
                 CheckGlError();
                 glGenBuffers(1, &particleModelsVBO_);
                 glBindBuffer(GL_ARRAY_BUFFER, particleModelsVBO_);
-                glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * NR_OF_PARTICLES, particlePositionsAndDistToEmitter_, GL_DYNAMIC_DRAW);
+                glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * NR_OF_PARTICLES, particlePositions_, GL_DYNAMIC_DRAW);
                 CheckGlError();
                 glEnableVertexAttribArray(2);
                 glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
@@ -333,9 +336,9 @@ namespace gl
                         EMITTER_POS.y + (yVal * EMITTER_RADIUS),
                         EMITTER_POS.z + (particleXzPositions_[i].y * yVal * yVal)
                     };
-                    particlePositionsAndDistToEmitter_[i].x = position.x;
-                    particlePositionsAndDistToEmitter_[i].y = position.y;
-                    particlePositionsAndDistToEmitter_[i].z = position.z;
+                    particlePositions_[i].x = position.x;
+                    particlePositions_[i].y = position.y;
+                    particlePositions_[i].z = position.z;
                 }
             }
 
@@ -377,7 +380,7 @@ namespace gl
                     const auto vaoAndVbo = particleVertexBuffer_.GetVAOandVBO();
                     glBindVertexArray(vaoAndVbo[0]);
                     glBindBuffer(GL_ARRAY_BUFFER, particleModelsVBO_);
-                    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec3) * NR_OF_PARTICLES, particlePositionsAndDistToEmitter_);
+                    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec3) * NR_OF_PARTICLES, particlePositions_);
                 }
                 particleMaterial_.Bind();
                 particleVertexBuffer_.Draw(NR_OF_PARTICLES);
@@ -387,6 +390,8 @@ namespace gl
         }
         void Destroy() override
         {
+            delete particlePositions_;
+            delete particleXzPositions_;
             ResourceManager::Get().Shutdown();
         }
         void OnEvent(SDL_Event& event) override
@@ -463,8 +468,8 @@ namespace gl
         float morphingFactor_ = 0.0f;
 
         unsigned int particleModelsVBO_ = 0;
-        glm::vec3 particlePositionsAndDistToEmitter_[NR_OF_PARTICLES];
-        glm::vec2 particleXzPositions_[NR_OF_PARTICLES];
+        glm::vec3* particlePositions_ = new glm::vec3[NR_OF_PARTICLES];
+        glm::vec2* particleXzPositions_ = new glm::vec2[NR_OF_PARTICLES];
         VertexBuffer particleVertexBuffer_;
         Material particleMaterial_;
 
