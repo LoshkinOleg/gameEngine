@@ -1,5 +1,4 @@
 // TODO: add transparency
-// TODO: add frustrum culling
 
 // TODO: try out Gouraud shader
 
@@ -7,10 +6,8 @@
 #include "imgui.h"
 
 #include "engine.h"
-#include "model.h"
-#include "framebuffer.h"
-#include "skybox.h"
 #include "resource_manager.h"
+#include "audio_device.h"
 
 namespace gl
 {
@@ -24,51 +21,20 @@ namespace gl
             glEnable(GL_BLEND);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-            // Load floor mesh.
-            VertexBuffer::Definition vbdef;
-            const auto objData = ResourceManager::ReadObj("C:/Users/admin/Desktop/demoAssets/models/floor/floor.obj");
-            for (size_t vertex = 0; vertex < objData[0].positions.size(); vertex++)
-            {
-                vbdef.data.push_back(objData[0].positions[vertex].x);
-                vbdef.data.push_back(objData[0].positions[vertex].y);
-                vbdef.data.push_back(objData[0].positions[vertex].z);
-
-                vbdef.data.push_back(objData[0].uvs[vertex].x);
-                vbdef.data.push_back(objData[0].uvs[vertex].y);
-
-                vbdef.data.push_back(objData[0].normals[vertex].x);
-                vbdef.data.push_back(objData[0].normals[vertex].y);
-                vbdef.data.push_back(objData[0].normals[vertex].z);
-
-                vbdef.data.push_back(objData[0].tangents[vertex].x);
-                vbdef.data.push_back(objData[0].tangents[vertex].y);
-                vbdef.data.push_back(objData[0].tangents[vertex].z);
-            }
-            vbdef.dataLayout =
-            {
-                3,2,3,3
-            };
-
-            Material::Definition matdef = ResourceManager::PreprocessMaterialData(objData)[0];
-            matdef.shader.vertexPath = "../data/shaders/floor.vert";
-            matdef.shader.fragmentPath = "../data/shaders/floor.frag";
-            matdef.shader.staticMat4s.insert({ PROJECTION_MARIX_NAME, PERSPECTIVE });
-            matdef.shader.dynamicMat4s.insert({ CAMERA_MARIX_NAME, resourceManager_.GetCamera().GetCameraMatrixPtr() });
-            matdef.shader.dynamicVec3s.insert({ VIEW_POSITION_NAME, resourceManager_.GetCamera().GetPositionPtr() });
-
-            floor_.Create({ vbdef }, { matdef }, { glm::scale(IDENTITY_MAT4, ONE_VEC3 * 10.0f) });
+            device_.Init();
+            sine_.Load("C:/Users/admin/Desktop/sine.wav");
         }
         void Update(seconds dt) override
         {
             timer_ += dt.count();
             glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-            floor_.Draw();
         }
         void Destroy() override
         {
             ResourceManager::Get().Shutdown();
+            device_.Destroy();
+            sine_.Destroy();
         }
         void OnEvent(SDL_Event& event) override
         {
@@ -87,6 +53,7 @@ namespace gl
                     {
                         case SDLK_w:
                             camera.ProcessKeyboard(FRONT_VEC3);
+                            device_.PlayClip(sine_);
                             break;
                         case SDLK_s:
                             camera.ProcessKeyboard(BACK_VEC3);
@@ -128,8 +95,10 @@ namespace gl
     private:
         float timer_ = 0.0f;
         bool mouseButtonDown_ = false;
-        Model floor_;
         ResourceManager& resourceManager_ = ResourceManager::Get();
+
+        AudioDevice device_;
+        Clip sine_;
     };
 
 } // End namespace gl.

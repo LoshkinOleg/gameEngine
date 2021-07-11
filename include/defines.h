@@ -17,6 +17,14 @@ namespace gl
 	const glm::mat4 PERSPECTIVE = glm::perspective(PROJECTION_FOV, SCREEN_RESOLUTION[0] / SCREEN_RESOLUTION[1], PROJECTION_NEAR, PROJECTION_FAR);
 	const glm::mat4 ORTHO = glm::ortho(-PROJECTION_BOUNDS, PROJECTION_BOUNDS, -PROJECTION_BOUNDS, PROJECTION_BOUNDS, PROJECTION_NEAR, PROJECTION_FAR);
 
+	// Audio parameters.
+	const size_t BYTES_PER_SAMPLE = 2; // 16-bit sounds.
+	const size_t BUFFER_SIZE_IN_BYTES = 10485760; // 10 MB
+	const size_t NR_OF_SAMPLES = 4096; // samples value when using WAV files.
+	const int AUDIO_FORMAT = 0x8010; // SDL's AUDIO_S16
+	const size_t DSP_FREQUENCY = 44100; // Standard CD quality audio's frequency.
+	const size_t NR_OF_CHANNELS = 1; // We're using mono.
+
 	// Error and warning aliases.
 #ifndef glErrorGuard
 #define EngineError(msg) gl::Error(__FILE__, __LINE__, msg)
