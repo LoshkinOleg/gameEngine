@@ -17,6 +17,11 @@
 
 // TODO: see what the nsight errors are all about
 // TODO: see what the camera fuckery is all about
+// TODO: investigate unnecessary binding of transform models?
+// TODO: add anti-aliasing, investigate origin of sharp transitions in textures
+// TODO: profile framebuffers
+
+// Q: @Elias: why is my vec4 framebuffer data getting.... perspective devided?... or something else?
 
 namespace gl
 {
@@ -24,7 +29,6 @@ namespace gl
     const glm::vec3 CAMERA_STARTING_POS = UP_VEC3;
     const glm::vec3 CAMERA_STARTING_FRONT = CAMERA_STARTING_POS + FRONT_VEC3;
 
-    const size_t HORSE_MODEL_OFFSET_ = 7; // 7 bc there's 7 elements in vbdef.dataLayout
     const glm::vec3 HORSE_POS =
         RIGHT_VEC3 *  6.0f +
         UP_VEC3 *     2.0f +
@@ -41,6 +45,11 @@ namespace gl
         RIGHT_VEC3 * 4.0f +
         UP_VEC3 *    0.0f +
         FRONT_VEC3 * -20.0f;
+
+    const glm::vec3 DIAMOND_POS =
+        RIGHT_VEC3 * 5.0f +
+        UP_VEC3 * 1.0f +
+        FRONT_VEC3 * 0.0f;
 
     // Regions.
     const float TURN_AROUND_START = 0.1f;
@@ -93,11 +102,11 @@ namespace gl
             glEnable(GL_BLEND);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-            const std::string dataPath = "C:/Users/admin/Desktop/demoAssets/";
+            const std::string assetsPath = "C:/Users/admin/Desktop/demoAssets/";
 
             // Load floor.
             {
-                const auto objData = ResourceManager::ReadObj(dataPath + "models/floor/floor.obj");
+                const auto objData = ResourceManager::ReadObj(assetsPath + "models/floor/floor.obj");
                 VertexBuffer::Definition vbdef;
                 for (size_t i = 0; i < objData[0].positions.size(); i++)
                 {
@@ -122,7 +131,6 @@ namespace gl
                 matdef.shader.vertexPath = "../data/shaders/floor.vert";
                 matdef.shader.fragmentPath = "../data/shaders/floor.frag";
                 matdef.shader.dynamicMat4s.insert({ CAMERA_MARIX_NAME, resourceManager_.GetCamera().GetCameraMatrixPtr() });
-                matdef.shader.dynamicVec3s.insert({ VIEW_POSITION_NAME, resourceManager_.GetCamera().GetPositionPtr() });
 
                 const float scale = 5.0f;
                 const size_t roadLength = 5;
@@ -138,8 +146,8 @@ namespace gl
 
             // Load horse.
             {
-                const auto objData0 = ResourceManager::ReadObj(dataPath + "models/horse/horse_base.obj", false);
-                const auto objData1 = ResourceManager::ReadObj(dataPath + "models/horse/horse_sphere.obj", false);
+                const auto objData0 = ResourceManager::ReadObj(assetsPath + "models/horse/horse_base.obj", false);
+                const auto objData1 = ResourceManager::ReadObj(assetsPath + "models/horse/horse_sphere.obj", false);
                 assert(objData0[0].positions.size() == objData1[0].positions.size());
                 VertexBuffer::Definition vbdef;
                 for (size_t i = 0; i < objData0[0].positions.size(); i++)
@@ -174,7 +182,6 @@ namespace gl
                 matdef.shader.vertexPath = "../data/shaders/horse.vert";
                 matdef.shader.fragmentPath = "../data/shaders/horse.frag";
                 matdef.shader.dynamicMat4s.insert({ CAMERA_MARIX_NAME, resourceManager_.GetCamera().GetCameraMatrixPtr() });
-                matdef.shader.dynamicVec3s.insert({ VIEW_POSITION_NAME, resourceManager_.GetCamera().GetPositionPtr() });
                 matdef.shader.dynamicFloats.insert({"interpolationFactor", &morphingFactor_});
 
                 std::vector<glm::mat4> modelMatrices;
@@ -182,12 +189,12 @@ namespace gl
                 modelMatrices[0] = glm::rotate(modelMatrices[0], glm::radians(-90.0f), UP_VEC3);
                 modelMatrices[0] = glm::scale(modelMatrices[0], glm::vec3(HORSE_SIZE));
 
-                horse_.Create({ vbdef }, { matdef }, modelMatrices);
+                horse_.Create({ vbdef }, { matdef }, modelMatrices, 7); // TODO: remove the model matrix offset argument?
             }
 
             // Load particle model.
             {
-                const auto objData = ResourceManager::ReadObj(dataPath + "models/particle/particle.obj");
+                const auto objData = ResourceManager::ReadObj(assetsPath + "models/particle/particle.obj");
                 VertexBuffer::Definition vbdef;
                 for (size_t i = 0; i < objData[0].positions.size(); i++)
                 {
@@ -222,9 +229,6 @@ namespace gl
                 Material::Definition matdef = ResourceManager::PreprocessMaterialData(objData)[0];
                 matdef.shader.vertexPath = "../data/shaders/particles.vert";
                 matdef.shader.fragmentPath = "../data/shaders/particles.frag";
-                matdef.shader.staticFloats.insert({"scale", 0.05f});
-                matdef.shader.staticFloats.insert({"emitterRadius", EMITTER_RADIUS });
-                matdef.shader.staticVec3s.insert({"emitterPos", EMITTER_POS});
                 matdef.shader.dynamicMat4s.insert({ CAMERA_MARIX_NAME, resourceManager_.GetCamera().GetCameraMatrixPtr() });
                 particleMaterial_.Create(matdef);
 
@@ -242,14 +246,95 @@ namespace gl
                 glBindVertexArray(0);
             }
 
+            // Load diamond model.
+            {
+                const auto objData = ResourceManager::ReadObj(assetsPath + "models/diamond/diamond.obj");
+                VertexBuffer::Definition vbdef;
+                for (size_t i = 0; i < objData[0].positions.size(); i++)
+                {
+                    vbdef.data.push_back(objData[0].positions[i].x);
+                    vbdef.data.push_back(objData[0].positions[i].y);
+                    vbdef.data.push_back(objData[0].positions[i].z);
+
+                    vbdef.data.push_back(objData[0].uvs[i].x);
+                    vbdef.data.push_back(objData[0].uvs[i].y);
+
+                    vbdef.data.push_back(objData[0].normals[i].x);
+                    vbdef.data.push_back(objData[0].normals[i].y);
+                    vbdef.data.push_back(objData[0].normals[i].z);
+
+                    vbdef.data.push_back(objData[0].tangents[i].x);
+                    vbdef.data.push_back(objData[0].tangents[i].y);
+                    vbdef.data.push_back(objData[0].tangents[i].z);
+                }
+                vbdef.dataLayout = { 3,2,3,3 };
+
+                Material::Definition matdef = ResourceManager::PreprocessMaterialData(objData)[0];
+                matdef.shader.vertexPath = "../data/shaders/diamond.vert";
+                matdef.shader.fragmentPath = "../data/shaders/diamond.frag";
+                matdef.shader.dynamicMat4s.insert({CAMERA_MARIX_NAME, camera_.GetCameraMatrixPtr()});
+                matdef.shader.staticInts.insert({CUBEMAP_SAMPLER_NAME, CUBEMAP_TEXTURE_UNIT});
+                matdef.shader.dynamicVec3s.insert({VIEW_POSITION_NAME, camera_.GetPositionPtr()});
+                matdef.texturePathsAndTypes.push_back({assetsPath + "textures/skybox/skybox.ktx", Texture::Type::CUBEMAP});
+
+                diamond_.Create({ vbdef }, { matdef }, {glm::translate(IDENTITY_MAT4, DIAMOND_POS)});
+            }
+
+            // Init skybox.
             Skybox::Definition skdef;
-            skdef.path = dataPath + "textures/skybox/skybox.ktx";
+            skdef.path = assetsPath + "textures/skybox/skybox.ktx";
             skdef.shader.vertexPath = "../data/shaders/skybox.vert";
             skdef.shader.fragmentPath = "../data/shaders/skybox.frag";
             skdef.shader.staticMat4s.insert({PROJECTION_MARIX_NAME, PERSPECTIVE});
             skdef.shader.dynamicMat4s.insert({VIEW_MARIX_NAME, camera_.GetViewMatrixPtr()});
             skdef.shader.staticInts.insert({CUBEMAP_SAMPLER_NAME, CUBEMAP_TEXTURE_UNIT});
             skybox_.Create(skdef);
+
+            // Init frambuffer.
+            {
+                Framebuffer::Definition fbdef;
+                fbdef.type = (Framebuffer::Type) // TODO: add a specular color intensity, floor is too shiny, maybe add a noise to the specular?
+                    (
+                        Framebuffer::Type::FBO_RGBA0 | // Albedo
+                        Framebuffer::Type::FBO_RGBA1 | // Positions( + shadowmap value?)
+                        Framebuffer::Type::FBO_RGBA2 | // Normals
+                        Framebuffer::Type::FBO_RGBA3 | // shininess
+                        Framebuffer::Type::RBO
+                    );
+                deferredFb_.Create(fbdef);
+                fbdef.type = (Framebuffer::Type)
+                    (
+                        Framebuffer::Type::FBO_RGBA0 | // Color.
+                        Framebuffer::Type::FBO_RGBA1   // Bright colors for bloom.
+                    );
+                postprocessFb_.Create(fbdef);
+
+                // Init fbQuad_.
+                VertexBuffer::Definition vbdef;
+                vbdef.data = QUAD_POSITIONS;
+                vbdef.dataLayout = {2};
+                vbdef.generateBoundingSphereRadius = false; // This is a 2D object. No frustum culling.
+
+                Material::Definition matdef;
+                matdef.shader.vertexPath = "../data/shaders/deferred_fb.vert";
+                matdef.shader.fragmentPath = "../data/shaders/deferred_fb.frag";
+                matdef.shader.staticInts.insert({FRAMEBUFFER_SAMPLER0_NAME, FRAMEBUFFER_TEXTURE0_UNIT}); // Albedo + shininess
+                matdef.shader.staticInts.insert({FRAMEBUFFER_SAMPLER1_NAME, FRAMEBUFFER_TEXTURE1_UNIT}); // FragPos( + shadowmap val?)
+                matdef.shader.staticInts.insert({FRAMEBUFFER_SAMPLER2_NAME, FRAMEBUFFER_TEXTURE2_UNIT}); // normals
+                matdef.shader.staticInts.insert({FRAMEBUFFER_SAMPLER3_NAME, FRAMEBUFFER_TEXTURE3_UNIT}); // shininess
+                matdef.shader.dynamicVec3s.insert({VIEW_POSITION_NAME, camera_.GetPositionPtr()});
+
+                fbQuad_.Create({ vbdef }, {matdef});
+
+                // Init post process shader.
+                Shader::Definition sdef;
+                sdef.vertexPath = "../data/shaders/postprocess_fb.vert";
+                sdef.fragmentPath = "../data/shaders/postprocess_fb.frag";
+                sdef.staticInts.insert({FRAMEBUFFER_SAMPLER0_NAME, FRAMEBUFFER_TEXTURE0_UNIT});
+                sdef.staticInts.insert({FRAMEBUFFER_SAMPLER1_NAME, FRAMEBUFFER_TEXTURE1_UNIT});
+
+                postprocessShader_.Create(sdef);
+            }
 
             camera_.SetPosition(CAMERA_STARTING_POS);
             camera_.LookAt(CAMERA_STARTING_FRONT, UP_VEC3);
@@ -361,17 +446,19 @@ namespace gl
             glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            floor_.Draw();
+            diamond_.Rotate(glm::vec3(0.0f, glm::radians(90.0f) * fdt, 0.0f));
+
+            deferredFb_.Bind();
+            diamond_.Draw();
             // TODO: CHANGE ARGUMENTS to prevent accidental casting of size_t to bool -_-
-            horse_.Draw(true, HORSE_MODEL_OFFSET_);
-            // Q: @Elias, any ideas?
-            skybox_.Draw(); // Have to draw skybox before particles due to transparency annoyingly... don't know where the problem comes from.
+            horse_.Draw();
+            floor_.Draw();
             { // Draw particles.
 #ifdef TRACY_ENABLE
                 ZoneNamedN(demoUpdateDrawParticles, "Demo::Update(): DrawParticles", true);
                 TracyGpuNamedZone(gpudemoUpdateDrawParticles, "Demo::Update(): DrawParticles", true);
 #endif
-                glDisable(GL_CULL_FACE);
+                glDisable(GL_CULL_FACE); // We want to draw all 3 quads composing the particle, even if they're facing away.
                 {
 #ifdef TRACY_ENABLE
                     ZoneNamedN(demoUpdateParticlesUploadParticlesPos, "Demo::Update(): UploadParticlesPos", true);
@@ -387,6 +474,18 @@ namespace gl
                 particleMaterial_.Unbind();
                 glEnable(GL_CULL_FACE);
             }
+            skybox_.Draw();
+            deferredFb_.Unbind();
+
+            postprocessFb_.Bind();
+            deferredFb_.BindGBuffer();
+            fbQuad_.Draw(true);
+            deferredFb_.UnbindGBuffer();
+            postprocessFb_.Unbind();
+
+            postprocessFb_.BindGBuffer();
+            fbQuad_.DrawUsingShader(postprocessShader_);
+            postprocessFb_.UnbindGBuffer();
         }
         void Destroy() override
         {
@@ -477,7 +576,12 @@ namespace gl
 
         Model
             floor_,
-            horse_;
+            horse_,
+            diamond_,
+            fbQuad_; // TODO: remove default shader for meshes. Shader should be passed as argument on draw.
+
+        Framebuffer deferredFb_, postprocessFb_;
+        Shader postprocessShader_; // TODO: get rid of this sheit...
     };
 
 } // End namespace gl.

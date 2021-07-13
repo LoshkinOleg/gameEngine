@@ -10,9 +10,10 @@
 
 #include "resource_manager.h"
 
-void gl::Model::Create(std::vector<VertexBuffer::Definition> vb, std::vector<Material::Definition> mat, std::vector<glm::mat4> modelMatrices)
+void gl::Model::Create(std::vector<VertexBuffer::Definition> vb, std::vector<Material::Definition> mat, std::vector<glm::mat4> modelMatrices, const size_t modelMatrixOffset)
 {
     modelMatrices_ = modelMatrices;
+    modelMatrixOffset_ = modelMatrixOffset;
 
     assert(vb.size() == mat.size());
 
@@ -29,13 +30,13 @@ void gl::Model::Create(std::vector<VertexBuffer::Definition> vb, std::vector<Mat
     }
 }
 
-void gl::Model::Draw(bool bypassFrustumCulling, const size_t transformModelOffset)
+void gl::Model::Draw(bool bypassFrustumCulling)
 {
 #ifdef TRACY_ENABLE
     ZoneNamedN(modelDraw, "Model::Draw()", true);
     TracyGpuNamedZone(gpumodelDraw, "Model::Draw()", true);
 #endif
-    if (!bypassFrustumCulling)
+    if (!bypassFrustumCulling) // TODO: move culling to own method
     {
         std::vector<glm::mat4> modelMatricesToDraw;
 
@@ -121,14 +122,14 @@ void gl::Model::Draw(bool bypassFrustumCulling, const size_t transformModelOffse
             ZoneNamedN(modelDrawTransferringModelsCulled, "Model::Draw(): TransferringModelsCulled", true);
             TracyGpuNamedZone(gpumodelDrawTransferringModelsCulled, "Model::Draw(): TransferringModelsCulled", true);
 #endif
-                glBindBuffer(GL_ARRAY_BUFFER, modelMatricesVBO_);
-                glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::mat4) * modelMatricesToDraw.size(), (void*)&modelMatricesToDraw[0][0]);
+            glBindBuffer(GL_ARRAY_BUFFER, modelMatricesVBO_);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::mat4) * modelMatricesToDraw.size(), (void*)&modelMatricesToDraw[0][0]);
 
             }
-                for (size_t i = 0; i < meshes_.size(); i++)
-                {
-                    meshes_[i].Draw(modelMatricesToDraw, transformModelOffset);
-                }
+            for (size_t i = 0; i < meshes_.size(); i++)
+            {
+                meshes_[i].Draw(modelMatricesToDraw, true, modelMatrixOffset_);
+            }
         }
     }
     else // Draw all models. Used for things like direct shadow rendering passes.
@@ -138,23 +139,30 @@ void gl::Model::Draw(bool bypassFrustumCulling, const size_t transformModelOffse
         ZoneNamedN(modelDrawTransferringModelsUnculled, "Model::Draw(): TransferringModelsUnculled", true);
         TracyGpuNamedZone(gpumodelDrawTransferringModelsUnculled, "Model::Draw(): TransferringModelsUnculled", true);
 #endif
-            glBindBuffer(GL_ARRAY_BUFFER, modelMatricesVBO_);
-            glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::mat4) * modelMatrices_.size(), (void*)&modelMatrices_[0][0]);
-        }
-            for (size_t i = 0; i < meshes_.size(); i++)
+            if (modelMatrices_.size() > 0)
             {
-                meshes_[i].Draw(modelMatrices_, transformModelOffset);
+                glBindBuffer(GL_ARRAY_BUFFER, modelMatricesVBO_);
+                glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::mat4) * modelMatrices_.size(), (void*)&modelMatrices_[0][0]);
             }
+        }
+        for (size_t i = 0; i < meshes_.size(); i++)
+        {
+            meshes_[i].Draw(modelMatrices_, modelMatrices_.size() > 0, modelMatrixOffset_);
+        }
     }
 }
 
 void gl::Model::DrawUsingShader(Shader& shader)
 {
-    glBindBuffer(GL_ARRAY_BUFFER, modelMatricesVBO_);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::mat4) * modelMatrices_.size(), (void*)&modelMatrices_[0][0]);
+    // TODO: add optional culling here?
+    if (modelMatrices_.size() > 0)
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, modelMatricesVBO_);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::mat4) * modelMatrices_.size(), (void*)&modelMatrices_[0][0]);
+    }
     for (size_t i = 0; i < meshes_.size(); i++)
     {
-        meshes_[i].DrawUsingShader(modelMatrices_, shader);
+        meshes_[i].DrawUsingShader(modelMatrices_, shader, modelMatrices_.size() > 0);
     }
 }
 

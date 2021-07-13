@@ -1,45 +1,40 @@
 #version 440 core
 
-layout (location = 0) out vec4 FragColor;
+layout (location = 0) out vec4 fbTexture0; // rgb: albedo, w: shininess
+layout (location = 1) out vec4 fbTexture1; // xyz: w_FragPos
+layout (location = 2) out vec4 fbTexture2; // xyz: w_Normal normalized and in range [-1;1]
+layout (location = 3) out vec4 fbTexture3; // x: shininess
 
 in VS_OUT {
-    vec3 t_FragPos;
+    vec3 w_FragPos;
     vec2 TexCoords;
-    vec3 t_LightDir;
-    vec3 t_ViewPos;
+    mat3 TBN; // Have to perform TBN multiplication in fragment shader since TexCoords gets interpolated.
 } fs_in;
 
 struct Material
 {
-    sampler2D alphaMap;
     sampler2D normalMap;
     sampler2D diffuseMap;
-    sampler2D specularMap;
     float shininess;
 };
 
 uniform Material material;
 
-const float ambientIntensity = 0.2;
-
 void main()
 {
-    // Get the normal from normal map and convert it to [0;1] range.
-    const vec3 t_normal = normalize((texture(material.normalMap, fs_in.TexCoords).rgb) * 2.0 - 1.0);
-    const float alpha = texture(material.alphaMap, fs_in.TexCoords).r;
-    const vec3 color = texture(material.diffuseMap, fs_in.TexCoords).rgb;
-    const vec3 specularColor = texture(material.specularMap, fs_in.TexCoords).rgb;
-    const vec3 t_viewDir = normalize(fs_in.t_ViewPos - fs_in.t_FragPos);
-    vec3 t_reflectDir = reflect(fs_in.t_LightDir, t_normal); // Should return a normalized direction.
-    vec3 t_halfwayDir = normalize(t_viewDir - fs_in.t_LightDir);
-   
-    vec3 ambient = ambientIntensity * color;
+    fbTexture0 = vec4(1.0);
+    fbTexture1 = vec4(1.0);
+    fbTexture2 = vec4(1.0);
+    fbTexture3 = vec4(1.0);
 
-    const float diffuseIntensity = max(dot(-fs_in.t_LightDir, t_normal), 0.0);
-    const vec3 diffuse = diffuseIntensity * color;
+    // Albedo + shininess.
+    fbTexture0.rgb = pow(texture(material.diffuseMap, fs_in.TexCoords).rgb, vec3(1.0/2.2)); // TODO: figure out how to specify that GLI should load textures as sRGB...
 
-    const float specularIntensity = pow(max(dot(t_normal, t_halfwayDir), 0.0), material.shininess);
-    const vec3 specular = specularIntensity * specularColor;
+    // FragPos.
+    fbTexture1.xyz = fs_in.w_FragPos;
+    
+    // Normals. Retrieve from normalmap, remap to range [-1;1] and convert to world space.
+    fbTexture2.xyz = fs_in.TBN * normalize((texture(material.normalMap, fs_in.TexCoords).rgb) * 2.0 - 1.0);
 
-    FragColor = vec4(ambient + diffuse + specular, alpha);
+    fbTexture3.x = material.shininess;
 }

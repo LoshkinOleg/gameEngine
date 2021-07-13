@@ -7,31 +7,24 @@ layout (location = 3) in vec3 aTangent;
 layout (location = 4) in mat4 aModel;
 
 out VS_OUT {
-    vec3 t_FragPos;
+    vec3 w_FragPos;
     vec2 TexCoords;
-    vec3 t_LightDir;
-    vec3 t_ViewPos;
+    mat3 TBN; // Have to perform TBN multiplication in fragment shader since TexCoords gets interpolated.
 } vs_out;
 
 uniform mat4 cameraMatrix;
-uniform vec3 viewPos;
-
-const vec3 lightDir = normalize(vec3(-1.0, -1.0, 1.0));
 
 void main()
 {
-    const vec4 fragPos = aModel * vec4(aPos, 1.0);
-    mat3 normalMatrix = transpose(inverse(mat3(aModel)));
+    const mat3 normalMatrix = transpose(inverse(mat3(aModel)));
     vec3 T = normalize(normalMatrix * aTangent);
     vec3 N = normalize(normalMatrix * aNormal);
     T = normalize(T - dot(T, N) * N);
     vec3 B = cross(N, T);
-    mat3 TBN = transpose(mat3(T, B, N));
+    vs_out.TBN = mat3(T, B, N);
 
-    vs_out.t_FragPos  = TBN * fragPos.xyz;
+    vs_out.w_FragPos  = (aModel * vec4(aPos, 1.0)).xyz;
     vs_out.TexCoords = aTexCoord;
-    vs_out.t_LightDir = TBN * lightDir;
-    vs_out.t_ViewPos  = TBN * viewPos;
-        
-    gl_Position = cameraMatrix * fragPos;
+
+    gl_Position = cameraMatrix * vec4(vs_out.w_FragPos, 1.0); // Need to write to gl_Position to allow the pipeline to clip fragments that are offscreen.
 }
