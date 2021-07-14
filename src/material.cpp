@@ -4,11 +4,6 @@
 
 void gl::Material::Create(Definition def)
 {
-    if (shader_.GetPROGRAM() != 0)
-    {
-        EngineError("Calling Create() a second time...");
-    }
-
     for (const auto& pair : def.texturePathsAndTypes)
     {
         assert(!pair.first.empty() && (int)pair.second < (int)Texture::Type::INVALID);
@@ -20,8 +15,6 @@ void gl::Material::Create(Definition def)
         tex.Create(def.texturePathsAndTypes[i].second, def.texturePathsAndTypes[i].first);
         textures_.push_back(tex);
     }
-
-    shader_.Create(def.shader);
 }
 
 void gl::Material::Bind()
@@ -30,7 +23,6 @@ void gl::Material::Bind()
 	{
 		texture.Bind();
 	}
-    shader_.Bind();
 }
 void gl::Material::Unbind()
 {
@@ -38,5 +30,4 @@ void gl::Material::Unbind()
 	{
 		texture.Unbind();
 	}
-    shader_.Unbind();
 }

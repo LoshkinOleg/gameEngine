@@ -43,7 +43,8 @@ vec3 MeanBlur()
 
 void main()
 {
-    vec3 result = /*texture(fbTexture0, TexCoord).rgb;*/ MeanBlur();
+    vec3 result = MeanBlur();
     result = ExtendedReinhard(result, MaxBrightness);
-    FragColor = vec4(pow(result, vec3(GAMMA)), 1.0);
+    result = pow(result, vec3(1.0/GAMMA));
+    FragColor = vec4(result, 1.0);
 }

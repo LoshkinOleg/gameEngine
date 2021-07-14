@@ -75,3 +75,9 @@ void gl::CheckFramebufferStatus(const char* file, int line)
         abort();
     }
 }
+
+float gl::RemapToRange(const float inputRangeLower, const float inputRangeUpper, const float outputRangeLower, const float outputRangeUpper, const float value)
+{
+    assert(value >= inputRangeLower && value <= inputRangeUpper);
+    return outputRangeLower + (value - inputRangeLower) * (outputRangeUpper - outputRangeLower) / (inputRangeUpper - inputRangeLower);
+}

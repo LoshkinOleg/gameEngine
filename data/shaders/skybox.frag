@@ -20,7 +20,7 @@ void main()
     fbTexture2 = vec4(1.0);
     fbTexture3 = vec4(1.0);
 
-	fbTexture0 = vec4(pow(texture(cubemap, TexCoord).rgb, vec3(1.0/2.2)), 1.0); // TODO: figure out how to specify that GLI should load textures as sRGB...
+	fbTexture0 = vec4(pow(texture(cubemap, TexCoord).rgb, vec3(2.2)), 1.0); // TODO: specify we're in sRGB when generating ktx
 	fbTexture1.xyz = vec3(INVALID_FLOAT); // Don't render skybox using blinn-phong.
 	fbTexture2.xyz = vec3(INVALID_FLOAT);
 	fbTexture3.xyz = vec3(INVALID_FLOAT); // No shininess.

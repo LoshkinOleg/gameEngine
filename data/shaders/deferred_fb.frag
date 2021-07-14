@@ -14,11 +14,10 @@ uniform sampler2D fbTexture3; // x: shininess
 
 uniform vec3 viewPos;
 
-const float GAMMA = 2.2;
 const vec3 LIGHT_DIR = normalize(vec3(1.0, -1.0, -1.0));
 const float LIGHT_INTENSITY = 1.0;
 const vec3 SPECULAR_COLOR = vec3(1.0);
-const float AMBIENT_FACTOR = 0.15;
+const float AMBIENT_FACTOR = 0.01;
 const float INVALID_FLOAT = 1.0/0.0; // Allowed by glsl. Can be checked via isinf().
 const vec3 HUMAN_EYE_SENSITIVITY = vec3(0.2126, 0.7152, 0.0722);
 

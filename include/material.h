@@ -5,7 +5,6 @@
 #include <utility>
 
 #include "texture.h"
-#include "shader.h"
 
 namespace gl
 {
@@ -14,7 +13,6 @@ namespace gl
     public:
         struct Definition
         {
-            Shader::Definition shader = {};
             std::vector<std::pair<std::string, Texture::Type>> texturePathsAndTypes = {};
         };
 
@@ -24,7 +22,6 @@ namespace gl
         void Unbind();
     private:
 
-        Shader shader_ = {};
         std::vector<Texture> textures_ = {};
     };
 }//!gl

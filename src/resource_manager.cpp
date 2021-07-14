@@ -381,64 +381,115 @@ std::vector<gl::Material::Definition> gl::ResourceManager::PreprocessMaterialDat
         if (!objData[mesh].alphaMap.empty())
         {
             returnVal[mesh].texturePathsAndTypes.push_back({path, gl::Texture::Type::ALPHA});
-            returnVal[mesh].shader.staticInts.insert({gl::ALPHA_SAMPLER_NAME, gl::ALPHA_TEXTURE_UNIT});
         }
         path = dir;
         path += objData[mesh].normalMap;
         if (!objData[mesh].normalMap.empty())
         {
             returnVal[mesh].texturePathsAndTypes.push_back({ path, gl::Texture::Type::NORMALMAP });
-            returnVal[mesh].shader.staticInts.insert({ gl::NORMALMAP_SAMPLER_NAME, gl::NORMALMAP_TEXTURE_UNIT });
         }
         path = dir;
         path += objData[mesh].ambientMap;
         if (!objData[mesh].ambientMap.empty())
         {
             returnVal[mesh].texturePathsAndTypes.push_back({ path, gl::Texture::Type::AMBIENT_OR_ALBEDO });
-            returnVal[mesh].shader.staticInts.insert({ gl::AMBIENT_SAMPLER_NAME, gl::AMBIENT_TEXTURE_UNIT });
         }
         path = dir;
         path += objData[mesh].albedoMap;
         if (!objData[mesh].albedoMap.empty())
         {
             returnVal[mesh].texturePathsAndTypes.push_back({ path, gl::Texture::Type::AMBIENT_OR_ALBEDO });
-            returnVal[mesh].shader.staticInts.insert({ gl::ALBEDO_SAMPLER_NAME, gl::ALBEDO_TEXTURE_UNIT });
         }
         path = dir;
         path += objData[mesh].diffuseMap;
         if (!objData[mesh].diffuseMap.empty())
         {
             returnVal[mesh].texturePathsAndTypes.push_back({ path, gl::Texture::Type::DIFFUSE_OR_ROUGHNESS });
-            returnVal[mesh].shader.staticInts.insert({ gl::DIFFUSE_SAMPLER_NAME, gl::DIFFUSE_TEXTURE_UNIT });
         }
         path = dir;
         path += objData[mesh].roughnessMap;
         if (!objData[mesh].roughnessMap.empty())
         {
             returnVal[mesh].texturePathsAndTypes.push_back({ path, gl::Texture::Type::DIFFUSE_OR_ROUGHNESS });
-            returnVal[mesh].shader.staticInts.insert({ gl::ROUGHNESS_SAMPLER_NAME, gl::ROUGHNESS_TEXTURE_UNIT });
         }
         path = dir;
         path += objData[mesh].specularMap;
         if (!objData[mesh].specularMap.empty())
         {
             returnVal[mesh].texturePathsAndTypes.push_back({ path, gl::Texture::Type::SPECULAR_OR_METALLIC });
-            returnVal[mesh].shader.staticInts.insert({ gl::SPECULAR_SAMPLER_NAME, gl::SPECULAR_TEXTURE_UNIT });
         }
         path = dir;
         path += objData[mesh].metallicMap;
         if (!objData[mesh].metallicMap.empty())
         {
             returnVal[mesh].texturePathsAndTypes.push_back({ path, gl::Texture::Type::SPECULAR_OR_METALLIC });
-            returnVal[mesh].shader.staticInts.insert({ gl::METALLIC_SAMPLER_NAME, gl::METALLIC_TEXTURE_UNIT });
+        }
+    }
+    return returnVal;
+}
+
+std::vector<gl::Shader::Definition> gl::ResourceManager::PreprocessShaderData(const std::vector<ObjData> objData)
+{
+    std::vector<gl::Shader::Definition> returnVal = std::vector<gl::Shader::Definition>(objData.size(), gl::Shader::Definition());
+
+    for (size_t mesh = 0; mesh < objData.size(); mesh++)
+    {
+        std::string dir = objData[mesh].dir.data();
+        std::string path = dir;
+        path += objData[mesh].alphaMap;
+        if (!objData[mesh].alphaMap.empty())
+        {
+            returnVal[mesh].staticInts.insert({ gl::ALPHA_SAMPLER_NAME, gl::ALPHA_TEXTURE_UNIT });
+        }
+        path = dir;
+        path += objData[mesh].normalMap;
+        if (!objData[mesh].normalMap.empty())
+        {
+            returnVal[mesh].staticInts.insert({ gl::NORMALMAP_SAMPLER_NAME, gl::NORMALMAP_TEXTURE_UNIT });
+        }
+        path = dir;
+        path += objData[mesh].ambientMap;
+        if (!objData[mesh].ambientMap.empty())
+        {
+            returnVal[mesh].staticInts.insert({ gl::AMBIENT_SAMPLER_NAME, gl::AMBIENT_TEXTURE_UNIT });
+        }
+        path = dir;
+        path += objData[mesh].albedoMap;
+        if (!objData[mesh].albedoMap.empty())
+        {
+            returnVal[mesh].staticInts.insert({ gl::ALBEDO_SAMPLER_NAME, gl::ALBEDO_TEXTURE_UNIT });
+        }
+        path = dir;
+        path += objData[mesh].diffuseMap;
+        if (!objData[mesh].diffuseMap.empty())
+        {
+            returnVal[mesh].staticInts.insert({ gl::DIFFUSE_SAMPLER_NAME, gl::DIFFUSE_TEXTURE_UNIT });
+        }
+        path = dir;
+        path += objData[mesh].roughnessMap;
+        if (!objData[mesh].roughnessMap.empty())
+        {
+            returnVal[mesh].staticInts.insert({ gl::ROUGHNESS_SAMPLER_NAME, gl::ROUGHNESS_TEXTURE_UNIT });
+        }
+        path = dir;
+        path += objData[mesh].specularMap;
+        if (!objData[mesh].specularMap.empty())
+        {
+            returnVal[mesh].staticInts.insert({ gl::SPECULAR_SAMPLER_NAME, gl::SPECULAR_TEXTURE_UNIT });
+        }
+        path = dir;
+        path += objData[mesh].metallicMap;
+        if (!objData[mesh].metallicMap.empty())
+        {
+            returnVal[mesh].staticInts.insert({ gl::METALLIC_SAMPLER_NAME, gl::METALLIC_TEXTURE_UNIT });
         }
         if (objData[mesh].shininess > 1.0f)
         {
-            returnVal[mesh].shader.staticFloats.insert({gl::SHININESS_NAME, objData[mesh].shininess});
+            returnVal[mesh].staticFloats.insert({ gl::SHININESS_NAME, objData[mesh].shininess });
         }
         if (objData[mesh].ior != 1.0f)
         {
-            returnVal[mesh].shader.staticFloats.insert({gl::IOR_NAME, objData[mesh].ior});
+            returnVal[mesh].staticFloats.insert({ gl::IOR_NAME, objData[mesh].ior });
         }
     }
     return returnVal;

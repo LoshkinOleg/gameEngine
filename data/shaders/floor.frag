@@ -28,7 +28,7 @@ void main()
     fbTexture3 = vec4(1.0);
 
     // Albedo + shininess.
-    fbTexture0.rgb = pow(texture(material.diffuseMap, fs_in.TexCoords).rgb, vec3(1.0/2.2)); // TODO: figure out how to specify that GLI should load textures as sRGB...
+    fbTexture0.rgb = pow(texture(material.diffuseMap, fs_in.TexCoords).rgb, vec3(2.2)); // TODO: specify we're in sRGB when generating ktx
 
     // FragPos.
     fbTexture1.xyz = fs_in.w_FragPos;

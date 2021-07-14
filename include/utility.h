@@ -19,4 +19,5 @@ namespace gl
     */
     void CheckFramebufferStatus(const char* file, int line);
     void Message(const char* file, int line, const char* msg, bool writeTriggerPoint = false);
+    float RemapToRange(const float inputRangeLower, const float inputRangeUpper, const float outputRangeLower, const float outputRangeUpper, const float value);
 }//!gl

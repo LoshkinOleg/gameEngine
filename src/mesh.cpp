@@ -41,45 +41,7 @@ void gl::Mesh::Create(const VertexBuffer::Definition vbdef, const Material::Defi
     CheckGlError();
 }
 
-void gl::Mesh::Draw(const std::vector<glm::mat4>& modelMatrices, bool updateModels, size_t transformModelOffset)
-{
-#ifdef TRACY_ENABLE
-    ZoneNamedN(meshDraw, "Mesh::Draw()", true);
-    TracyGpuNamedZone(gpumeshDraw, "Mesh::Draw()", true);
-#endif
-    if (updateModels){
-#ifdef TRACY_ENABLE
-    ZoneNamedN(meshDrawSettingUpVaoPointers, "Mesh::Draw() SettingUpVaoPointers", true);
-    TracyGpuNamedZone(gpumeshDrawSettingUpVaoPointers, "Mesh::Draw() SettingUpVaoPointers", true);
-#endif
-        const auto& vaoAndVbo = vb_.GetVAOandVBO();
-        glBindVertexArray(vaoAndVbo[0]);
-
-        // Update pointers here in case multiple models use the same VAO/VBO.
-        glEnableVertexAttribArray((unsigned int)transformModelOffset);
-        glVertexAttribPointer((unsigned int)transformModelOffset, 4, GL_FLOAT, GL_FALSE, 4 * 4 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray((unsigned int)transformModelOffset + 1);
-        glVertexAttribPointer((unsigned int)transformModelOffset + 1, 4, GL_FLOAT, GL_FALSE, 4 * 4 * sizeof(float), (void*)(4 * sizeof(float)));
-        glEnableVertexAttribArray((unsigned int)transformModelOffset + 2);
-        glVertexAttribPointer((unsigned int)transformModelOffset + 2, 4, GL_FLOAT, GL_FALSE, 4 * 4 * sizeof(float), (void*)(2 * 4 * sizeof(float)));
-        glEnableVertexAttribArray((unsigned int)transformModelOffset + 3);
-        glVertexAttribPointer((unsigned int)transformModelOffset + 3, 4, GL_FLOAT, GL_FALSE, 4 * 4 * sizeof(float), (void*)(3 * 4 * sizeof(float)));
-        glVertexAttribDivisor((unsigned int)transformModelOffset, 1);
-        glVertexAttribDivisor((unsigned int)transformModelOffset + 1, 1);
-        glVertexAttribDivisor((unsigned int)transformModelOffset + 2, 1);
-        glVertexAttribDivisor((unsigned int)transformModelOffset + 3, 1);
-
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
-        CheckGlError();
-    }
-
-    material_.Bind();
-    vb_.Draw(modelMatrices.size());
-    material_.Unbind();
-}
-
-void gl::Mesh::DrawUsingShader(const std::vector<glm::mat4>& modelMatrices, Shader& shader, bool updateModels, size_t transformModelOffset)
+void gl::Mesh::Draw(const std::vector<glm::mat4>& modelMatrices, Shader& shader, bool updateModels, size_t transformModelOffset)
 {
     if (updateModels)
     {
@@ -106,7 +68,7 @@ void gl::Mesh::DrawUsingShader(const std::vector<glm::mat4>& modelMatrices, Shad
     }
     
     material_.Bind();
-    shader.Bind(); // TODO: get rid of this ugly hack
+    shader.Bind();
     vb_.Draw(modelMatrices.size());
     shader.Unbind();
     material_.Unbind();
