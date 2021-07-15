@@ -326,24 +326,12 @@ std::vector<gl::ResourceManager::ObjData> gl::ResourceManager::ReadObj(std::stri
         assert(std::accumulate(mesh.material_ids.begin(), mesh.material_ids.end(), 0) / mesh.material_ids.size() == mesh.material_ids[0]); // All vertices should have the same material.
         const int matId = mesh.material_ids[0]; // Only 1 material per mesh, so just take the one that's at index 0.
 
-        bool isPBR = materials[matId].illum == 1 ? true : false; // Interpreting illum = 1 as PBR, anything else as Blinn-Phong.
-
         std::string alphaMap = materials[matId].alpha_texname; // map_d
         std::string normalMap = materials[matId].bump_texname; // map_Bump
-        std::string ambientMapOrAlbedo = materials[matId].ambient_texname; // map_Ka
         std::string diffuseMap = materials[matId].diffuse_texname; // map_Kd
-        std::string roughnessMap = materials[matId].roughness_texname; // map_Pr
         std::string specularMap = materials[matId].specular_texname; // map_Ks
-        std::string metallicMap = materials[matId].metallic_texname; // map_Pm
 
         float shininess = materials[matId].shininess;
-        float ior = materials[matId].ior;
-
-        assert( // Make sure we're not mixing Blinn-Phong and PBR materials together.
-            (diffuseMap.empty() || roughnessMap.empty()) &&
-            (specularMap.empty() || metallicMap.empty()) &&
-            (shininess == 1.0f || ior == 1.0f)
-        );
 
         returnVal.push_back(
             {
@@ -352,17 +340,11 @@ std::vector<gl::ResourceManager::ObjData> gl::ResourceManager::ReadObj(std::stri
                 normals,
                 tangents,
                 dir,
-                isPBR,
                 alphaMap,
                 normalMap,
-                ambientMapOrAlbedo,
                 diffuseMap,
                 specularMap,
-                shininess,
-                ambientMapOrAlbedo, // both use map_Ka
-                roughnessMap,
-                metallicMap,
-                ior
+                shininess
             });
     }
 
@@ -389,38 +371,14 @@ std::vector<gl::Material::Definition> gl::ResourceManager::PreprocessMaterialDat
             returnVal[mesh].texturePathsAndTypes.push_back({ path, gl::Texture::Type::NORMALMAP });
         }
         path = dir;
-        path += objData[mesh].ambientMap;
-        if (!objData[mesh].ambientMap.empty())
-        {
-            returnVal[mesh].texturePathsAndTypes.push_back({ path, gl::Texture::Type::AMBIENT_OR_ALBEDO });
-        }
-        path = dir;
-        path += objData[mesh].albedoMap;
-        if (!objData[mesh].albedoMap.empty())
-        {
-            returnVal[mesh].texturePathsAndTypes.push_back({ path, gl::Texture::Type::AMBIENT_OR_ALBEDO });
-        }
-        path = dir;
         path += objData[mesh].diffuseMap;
         if (!objData[mesh].diffuseMap.empty())
         {
             returnVal[mesh].texturePathsAndTypes.push_back({ path, gl::Texture::Type::DIFFUSE_OR_ROUGHNESS });
         }
         path = dir;
-        path += objData[mesh].roughnessMap;
-        if (!objData[mesh].roughnessMap.empty())
-        {
-            returnVal[mesh].texturePathsAndTypes.push_back({ path, gl::Texture::Type::DIFFUSE_OR_ROUGHNESS });
-        }
-        path = dir;
         path += objData[mesh].specularMap;
         if (!objData[mesh].specularMap.empty())
-        {
-            returnVal[mesh].texturePathsAndTypes.push_back({ path, gl::Texture::Type::SPECULAR_OR_METALLIC });
-        }
-        path = dir;
-        path += objData[mesh].metallicMap;
-        if (!objData[mesh].metallicMap.empty())
         {
             returnVal[mesh].texturePathsAndTypes.push_back({ path, gl::Texture::Type::SPECULAR_OR_METALLIC });
         }
@@ -448,28 +406,10 @@ std::vector<gl::Shader::Definition> gl::ResourceManager::PreprocessShaderData(co
             returnVal[mesh].staticInts.insert({ gl::NORMALMAP_SAMPLER_NAME, gl::NORMALMAP_TEXTURE_UNIT });
         }
         path = dir;
-        path += objData[mesh].ambientMap;
-        if (!objData[mesh].ambientMap.empty())
-        {
-            returnVal[mesh].staticInts.insert({ gl::AMBIENT_SAMPLER_NAME, gl::AMBIENT_TEXTURE_UNIT });
-        }
-        path = dir;
-        path += objData[mesh].albedoMap;
-        if (!objData[mesh].albedoMap.empty())
-        {
-            returnVal[mesh].staticInts.insert({ gl::ALBEDO_SAMPLER_NAME, gl::ALBEDO_TEXTURE_UNIT });
-        }
-        path = dir;
         path += objData[mesh].diffuseMap;
         if (!objData[mesh].diffuseMap.empty())
         {
             returnVal[mesh].staticInts.insert({ gl::DIFFUSE_SAMPLER_NAME, gl::DIFFUSE_TEXTURE_UNIT });
-        }
-        path = dir;
-        path += objData[mesh].roughnessMap;
-        if (!objData[mesh].roughnessMap.empty())
-        {
-            returnVal[mesh].staticInts.insert({ gl::ROUGHNESS_SAMPLER_NAME, gl::ROUGHNESS_TEXTURE_UNIT });
         }
         path = dir;
         path += objData[mesh].specularMap;
@@ -477,19 +417,9 @@ std::vector<gl::Shader::Definition> gl::ResourceManager::PreprocessShaderData(co
         {
             returnVal[mesh].staticInts.insert({ gl::SPECULAR_SAMPLER_NAME, gl::SPECULAR_TEXTURE_UNIT });
         }
-        path = dir;
-        path += objData[mesh].metallicMap;
-        if (!objData[mesh].metallicMap.empty())
-        {
-            returnVal[mesh].staticInts.insert({ gl::METALLIC_SAMPLER_NAME, gl::METALLIC_TEXTURE_UNIT });
-        }
         if (objData[mesh].shininess > 1.0f)
         {
             returnVal[mesh].staticFloats.insert({ gl::SHININESS_NAME, objData[mesh].shininess });
-        }
-        if (objData[mesh].ior != 1.0f)
-        {
-            returnVal[mesh].staticFloats.insert({ gl::IOR_NAME, objData[mesh].ior });
         }
     }
     return returnVal;

@@ -22,25 +22,22 @@ void gl::Framebuffer::Create(Definition def)
     glBindFramebuffer(GL_FRAMEBUFFER, FBO_);
     CheckGlError();
 
-    // I think FBO_DEPTH and RGBA0 uses the same attachment slot?
-
-    if (def.type & Type::FBO_DEPTH0_NO_DRAW)
+    if (def.type & Type::FBO_DEPTH_NO_DRAW)
     {
         assert(
-            !(def.type & Type::FBO_RGBA0) && // Don't want to draw anything if we're using a shadowmap.
+            !(def.type & Type::FBO_RGBA0) && // Don't want to have both a depth attachment AND color attachments because of the glDrawBuffers and glReadBuffer conflicting.
             !(def.type & Type::FBO_RGBA1) &&
             !(def.type & Type::FBO_RGBA2) &&
             !(def.type & Type::FBO_RGBA3) &&
-            !(def.type & Type::FBO_RGBA4) &&
-            !(def.type & Type::FBO_RGBA5)
+            !(def.type & Type::FBO_RGBA4)
         );
 
         CheckGlError();
-        TEXs_.push_back({ 0, 0 });
+        TEXs_.push_back({ 0, FRAMEBUFFER_SHADOWMAP_UNIT - FRAMEBUFFER_TEXTURE0_UNIT }); // Shadowmap's texture unit is the last out the ones attributed to framebuffers (15 in this case).
         glGenTextures(1, &TEXs_.back().first);
         assert(TEXs_.back().first != 0);
         glBindTexture(GL_TEXTURE_2D, TEXs_.back().first);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, def.resolution[0], def.resolution[1], 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, (GLsizei)def.resolution[0], (GLsizei)def.resolution[1], 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -53,40 +50,41 @@ void gl::Framebuffer::Create(Definition def)
         glReadBuffer(GL_NONE);
         CheckGlError();
     }
-
-    std::vector<unsigned int> attachments;
-    for (size_t colorAttachment = 0; colorAttachment < 6; colorAttachment++) // Max 6 color attachments.
+    else
     {
-        if (def.type & (Type::FBO_RGBA0 << colorAttachment))
+        std::vector<unsigned int> attachments;
+        for (size_t colorAttachment = 0; colorAttachment < 5; colorAttachment++) // Max 5 color attachments.
         {
-            CheckGlError();
-            attachments.push_back(GL_COLOR_ATTACHMENT0 + colorAttachment);
-            TEXs_.push_back({0, (unsigned int)colorAttachment});
-            glGenTextures(1, &TEXs_.back().first);
-            assert(TEXs_.back().first != 0);
-            glBindTexture(GL_TEXTURE_2D, TEXs_.back().first);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, def.resolution[0], def.resolution[1], 0, GL_RGBA, GL_FLOAT, nullptr);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); // We want GL_LINEAR here to be able to blur textures as they get smaller.
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-            glGenerateMipmap(GL_TEXTURE_2D);
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + colorAttachment, GL_TEXTURE_2D, TEXs_.back().first, 0);
-            glBindTexture(GL_TEXTURE_2D, 0);
-            CheckGlError();
+            if (def.type & (Type::FBO_RGBA0 << colorAttachment))
+            {
+                CheckGlError();
+                attachments.push_back(GL_COLOR_ATTACHMENT0 + (unsigned int)colorAttachment);
+                TEXs_.push_back({ 0, (unsigned int)colorAttachment });
+                glGenTextures(1, &TEXs_.back().first);
+                assert(TEXs_.back().first != 0);
+                glBindTexture(GL_TEXTURE_2D, TEXs_.back().first);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, (int)def.resolution[0], (int)def.resolution[1], 0, GL_RGBA, GL_FLOAT, nullptr);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); // We want GL_LINEAR here to be able to blur textures as they get smaller.
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); // Can't use mipmaps for magnification duh
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+                glGenerateMipmap(GL_TEXTURE_2D);
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + (unsigned int)colorAttachment, GL_TEXTURE_2D, TEXs_.back().first, 0);
+                glBindTexture(GL_TEXTURE_2D, 0);
+                CheckGlError();
+            }
         }
+        assert(attachments.size() < 6); // 5 color attachments max.
+        glDrawBuffers((int)attachments.size(), attachments.data());
+        CheckGlError();
     }
-    assert(attachments.size() < 7); // 6 color attachments max.
-    glDrawBuffers(attachments.size(), attachments.data());
-    // glReadBuffer(GL_NONE);
-    CheckGlError();
 
     if (def.type & Type::RBO)
     {
         CheckGlError();
         glGenRenderbuffers(1, &RBO_);
         glBindRenderbuffer(GL_RENDERBUFFER, RBO_);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, def.resolution[0], def.resolution[1]);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, (int)def.resolution[0], (int)def.resolution[1]);
         glBindRenderbuffer(GL_RENDERBUFFER, 0);
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, RBO_);
         CheckGlError();
@@ -125,9 +123,9 @@ void gl::Framebuffer::Bind() const
     TracyGpuNamedZone(gpuframebufferBind, "Framebuffer::Bind()", true);
 #endif
     CheckGlError();
-    glViewport(0, 0, defCopy_.resolution[0], defCopy_.resolution[1]);
+    glViewport(0, 0, (int)defCopy_.resolution[0], (int)defCopy_.resolution[1]);
     glBindFramebuffer(GL_FRAMEBUFFER, FBO_);
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f); // We want all framebuffer values set to 0,0,0,0 set by default. Especially the last one since that's used to determine whether the quad should be drawn or the background.
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f); // Clear color needs to be all 0 for the bloom effect.
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     CheckGlError();
 }
@@ -140,11 +138,11 @@ void gl::Framebuffer::BindGBuffer(bool generateMipmaps) const
     CheckGlError();
     for (const auto& tex : TEXs_)
     {
-        glActiveTexture(GL_TEXTURE0 + FRAMEBUFFER_TEXTURE0_UNIT + tex.second);
+        glActiveTexture(GL_TEXTURE0 + FRAMEBUFFER_TEXTURE0_UNIT + tex.second); // TODO: replace TextureUnitOffset with just... TextureUnit.
         glBindTexture(GL_TEXTURE_2D, tex.first);
         if (generateMipmaps)
         {
-            // TODO: this generates mipmaps for ALL framebuffer textures, which isn't necessary. We could specify for which index of TEXs_ we want to generate a mipmap...
+            // TODO: this generates mipmaps for ALL framebuffer textures, which isn't necessary. We could specify for which index of TEXs_ we want to generate a mipmap for...
             glGenerateMipmap(GL_TEXTURE_2D);
         }
         CheckGlError();
@@ -171,9 +169,7 @@ void gl::Framebuffer::Unbind(const std::array<size_t, 2> screenResolution) const
     TracyGpuNamedZone(gpuframebufferUnbind, "Framebuffer::Unbind()", true);
 #endif
     CheckGlError();
-    glViewport(0, 0, screenResolution[0], screenResolution[1]);
+    glViewport(0, 0, (int)screenResolution[0], (int)screenResolution[1]);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    // glClearColor(CLEAR_SCREEN_COLOR[0], CLEAR_SCREEN_COLOR[1], CLEAR_SCREEN_COLOR[2], CLEAR_SCREEN_COLOR[3]);
-    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     CheckGlError();
 }

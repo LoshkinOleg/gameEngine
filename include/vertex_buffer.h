@@ -3,6 +3,8 @@
 #include <array>
 #include <vector>
 
+// TODO: move all of this to Mesh class.
+
 namespace gl
 {
     class VertexBuffer

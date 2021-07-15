@@ -11,7 +11,6 @@ namespace gl
     class Model
     {
     public:
-        // TODO: the passing of the uniform scale is a hack. You'd get wierd frustum culling behaviour if you forget to pass it or if different instances have different scales.
         void Create(std::vector<VertexBuffer::Definition> vb, std::vector<Material::Definition> mat, std::vector<glm::mat4> modelMatrices = { IDENTITY_MAT4 }, const size_t modelMatrixOffset = MODEL_MATRIX_LOCATION);
 
         void Draw(Shader& shader, bool bypassFrustumCulling = false);
@@ -25,9 +24,9 @@ namespace gl
     private:
         const std::vector<glm::mat4> ComputeVisibleModels() const;
 
-        size_t modelMatrixOffset_ = MODEL_MATRIX_LOCATION;
+        size_t modelMatrixOffset_ = MODEL_MATRIX_LOCATION; // TODO: make dynamic data always start at location 0 to be able to automate binding of vertex attribs without being overly verbose.
         std::vector<Mesh> meshes_ = {};
-        std::vector<glm::mat4> modelMatrices_ = {};
+        std::vector<glm::mat4> modelMatrices_ = {}; // TODO: move this to ResourceManager. They must be accessible by other systems, like a physics engine or audio engine.
         unsigned int modelMatricesVBO_ = 0;
     };
 }//!gl

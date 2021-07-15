@@ -24,19 +24,12 @@ namespace gl
 
             // Mesh material data.
             std::string dir = "";
-            bool isPBR = false; // co-opting OBJ's "illum" variable to define whether a material is a PBR one or not. illum = 1 is for PBR, anything else means Blinn-Phong.
             std::string alphaMap = ""; // Tex unit 0
             std::string normalMap = ""; // Tex unit 1
             // Blinn-Phong.
-            std::string ambientMap = ""; // Tex unit 2
-            std::string diffuseMap = ""; // Tex unit 3
-            std::string specularMap = ""; // Tex unit 4
+            std::string diffuseMap = ""; // Tex unit 2
+            std::string specularMap = ""; // Tex unit 3
             float shininess = 64.0f;
-            // PBR.
-            std::string albedoMap = ""; // Tex unit 2
-            std::string roughnessMap = ""; // Tex unit 3
-            std::string metallicMap = ""; // Tex unit 4
-            float ior = 1.0f;
         };
 
         ResourceManager() = default;

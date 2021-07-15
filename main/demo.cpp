@@ -18,16 +18,16 @@
 // TODO: see what the nsight errors are all about
 // TODO: see what the camera fuckery is all about
 // TODO: investigate unnecessary binding of transform models?
-// TODO: add anti-aliasing, investigate origin of sharp transitions in textures
-// TODO: profile framebuffers
-// TODO: separate code into function for ease of readability.
-
-// Q: @Elias: why is my vec4 framebuffer data getting.... perspective devided?... or something else?
+// TODO: investigate origin of sharp transitions in textures: might be because we're not specifying minification parameters
+// TODO: replace particles with little Todd's heads
+// TODO: make repo public!!!
+// TODO: tidy up the shaders
 
 namespace gl
 {
     const float SKIP_FRAME_THRESHOLD = 1.0f / 30.0f; // Prevents the camera from jumping forward suddently if there's a lag spike like when we start the program.
     const std::string assetsPath = "C:/Users/admin/Desktop/demoAssets/";
+    const glm::vec3 LIGHT_DIR = glm::normalize(glm::vec3(1.0, -1.0, -1.0));
 
     const bool CONTROL_CAMERA = true;
     const glm::vec3 CAMERA_STARTING_POS = UP_VEC3;
@@ -54,6 +54,13 @@ namespace gl
         RIGHT_VEC3 * 6.0f +
         UP_VEC3 * 1.0f +
         FRONT_VEC3 * -30.0f;
+
+    const glm::vec3 SHADOW_SPHERES_POS = // TODO: use this to center the lightMatrix on
+        RIGHT_VEC3 * 7.0f +
+        UP_VEC3 * 1.0f +
+        FRONT_VEC3 * -40.0f;
+    const float SHADOW_SPHERES_SIZE = 0.5f;
+    const glm::mat4 LIGHT_MATRIX = ORTHO * glm::lookAt(SHADOW_SPHERES_POS - LIGHT_DIR * 2.0f, SHADOW_SPHERES_POS, UP_VEC3); // Looking at SHADOW_SPHERES_POS from ~2 units away.
 
     // Regions.
     const float TURN_AROUND_START = 0.1f;
@@ -88,6 +95,39 @@ namespace gl
     class Demo : public Program
     {
     private:
+        void InitSpheres()
+        {
+            const auto objData = ResourceManager::ReadObj(assetsPath + "models/brickSphere/brickSphere.obj", false); // Import normals, those are smoothed.
+            VertexBuffer::Definition vbdef;
+            for (size_t i = 0; i < objData[0].positions.size(); i++)
+            {
+                vbdef.data.push_back(objData[0].positions[i].x);
+                vbdef.data.push_back(objData[0].positions[i].y);
+                vbdef.data.push_back(objData[0].positions[i].z);
+
+                vbdef.data.push_back(objData[0].uvs[i].x);
+                vbdef.data.push_back(objData[0].uvs[i].y);
+
+                vbdef.data.push_back(objData[0].normals[i].x);
+                vbdef.data.push_back(objData[0].normals[i].y);
+                vbdef.data.push_back(objData[0].normals[i].z);
+
+                vbdef.data.push_back(objData[0].tangents[i].x);
+                vbdef.data.push_back(objData[0].tangents[i].y);
+                vbdef.data.push_back(objData[0].tangents[i].z);
+            }
+            vbdef.dataLayout = { 3,2,3,3 };
+
+            Shader::Definition sdef = ResourceManager::PreprocessShaderData(objData)[0];
+            sdef.vertexPath = "../data/shaders/sphere.vert";
+            sdef.fragmentPath = "../data/shaders/sphere.frag";
+            sdef.dynamicMat4s.insert({ CAMERA_MARIX_NAME, resourceManager_.GetCamera().GetCameraMatrixPtr() });
+            sdef.staticMat4s.insert({ LIGHT_MATRIX_NAME, LIGHT_MATRIX });
+            sdef.staticInts.insert({FRAMEBUFFER_SHADOWMAP_NAME, FRAMEBUFFER_SHADOWMAP_UNIT});
+            spheresShader_.Create(sdef);
+
+            sphere_.Create({ vbdef }, { ResourceManager::PreprocessMaterialData(objData)[0] }, {IDENTITY_MAT4, IDENTITY_MAT4, IDENTITY_MAT4});
+        }
         void InitDiamond()
         {
             const auto objData = ResourceManager::ReadObj(assetsPath + "models/diamond/diamond.obj");
@@ -272,6 +312,7 @@ namespace gl
             InitHorse();
             InitParticles();
             InitDiamond();
+            InitSpheres();
         }
         void InitFramebuffers()
         {
@@ -279,9 +320,9 @@ namespace gl
             fbdef.type = (Framebuffer::Type) // TODO: add a specular color intensity, floor is too shiny, maybe add a noise to the specular?
                 (
                     Framebuffer::Type::FBO_RGBA0 | // Albedo
-                    Framebuffer::Type::FBO_RGBA1 | // Positions( + shadowmap value?)
+                    Framebuffer::Type::FBO_RGBA1 | // Positions
                     Framebuffer::Type::FBO_RGBA2 | // Normals
-                    Framebuffer::Type::FBO_RGBA3 | // shininess
+                    Framebuffer::Type::FBO_RGBA3 | // x: shininess, y: shadowmap, z: Fragpos'es .w component for perspective divide.
                     Framebuffer::Type::RBO
                 );
             deferredFb_.Create(fbdef);
@@ -291,6 +332,12 @@ namespace gl
                     Framebuffer::Type::FBO_RGBA1   // Bright colors for bloom.
                 );
             postprocessFb_.Create(fbdef);
+            fbdef.type = (Framebuffer::Type)
+                (
+                    Framebuffer::Type::FBO_DEPTH_NO_DRAW
+                );
+            fbdef.resolution = {1024, 1024};
+            shadowpassFb_.Create(fbdef);
 
             // Init fbQuad_.
             VertexBuffer::Definition vbdef;
@@ -306,6 +353,7 @@ namespace gl
             sdef.staticInts.insert({ FRAMEBUFFER_SAMPLER2_NAME, FRAMEBUFFER_TEXTURE2_UNIT }); // normals
             sdef.staticInts.insert({ FRAMEBUFFER_SAMPLER3_NAME, FRAMEBUFFER_TEXTURE3_UNIT }); // shininess
             sdef.dynamicVec3s.insert({ VIEW_POSITION_NAME, camera_.GetPositionPtr() });
+            sdef.staticVec3s.insert({"lightDir", LIGHT_DIR});
             deferredShader_.Create(sdef);
 
             fbQuad_.Create({ vbdef }, { Material::Definition() });
@@ -318,6 +366,13 @@ namespace gl
             sdef.staticInts.insert({ FRAMEBUFFER_SAMPLER1_NAME, FRAMEBUFFER_TEXTURE1_UNIT });
 
             postprocessShader_.Create(sdef);
+
+            // Init shadowpass shader.
+            sdef = Shader::Definition();
+            sdef.vertexPath = "../data/shaders/shadowmapping.vert";
+            sdef.fragmentPath = "../data/shaders/empty.frag";
+            sdef.staticMat4s.insert({LIGHT_MATRIX_NAME, LIGHT_MATRIX});
+            shadowpassShader_.Create(sdef);
         }
         void InitSkybox()
         {
@@ -333,7 +388,7 @@ namespace gl
         }
         void InitCamera()
         {
-            // TODO: figure out the glitchy fuckery that happens when you control the camera yourself.
+            // TODO: figure out the glitchy fuckery that happens when you control the camera yourself. Something to do with the usage of pitch and yaw in the camera I think.
             camera_.SetPosition(CAMERA_STARTING_POS);
             camera_.LookAt(CAMERA_STARTING_FRONT, UP_VEC3);
         }
@@ -432,7 +487,17 @@ namespace gl
                 }
             }
         }
-        
+        void UpdateSpheres()
+        {
+            auto& sphereModels = sphere_.GetModelMatrices();
+            sphereModels[0] = glm::translate(IDENTITY_MAT4, SHADOW_SPHERES_POS + glm::vec3(glm::cos(timer_), glm::sin(timer_), 0.0f));
+            sphereModels[0] = glm::scale(sphereModels[0], ONE_VEC3 * SHADOW_SPHERES_SIZE);
+            sphereModels[1] = glm::translate(IDENTITY_MAT4, SHADOW_SPHERES_POS + glm::vec3(glm::cos(timer_ + 2.0f * PI * 0.33f), 0.0f, glm::sin(timer_ + 2.0f * PI * 0.33f)));
+            sphereModels[1] = glm::scale(sphereModels[1], ONE_VEC3 * SHADOW_SPHERES_SIZE);
+            sphereModels[2] = glm::translate(IDENTITY_MAT4, SHADOW_SPHERES_POS + glm::vec3(0.0f, glm::sin(timer_ + 2.0f * PI * 0.66f), glm::cos(timer_ + 2.0f * PI * 0.66f)));
+            sphereModels[2] = glm::scale(sphereModels[2], ONE_VEC3 * SHADOW_SPHERES_SIZE);
+        }
+
         void RenderParticles()
         {
 #ifdef TRACY_ENABLE
@@ -459,26 +524,60 @@ namespace gl
         }
         void Render()
         {
-            // Render geometry.
-            deferredFb_.Bind();
-            diamond_.Draw(diamondShader_);
-            horse_.Draw(horseShader_);
-            floor_.Draw(floorShader_);
-            RenderParticles();
-            skybox_.Draw();
-            deferredFb_.Unbind();
+            // Shadow pass.
+            {
+#ifdef TRACY_ENABLE
+                ZoneNamedN(shadowPass, "Shadow Pass", true);
+                TracyGpuNamedZone(gpushadowPass, "Shadow Pass", true);
+#endif
+                glCullFace(GL_FRONT);
+                shadowpassFb_.Bind();
+                sphere_.Draw(shadowpassShader_, true); // We want shadows to be drawn even if the object itself is out of the frustum.
+                shadowpassFb_.Unbind();
+                glCullFace(GL_BACK);
+            }
 
-            // Render shading.
-            postprocessFb_.Bind();
-            deferredFb_.BindGBuffer();
-            fbQuad_.Draw(deferredShader_, true);
-            deferredFb_.UnbindGBuffer();
-            postprocessFb_.Unbind();
+            // Fill gbuffer.
+            {
+#ifdef TRACY_ENABLE
+                ZoneNamedN(geometryPass, "Geometry Pass", true);
+                TracyGpuNamedZone(gpugeometryPass, "Geometry Pass", true);
+#endif
+                shadowpassFb_.BindGBuffer();
+                deferredFb_.Bind();
+                diamond_.Draw(diamondShader_);
+                horse_.Draw(horseShader_);
+                sphere_.Draw(spheresShader_);
+                floor_.Draw(floorShader_);
+                RenderParticles();
+                skybox_.Draw();
+                deferredFb_.Unbind();
+                shadowpassFb_.UnbindGBuffer();
+            }
+
+            // Apply shading.
+            {
+#ifdef TRACY_ENABLE
+                ZoneNamedN(shadingPass, "Shading Pass", true);
+                TracyGpuNamedZone(gpushadingPass, "Shading Pass", true);
+#endif
+                postprocessFb_.Bind();
+                deferredFb_.BindGBuffer();
+                fbQuad_.Draw(deferredShader_, true);
+                deferredFb_.UnbindGBuffer();
+                postprocessFb_.Unbind();
+            }
 
             // Apply post processing and draw to backbuffer.
-            postprocessFb_.BindGBuffer();
-            fbQuad_.Draw(postprocessShader_, true);
-            postprocessFb_.UnbindGBuffer();
+            {
+#ifdef TRACY_ENABLE
+                ZoneNamedN(postprocessPass, "Postprocess Pass", true);
+                TracyGpuNamedZone(gpupostprocessPass, "Postprocess Pass", true);
+#endif
+                postprocessFb_.BindGBuffer();
+                fbQuad_.Draw(postprocessShader_, true);
+                postprocessFb_.UnbindGBuffer();
+            }
         }
 public:
         void Init() override
@@ -518,6 +617,7 @@ public:
             morphingFactor_ = glm::cos(timer_) * 0.5f + 0.5f;
             diamond_.Rotate(glm::vec3(0.0f, glm::radians(90.0f) * fdt, 0.0f));
             UpdateParticles(fdt);
+            UpdateSpheres();
 
             UpdateCamera(fdt);
 
@@ -600,15 +700,21 @@ public:
             floor_,
             horse_,
             diamond_,
+            sphere_,
             fbQuad_;
-        Framebuffer deferredFb_, postprocessFb_;
+        Framebuffer
+            deferredFb_,
+            postprocessFb_,
+            shadowpassFb_; // TODO: throw error if trying to use a shader that hasn't been .Create()'ed. Throw error when not all uniforms have been initialized
         Shader
             postprocessShader_,
             deferredShader_,
+            shadowpassShader_,
             floorShader_,
             horseShader_,
             particleShader_,
-            diamondShader_;
+            diamondShader_,
+            spheresShader_;
 
         Camera& camera_ = resourceManager_.GetCamera();
         std::vector<Region> regions_;

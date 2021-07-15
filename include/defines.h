@@ -9,13 +9,17 @@
 namespace gl
 {
 	// Window parameters.
-	const float SCREEN_RESOLUTION[2] = { 1024.0f, 720.0f };
+	const float SCREEN_RESOLUTION[2] = { 1024.0f, 768.0f }; // 4:3 aspect
 	const float PROJECTION_NEAR = 0.1f;
 	const float PROJECTION_FAR = 100.0f;
 	const float PROJECTION_FOV = glm::radians(45.0f);
-	const float PROJECTION_BOUNDS = 10.0f;
+	// const float ORTHO_BOUNDS_MULTIPLIER = 10.0;
+	// const float ORTHO_HALF_WIDTH = 4.0f * 0.5f * ORTHO_BOUNDS_MULTIPLIER; // 4:3 aspect
+	// const float ORTHO_HALF_HEIGHT = 3.0f * 0.5f * ORTHO_BOUNDS_MULTIPLIER;
+	const float ORTHO_HALF_HEIGHT = 10.0f;
+	const float ORTHO_HALF_WIDTH = 10.0f;
 	const glm::mat4 PERSPECTIVE = glm::perspective(PROJECTION_FOV, SCREEN_RESOLUTION[0] / SCREEN_RESOLUTION[1], PROJECTION_NEAR, PROJECTION_FAR);
-	const glm::mat4 ORTHO = glm::ortho(-PROJECTION_BOUNDS, PROJECTION_BOUNDS, -PROJECTION_BOUNDS, PROJECTION_BOUNDS, PROJECTION_NEAR, PROJECTION_FAR);
+	const glm::mat4 ORTHO = glm::ortho(-ORTHO_HALF_WIDTH, ORTHO_HALF_WIDTH, -ORTHO_HALF_HEIGHT, ORTHO_HALF_HEIGHT, PROJECTION_NEAR, PROJECTION_FAR);
 
 	// Audio parameters.
 	const size_t BYTES_PER_SAMPLE = 2; // 16-bit sounds.
@@ -72,7 +76,8 @@ namespace gl
 	const std::string NORMALMAP_SAMPLER_NAME = "material.normalMap";
 	const int NORMALMAP_TEXTURE_UNIT = 1;
 	const std::string CUBEMAP_SAMPLER_NAME = "cubemap";
-	const int CUBEMAP_TEXTURE_UNIT = 5;
+	const int CUBEMAP_TEXTURE_UNIT = 4;
+	const int RESERVED_TEXTURE_UNIT5 = 5;
 	const int RESERVED_TEXTURE_UNIT6 = 6; // Reserved for consistent use: 0-9 for material textures, 10+ for framebuffer texture units.
 	const int RESERVED_TEXTURE_UNIT7 = 7;
 	const int RESERVED_TEXTURE_UNIT8 = 8;
@@ -87,8 +92,8 @@ namespace gl
 	const int FRAMEBUFFER_TEXTURE3_UNIT = 13;
 	const std::string FRAMEBUFFER_SAMPLER4_NAME = "fbTexture4";
 	const int FRAMEBUFFER_TEXTURE4_UNIT = 14;
-	const std::string FRAMEBUFFER_SAMPLER5_NAME = "fbTexture5";
-	const int FRAMEBUFFER_TEXTURE5_UNIT = 15;
+	const std::string FRAMEBUFFER_SHADOWMAP_NAME = "shadowmap";
+	const int FRAMEBUFFER_SHADOWMAP_UNIT = 15;
 	const std::string VIEW_POSITION_NAME = "viewPos";
 	const std::string CAMERA_MARIX_NAME = "cameraMatrix";
 	const std::string PROJECTION_MARIX_NAME = "projectionMatrix";
@@ -96,32 +101,16 @@ namespace gl
 	const std::string LIGHT_MATRIX_NAME = "lightMatrix";
 	const std::string HDR_EXPOSURE_NAME = "exposure";
 	// Blinn-Phong.
-	const std::string AMBIENT_SAMPLER_NAME = "material.ambientMap";
-	const int AMBIENT_TEXTURE_UNIT = 2;
 	const std::string DIFFUSE_SAMPLER_NAME = "material.diffuseMap";
-	const int DIFFUSE_TEXTURE_UNIT = 3;
+	const int DIFFUSE_TEXTURE_UNIT = 2;
 	const std::string SPECULAR_SAMPLER_NAME = "material.specularMap";
-	const int SPECULAR_TEXTURE_UNIT = 4;
+	const int SPECULAR_TEXTURE_UNIT = 3;
 	const std::string SHININESS_NAME = "material.shininess";
-	// PBR.
-	const std::string ALBEDO_SAMPLER_NAME = "material.albedoMap";
-	const int ALBEDO_TEXTURE_UNIT = 2;
-	const std::string ROUGHNESS_SAMPLER_NAME = "material.roughnessMap";
-	const int ROUGHNESS_TEXTURE_UNIT = 3;
-	const std::string METALLIC_SAMPLER_NAME = "material.metallicMap";
-	const int METALLIC_TEXTURE_UNIT = 4;
-	const std::string IOR_NAME = "material.ior";
 
 	const int POSITION_LOCATION = 0;
 	const int TEXCOORD_LOCATION = 1;
 	const int NORMAL_LOCATION = 2;
 	const int TANGENT_LOCATION = 3;
-	const int MODEL_MATRIX_LOCATION = 4;
-
-	// Default shaders.
-	const std::string ILLUM2_SHADER[2] = {"../data/shaders/illum2.vert", "../data/shaders/illum2.frag" };
-	const std::string FRAMEBUFFER_RGB_SHADER[2] = {"../data/shaders/fb.vert", "../data/shaders/fb_rgb.frag" };
-	const std::string FRAMEBUFFER_HDR_REINHARD_SHADER[2] = {"../data/shaders/fb.vert", "../data/shaders/fb_hdr_reinhard.frag" };
-	const std::string SKYBOX_SHADER[2] = {"../data/shaders/skybox.vert", "../data/shaders/skybox.frag" };
+	const int MODEL_MATRIX_LOCATION = 4; // TODO: rearrange data to have dynamic data first.
 
 }//!gl

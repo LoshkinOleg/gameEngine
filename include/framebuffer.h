@@ -22,9 +22,8 @@ public:
         FBO_RGBA2 =             1 << 3,
 
         FBO_RGBA3 =             1 << 4,  
-        FBO_RGBA4 =             1 << 5,  
-        FBO_RGBA5 =             1 << 6,  
-        FBO_DEPTH0_NO_DRAW =    1 << 7
+        FBO_RGBA4 =             1 << 5,
+        FBO_DEPTH_NO_DRAW =    1 << 6
     };
 
     struct Definition

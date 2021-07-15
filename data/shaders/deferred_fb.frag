@@ -13,8 +13,8 @@ uniform sampler2D fbTexture3; // x: shininess
 // uniform sampler2D fbTexture5;
 
 uniform vec3 viewPos;
+uniform vec3 lightDir;
 
-const vec3 LIGHT_DIR = normalize(vec3(1.0, -1.0, -1.0));
 const float LIGHT_INTENSITY = 1.0;
 const vec3 SPECULAR_COLOR = vec3(1.0);
 const float AMBIENT_FACTOR = 0.01;
@@ -39,12 +39,12 @@ void main()
     { // Default behaviour. Use blinn-phong to render the fragment as usual.
         const vec3 ambient = AMBIENT_FACTOR * albedo;
 
-        const float diffuseInstensity = max(dot(-LIGHT_DIR, normal), 0.0);
+        const float diffuseInstensity = max(dot(-lightDir, normal), 0.0);
         const vec3 diffuse = (1.0 - AMBIENT_FACTOR) * diffuseInstensity * albedo;
 
         const vec3 viewDir = normalize(viewPos - fragPos);
-        const vec3 reflectDir = reflect(LIGHT_DIR, normal);
-        const vec3 halfwayDir = normalize(-LIGHT_DIR + viewDir);
+        const vec3 reflectDir = reflect(lightDir, normal);
+        const vec3 halfwayDir = normalize(-lightDir + viewDir);
         const float specularIntensity = pow(max(dot(normal, halfwayDir), 0.0), shininess);
         const vec3 specular = (1.0 - AMBIENT_FACTOR) * specularIntensity * SPECULAR_COLOR;
 

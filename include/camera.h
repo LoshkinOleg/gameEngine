@@ -11,7 +11,7 @@ namespace gl {
 	class Camera
 	{
 	public:
-        struct State
+        struct State // Note: kinda useless right now but can be used for things like replays.
         {
             glm::vec3 position = FRONT_VEC3 * 5.0f; // (0;0;5)
             glm::vec3 front = BACK_VEC3; // Want the camera to face origin by default.
