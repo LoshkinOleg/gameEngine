@@ -21,17 +21,23 @@
 // TODO: investigate origin of sharp transitions in textures: might be because we're not specifying minification parameters
 // TODO: replace particles with little Todd's heads
 // TODO: make repo public!!!
-// TODO: tidy up the shaders
+// TODO: tidy up the shaders / use generic ones
+// TODO: adjust texcoords for cube. They're too close together. Or use a different texture
+// TODO: do something about all these constants...
+// TODO: move camera movement into Regions' callbacks
 
 namespace gl
 {
     const float SKIP_FRAME_THRESHOLD = 1.0f / 30.0f; // Prevents the camera from jumping forward suddently if there's a lag spike like when we start the program.
     const std::string assetsPath = "C:/Users/admin/Desktop/demoAssets/";
+
     const glm::vec3 LIGHT_DIR = glm::normalize(glm::vec3(1.0, -1.0, -1.0));
 
     const bool CONTROL_CAMERA = true;
     const glm::vec3 CAMERA_STARTING_POS = UP_VEC3;
     const glm::vec3 CAMERA_STARTING_FRONT = CAMERA_STARTING_POS + FRONT_VEC3;
+
+    const size_t ROAD_LENGTH = 7;
 
     const glm::vec3 HORSE_POS =
         RIGHT_VEC3 *  6.0f +
@@ -55,12 +61,17 @@ namespace gl
         UP_VEC3 * 1.0f +
         FRONT_VEC3 * -30.0f;
 
-    const glm::vec3 SHADOW_SPHERES_POS = // TODO: use this to center the lightMatrix on
+    const glm::vec3 SHADOW_SPHERES_POS =
         RIGHT_VEC3 * 7.0f +
         UP_VEC3 * 1.0f +
         FRONT_VEC3 * -40.0f;
     const float SHADOW_SPHERES_SIZE = 0.5f;
     const glm::mat4 LIGHT_MATRIX = ORTHO * glm::lookAt(SHADOW_SPHERES_POS - LIGHT_DIR * 2.0f, SHADOW_SPHERES_POS, UP_VEC3); // Looking at SHADOW_SPHERES_POS from ~2 units away.
+
+    const glm::vec3 CUBE_POS =
+        RIGHT_VEC3 * 6.2f +
+        UP_VEC3 * 1.0f +
+        FRONT_VEC3 * -50.0f;
 
     // Regions.
     const float TURN_AROUND_START = 0.1f;
@@ -95,9 +106,34 @@ namespace gl
     class Demo : public Program
     {
     private:
+        void InitCube()
+        {
+            const auto objData = ResourceManager::ReadObj(assetsPath + "models/brickCube/brickCube.obj");
+            VertexBuffer::Definition vbdef;
+            for (size_t i = 0; i < objData[0].positions.size(); i++)
+            {
+                vbdef.data.push_back(objData[0].positions[i].x);
+                vbdef.data.push_back(objData[0].positions[i].y);
+                vbdef.data.push_back(objData[0].positions[i].z);
+
+                vbdef.data.push_back(objData[0].uvs[i].x);
+                vbdef.data.push_back(objData[0].uvs[i].y);
+
+                vbdef.data.push_back(objData[0].normals[i].x);
+                vbdef.data.push_back(objData[0].normals[i].y);
+                vbdef.data.push_back(objData[0].normals[i].z);
+
+                vbdef.data.push_back(objData[0].tangents[i].x);
+                vbdef.data.push_back(objData[0].tangents[i].y);
+                vbdef.data.push_back(objData[0].tangents[i].z);
+            }
+            vbdef.dataLayout = { 3,2,3,3 };
+
+            cube_.Create({ vbdef }, { ResourceManager::PreprocessMaterialData(objData)[0] }, { glm::translate(IDENTITY_MAT4, CUBE_POS) });
+        }
         void InitSpheres()
         {
-            const auto objData = ResourceManager::ReadObj(assetsPath + "models/brickSphere/brickSphere.obj", false); // Import normals, those are smoothed.
+            const auto objData = ResourceManager::ReadObj(assetsPath + "models/brickSphere/brickSphere.obj");
             VertexBuffer::Definition vbdef;
             for (size_t i = 0; i < objData[0].positions.size(); i++)
             {
@@ -296,9 +332,8 @@ namespace gl
             floorShader_.Create(sdef);
 
             const float scale = 5.0f;
-            const size_t roadLength = 5;
-            std::vector<glm::mat4> modelMatrices = std::vector<glm::mat4>(roadLength);
-            for (size_t i = 0; i < roadLength; i++)
+            std::vector<glm::mat4> modelMatrices = std::vector<glm::mat4>(ROAD_LENGTH);
+            for (size_t i = 0; i < ROAD_LENGTH; i++)
             {
                 modelMatrices[i] = glm::translate(IDENTITY_MAT4, (float)i * BACK_VEC3 * 2.0f * scale);
                 modelMatrices[i] = glm::scale(modelMatrices[i], ONE_VEC3 * scale);
@@ -313,6 +348,7 @@ namespace gl
             InitParticles();
             InitDiamond();
             InitSpheres();
+            InitCube();
         }
         void InitFramebuffers()
         {
@@ -548,6 +584,7 @@ namespace gl
                 diamond_.Draw(diamondShader_);
                 horse_.Draw(horseShader_);
                 sphere_.Draw(spheresShader_);
+                cube_.Draw(floorShader_); // TODO: use generic shaders
                 floor_.Draw(floorShader_);
                 RenderParticles();
                 skybox_.Draw();
@@ -701,6 +738,7 @@ public:
             horse_,
             diamond_,
             sphere_,
+            cube_,
             fbQuad_;
         Framebuffer
             deferredFb_,
