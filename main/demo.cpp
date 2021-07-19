@@ -4,10 +4,6 @@
 #include <glad/glad.h>
 #include "imgui.h"
 #include <glm/gtc/quaternion.hpp>
-#ifdef TRACY_ENABLE
-#include <Tracy.hpp>
-#include <TracyOpenGL.hpp>
-#endif//!TRACY_ENABLE
 
 #include "engine.h"
 #include "model.h"
@@ -157,8 +153,8 @@ namespace gl
             vbdef.dataLayout = { 3,2,3,3 };
 
             Shader::Definition sdef = ResourceManager::PreprocessShaderData(objData)[0];
-            sdef.vertexPath = "../data/shaders/sphere.vert";
-            sdef.fragmentPath = "../data/shaders/sphere.frag";
+            sdef.vertexPath = "shaders/sphere.vert";
+            sdef.fragmentPath = "shaders/sphere.frag";
             sdef.dynamicMat4s.insert({ CAMERA_MARIX_NAME, resourceManager_.GetCamera().GetCameraMatrixPtr() });
             sdef.staticMat4s.insert({ LIGHT_MATRIX_NAME, LIGHT_MATRIX });
             sdef.staticInts.insert({FRAMEBUFFER_SHADOWMAP_NAME, FRAMEBUFFER_SHADOWMAP_UNIT});
@@ -192,8 +188,8 @@ namespace gl
             Material::Definition matdef = ResourceManager::PreprocessMaterialData(objData)[0];
             matdef.texturePathsAndTypes.push_back({ assetsPath + "textures/skybox/skybox.ktx", Texture::Type::CUBEMAP });
             Shader::Definition sdef = ResourceManager::PreprocessShaderData(objData)[0];
-            sdef.vertexPath = "../data/shaders/diamond.vert";
-            sdef.fragmentPath = "../data/shaders/diamond.frag";
+            sdef.vertexPath = "shaders/diamond.vert";
+            sdef.fragmentPath = "shaders/diamond.frag";
             sdef.dynamicMat4s.insert({ CAMERA_MARIX_NAME, camera_.GetCameraMatrixPtr() });
             sdef.staticInts.insert({ CUBEMAP_SAMPLER_NAME, CUBEMAP_TEXTURE_UNIT });
             sdef.dynamicVec3s.insert({ VIEW_POSITION_NAME, camera_.GetPositionPtr() });
@@ -238,8 +234,8 @@ namespace gl
             Material::Definition matdef = ResourceManager::PreprocessMaterialData(objData)[0];
             particleMaterial_.Create(matdef);
             Shader::Definition sdef = ResourceManager::PreprocessShaderData(objData)[0];
-            sdef.vertexPath = "../data/shaders/particles.vert";
-            sdef.fragmentPath = "../data/shaders/particles.frag";
+            sdef.vertexPath = "shaders/particles.vert";
+            sdef.fragmentPath = "shaders/particles.frag";
             sdef.dynamicMat4s.insert({ CAMERA_MARIX_NAME, resourceManager_.GetCamera().GetCameraMatrixPtr() });
             particleShader_.Create(sdef);
 
@@ -291,8 +287,8 @@ namespace gl
             vbdef.dataLayout = { 3,3,2,3,3,3,3 };
 
             Shader::Definition sdef = ResourceManager::PreprocessShaderData(objData0)[0];
-            sdef.vertexPath = "../data/shaders/horse.vert";
-            sdef.fragmentPath = "../data/shaders/horse.frag";
+            sdef.vertexPath = "shaders/horse.vert";
+            sdef.fragmentPath = "shaders/horse.frag";
             sdef.dynamicMat4s.insert({ CAMERA_MARIX_NAME, resourceManager_.GetCamera().GetCameraMatrixPtr() });
             sdef.dynamicFloats.insert({ "interpolationFactor", &morphingFactor_ });
             horseShader_.Create(sdef);
@@ -328,8 +324,8 @@ namespace gl
             vbdef.dataLayout = { 3,2,3,3 };
 
             Shader::Definition sdef = ResourceManager::PreprocessShaderData(objData)[0];
-            sdef.vertexPath = "../data/shaders/floor.vert";
-            sdef.fragmentPath = "../data/shaders/floor.frag";
+            sdef.vertexPath = "shaders/floor.vert";
+            sdef.fragmentPath = "shaders/floor.frag";
             sdef.dynamicMat4s.insert({ CAMERA_MARIX_NAME, resourceManager_.GetCamera().GetCameraMatrixPtr() });
             floorShader_.Create(sdef);
 
@@ -384,8 +380,8 @@ namespace gl
             vbdef.generateBoundingSphereRadius = false; // This is a 2D object. No frustum culling.
 
             Shader::Definition sdef;
-            sdef.vertexPath = "../data/shaders/deferred_fb.vert";
-            sdef.fragmentPath = "../data/shaders/deferred_fb.frag";
+            sdef.vertexPath = "shaders/deferred_fb.vert";
+            sdef.fragmentPath = "shaders/deferred_fb.frag";
             sdef.staticInts.insert({ FRAMEBUFFER_SAMPLER0_NAME, FRAMEBUFFER_TEXTURE0_UNIT }); // Albedo + shininess
             sdef.staticInts.insert({ FRAMEBUFFER_SAMPLER1_NAME, FRAMEBUFFER_TEXTURE1_UNIT }); // FragPos( + shadowmap val?)
             sdef.staticInts.insert({ FRAMEBUFFER_SAMPLER2_NAME, FRAMEBUFFER_TEXTURE2_UNIT }); // normals
@@ -398,8 +394,8 @@ namespace gl
 
             // Init post process shader.
             sdef = Shader::Definition();
-            sdef.vertexPath = "../data/shaders/postprocess_fb.vert";
-            sdef.fragmentPath = "../data/shaders/postprocess_fb.frag";
+            sdef.vertexPath = "shaders/postprocess_fb.vert";
+            sdef.fragmentPath = "shaders/postprocess_fb.frag";
             sdef.staticInts.insert({ FRAMEBUFFER_SAMPLER0_NAME, FRAMEBUFFER_TEXTURE0_UNIT });
             sdef.staticInts.insert({ FRAMEBUFFER_SAMPLER1_NAME, FRAMEBUFFER_TEXTURE1_UNIT });
 
@@ -407,8 +403,8 @@ namespace gl
 
             // Init shadowpass shader.
             sdef = Shader::Definition();
-            sdef.vertexPath = "../data/shaders/shadowmapping.vert";
-            sdef.fragmentPath = "../data/shaders/empty.frag";
+            sdef.vertexPath = "shaders/shadowmapping.vert";
+            sdef.fragmentPath = "shaders/empty.frag";
             sdef.staticMat4s.insert({LIGHT_MATRIX_NAME, LIGHT_MATRIX});
             shadowpassShader_.Create(sdef);
         }
@@ -417,8 +413,8 @@ namespace gl
             // Init skybox.
             Skybox::Definition skdef;
             skdef.path = assetsPath + "textures/skybox/skybox.ktx";
-            skdef.shader.vertexPath = "../data/shaders/skybox.vert";
-            skdef.shader.fragmentPath = "../data/shaders/skybox.frag";
+            skdef.shader.vertexPath = "shaders/skybox.vert";
+            skdef.shader.fragmentPath = "shaders/skybox.frag";
             skdef.shader.staticMat4s.insert({ PROJECTION_MARIX_NAME, PERSPECTIVE });
             skdef.shader.dynamicMat4s.insert({ VIEW_MARIX_NAME, camera_.GetViewMatrixPtr() });
             skdef.shader.staticInts.insert({ CUBEMAP_SAMPLER_NAME, CUBEMAP_TEXTURE_UNIT });
@@ -540,9 +536,6 @@ namespace gl
         
         void UpdateParticles(const float dt)
         {
-#ifdef TRACY_ENABLE
-            ZoneNamedN(demoUpdateParticlesUpdateParticlesPos, "Demo::Update(): UpdateParticlesPos", true);
-#endif
             for (size_t i = 0; i < NR_OF_PARTICLES; i++)
             {
                 float uselessIntegerPart; // Mandatory out argument for std::modf().
@@ -605,21 +598,11 @@ namespace gl
 
         void RenderParticles()
         {
-#ifdef TRACY_ENABLE
-            ZoneNamedN(demoUpdateDrawParticles, "Demo::Update(): DrawParticles", true);
-            TracyGpuNamedZone(gpudemoUpdateDrawParticles, "Demo::Update(): DrawParticles", true);
-#endif
             glDisable(GL_CULL_FACE); // We want to draw all 3 quads composing the particle, even if they're facing away.
-            {
-#ifdef TRACY_ENABLE
-                ZoneNamedN(demoUpdateParticlesUploadParticlesPos, "Demo::Update(): UploadParticlesPos", true);
-                TracyGpuNamedZone(gpudemoUpdateUploadParticlesPos, "Demo::Update(): UploadParticlesPos", true);
-#endif
-                const auto vaoAndVbo = particleVertexBuffer_.GetVAOandVBO();
-                glBindVertexArray(vaoAndVbo[0]);
-                glBindBuffer(GL_ARRAY_BUFFER, particleModelsVBO_);
-                glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec3) * NR_OF_PARTICLES, particlePositions_);
-            }
+            const auto vaoAndVbo = particleVertexBuffer_.GetVAOandVBO();
+            glBindVertexArray(vaoAndVbo[0]);
+            glBindBuffer(GL_ARRAY_BUFFER, particleModelsVBO_);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec3) * NR_OF_PARTICLES, particlePositions_);
             particleShader_.Bind();
             particleMaterial_.Bind();
             particleVertexBuffer_.Draw(NR_OF_PARTICLES);
@@ -630,69 +613,40 @@ namespace gl
         void Render()
         {
             // Shadow pass.
-            {
-#ifdef TRACY_ENABLE
-                ZoneNamedN(shadowPass, "Shadow Pass", true);
-                TracyGpuNamedZone(gpushadowPass, "Shadow Pass", true);
-#endif
-                glCullFace(GL_FRONT);
-                shadowpassFb_.Bind();
-                sphere_.Draw(shadowpassShader_, true); // We want shadows to be drawn even if the object itself is out of the frustum.
-                shadowpassFb_.Unbind();
-                glCullFace(GL_BACK);
-            }
+            glCullFace(GL_FRONT);
+            shadowpassFb_.Bind();
+            sphere_.Draw(shadowpassShader_, true); // We want shadows to be drawn even if the object itself is out of the frustum.
+            shadowpassFb_.Unbind();
+            glCullFace(GL_BACK);
 
             // Fill gbuffer.
-            {
-#ifdef TRACY_ENABLE
-                ZoneNamedN(geometryPass, "Geometry Pass", true);
-                TracyGpuNamedZone(gpugeometryPass, "Geometry Pass", true);
-#endif
-                shadowpassFb_.BindGBuffer();
-                deferredFb_.Bind();
-                diamond_.Draw(diamondShader_);
-                horse_.Draw(horseShader_);
-                sphere_.Draw(spheresShader_);
-                cube_.Draw(floorShader_);
-                floor_.Draw(floorShader_);
-                RenderParticles();
-                skybox_.Draw();
-                deferredFb_.Unbind();
-                shadowpassFb_.UnbindGBuffer();
-            }
+            shadowpassFb_.BindGBuffer();
+            deferredFb_.Bind();
+            diamond_.Draw(diamondShader_);
+            horse_.Draw(horseShader_);
+            sphere_.Draw(spheresShader_);
+            cube_.Draw(floorShader_);
+            floor_.Draw(floorShader_);
+            RenderParticles();
+            skybox_.Draw();
+            deferredFb_.Unbind();
+            shadowpassFb_.UnbindGBuffer();
 
             // Apply shading.
-            {
-#ifdef TRACY_ENABLE
-                ZoneNamedN(shadingPass, "Shading Pass", true);
-                TracyGpuNamedZone(gpushadingPass, "Shading Pass", true);
-#endif
-                postprocessFb_.Bind();
-                deferredFb_.BindGBuffer();
-                fbQuad_.Draw(deferredShader_, true);
-                deferredFb_.UnbindGBuffer();
-                postprocessFb_.Unbind();
-            }
+            postprocessFb_.Bind();
+            deferredFb_.BindGBuffer();
+            fbQuad_.Draw(deferredShader_, true);
+            deferredFb_.UnbindGBuffer();
+            postprocessFb_.Unbind();
 
             // Apply post processing and draw to backbuffer.
-            {
-#ifdef TRACY_ENABLE
-                ZoneNamedN(postprocessPass, "Postprocess Pass", true);
-                TracyGpuNamedZone(gpupostprocessPass, "Postprocess Pass", true);
-#endif
-                postprocessFb_.BindGBuffer();
-                fbQuad_.Draw(postprocessShader_, true);
-                postprocessFb_.UnbindGBuffer();
-            }
+            postprocessFb_.BindGBuffer();
+            fbQuad_.Draw(postprocessShader_, true);
+            postprocessFb_.UnbindGBuffer();
         }
 public:
         void Init() override
         {
-#ifdef TRACY_ENABLE
-            ZoneNamedN(demoInit, "Demo::Init()", true);
-            TracyGpuNamedZone(gpuDemoInit, "Demo::Init()", true);
-#endif
-
             glEnable(GL_DEPTH_TEST);
             glEnable(GL_CULL_FACE);
             glEnable(GL_BLEND);
@@ -706,10 +660,6 @@ public:
         }
         void Update(seconds dt) override
         {
-#ifdef TRACY_ENABLE
-            ZoneNamedN(demoUpdate, "Demo::Update()", true);
-            TracyGpuNamedZone(gpuDemoUpdate, "Demo::Update()", true);
-#endif
             // Update timer.
             const float fdt = dt.count();
             if (fdt > SKIP_FRAME_THRESHOLD) return; // Skip if the dt was unusually large. Ex: we've resumed execution of program after breakpoint.
@@ -737,10 +687,6 @@ public:
         }
         void OnEvent(SDL_Event& event) override
         {
-#ifdef TRACY_ENABLE
-            ZoneNamedN(demoEvent, "Demo::OnEvent()", true);
-            TracyGpuNamedZone(gpuDemoEvent, "Demo::OnEvent()", true);
-#endif
             if ((event.type == SDL_KEYDOWN) &&
                 (event.key.keysym.sym == SDLK_ESCAPE))
             {

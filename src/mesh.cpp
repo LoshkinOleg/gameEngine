@@ -4,10 +4,6 @@
 #include <algorithm>
 
 #include <glad/glad.h>
-#ifdef TRACY_ENABLE
-#include <Tracy.hpp>
-#include <TracyOpenGL.hpp>
-#endif//!TRACY_ENABLE
 
 void gl::Mesh::Create(const VertexBuffer::Definition vbdef, const Material::Definition matdef)
 {

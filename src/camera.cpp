@@ -1,10 +1,5 @@
 #include "camera.h"
 
-#ifdef TRACY_ENABLE
-#include <Tracy.hpp>
-// #include <TracyOpenGL.hpp>
-#endif//!TRACY_ENABLE
-
 #include "defines.h"
 
 void gl::Camera::ProcessKeyboard(const glm::vec3 direction)
@@ -69,9 +64,6 @@ void gl::Camera::Create(Definition def)
 
 void gl::Camera::LookAt(const glm::vec3 pos, const glm::vec3 up)
 {
-#ifdef TRACY_ENABLE
-    ZoneNamedN(cameraLookAt, "Camera LookAt()", true);
-#endif
     // Find the new front, right and up.
     const glm::vec3 front = glm::normalize(pos - state_.position);
     glm::vec3 nUp = glm::normalize(up);
@@ -97,9 +89,6 @@ void gl::Camera::SetPosition(const glm::vec3 pos)
 
 void gl::Camera::UpdateCameraVectors()
 {
-#ifdef TRACY_ENABLE
-    ZoneNamedN(cameraUpdateCameraVectors, "Camera::UpdateCameraVectors()", true);
-#endif
     // calculate the new Front vector in relation to world axis using yaw and pitch.
     glm::vec3 front;
     front.x = cos(state_.yaw) * cos(state_.pitch);
@@ -113,9 +102,6 @@ void gl::Camera::UpdateCameraVectors()
 
 void gl::Camera::UpdateCameraMatrix()
 {
-#ifdef TRACY_ENABLE
-    ZoneNamedN(cameraUpdateCameraMatrix, "Camera::UpdateCameraMatrix()", true);
-#endif
     viewMatrix_ = glm::lookAt(state_.position, state_.position + state_.front, state_.up); // pos + front as 2nd arg to have camera always face something right in front of it.
     const glm::mat4 projection = usePerspective_ ? PERSPECTIVE : ORTHO;
     cameraMatrix_ = projection * viewMatrix_;

@@ -3,10 +3,6 @@
 #include <glad/glad.h>
 #include "tiny_obj_loader.h"
 #include "glm/gtc/quaternion.hpp"
-#ifdef TRACY_ENABLE
-#include <Tracy.hpp>
-#include <TracyOpenGL.hpp>
-#endif//!TRACY_ENABLE
 
 #include "resource_manager.h"
 
@@ -93,76 +89,71 @@ const std::vector<glm::mat4> gl::Model::ComputeVisibleModels() const
 {
     std::vector<glm::mat4> returnVal;
 
+    // Cull off screen meshes.
+    const float near = PROJECTION_NEAR;
+    const float far = PROJECTION_FAR;
+    const float aspect = SCREEN_RESOLUTION[0] / SCREEN_RESOLUTION[1];
+    const float fovY = PROJECTION_FOV * 0.5f;
+    const float fovX = std::atan(std::tan(PROJECTION_FOV * 0.5f) * aspect);
+    const glm::vec3 cameraPos = ResourceManager::Get().GetCamera().GetPosition();
+    const glm::vec3 right = ResourceManager::Get().GetCamera().GetRight();
+    const glm::vec3 up = ResourceManager::Get().GetCamera().GetUp();
+    const glm::vec3 front = ResourceManager::Get().GetCamera().GetFront();
+
+    for (size_t mesh = 0; mesh < meshes_.size(); mesh++)
     {
-#ifdef TRACY_ENABLE
-        ZoneNamedN(modelDrawFrustumCulling, "Model::Draw(): FrustumCulling", true);
-#endif
-        // Cull off screen meshes.
-        const float near = PROJECTION_NEAR;
-        const float far = PROJECTION_FAR;
-        const float aspect = SCREEN_RESOLUTION[0] / SCREEN_RESOLUTION[1];
-        const float fovY = PROJECTION_FOV * 0.5f;
-        const float fovX = std::atan(std::tan(PROJECTION_FOV * 0.5f) * aspect);
-        const glm::vec3 cameraPos = ResourceManager::Get().GetCamera().GetPosition();
-        const glm::vec3 right = ResourceManager::Get().GetCamera().GetRight();
-        const glm::vec3 up = ResourceManager::Get().GetCamera().GetUp();
-        const glm::vec3 front = ResourceManager::Get().GetCamera().GetFront();
-
-        for (size_t mesh = 0; mesh < meshes_.size(); mesh++)
+        for (size_t i = 0; i < modelMatrices_.size(); i++)
         {
-            for (size_t i = 0; i < modelMatrices_.size(); i++)
-            {
-                const glm::vec3 column0 = modelMatrices_[i][0];
-                const glm::vec3 column1 = modelMatrices_[i][1];
-                const glm::vec3 column2 = modelMatrices_[i][2];
-                const glm::vec3 column3 = modelMatrices_[i][3];
+            const glm::vec3 column0 = modelMatrices_[i][0];
+            const glm::vec3 column1 = modelMatrices_[i][1];
+            const glm::vec3 column2 = modelMatrices_[i][2];
+            const glm::vec3 column3 = modelMatrices_[i][3];
 
-                const glm::vec3 relativeMeshPosition = column3 - cameraPos;
-                const glm::vec3 scale = glm::vec3(glm::length(column0), glm::length(column1), glm::length(column2)); // This only works for scale values > 0.
-                const float biggestScale = std::max(std::max(scale.x, scale.y), scale.z);
-                const float boundingSphereRadius = meshes_[mesh].GetBoundingSphereRadius();
+            const glm::vec3 relativeMeshPosition = column3 - cameraPos;
+            const glm::vec3 scale = glm::vec3(glm::length(column0), glm::length(column1), glm::length(column2)); // This only works for scale values > 0.
+            const float biggestScale = std::max(std::max(scale.x, scale.y), scale.z);
+            const float boundingSphereRadius = meshes_[mesh].GetBoundingSphereRadius();
 
-                { // Front and back.
-                    const float projection = glm::dot(front, relativeMeshPosition);
-                    if (projection < (near - boundingSphereRadius * biggestScale) || projection >(far + boundingSphereRadius * biggestScale))
-                    {
-                        continue;
-                    }
+            { // Front and back.
+                const float projection = glm::dot(front, relativeMeshPosition);
+                if (projection < (near - boundingSphereRadius * biggestScale) || projection >(far + boundingSphereRadius * biggestScale))
+                {
+                    continue;
                 }
-                { // Left.
-                    const glm::vec3 normal = glm::angleAxis(fovX, up) * -right; // Normal to the left side of the frustum.
-                    const float projection = glm::dot(normal, relativeMeshPosition);
-                    if (projection > boundingSphereRadius * biggestScale) // projection is positive, meaning the position is outside the frustrum on the left.
-                    {
-                        continue;
-                    }
-                }
-                { // Right.
-                    const glm::vec3 normal = glm::angleAxis(-fovX, up) * right;
-                    const float projection = glm::dot(normal, relativeMeshPosition);
-                    if (projection > boundingSphereRadius * biggestScale)
-                    {
-                        continue;
-                    }
-                }
-                { // Bottom.
-                    const glm::vec3 normal = glm::angleAxis(fovY, -right) * -up;
-                    const float projection = glm::dot(normal, relativeMeshPosition);
-                    if (projection > boundingSphereRadius * biggestScale)
-                    {
-                        continue;
-                    }
-                }
-                { // Top.
-                    const glm::vec3 normal = glm::angleAxis(-fovY, -right) * up;
-                    const float projection = glm::dot(normal, relativeMeshPosition);
-                    if (projection > boundingSphereRadius * biggestScale)
-                    {
-                        continue;
-                    }
-                }
-                returnVal.push_back(modelMatrices_[i]);
             }
+            { // Left.
+                const glm::vec3 normal = glm::angleAxis(fovX, up) * -right; // Normal to the left side of the frustum.
+                const float projection = glm::dot(normal, relativeMeshPosition);
+                if (projection > boundingSphereRadius * biggestScale) // projection is positive, meaning the position is outside the frustrum on the left.
+                {
+                    continue;
+                }
+            }
+            { // Right.
+                const glm::vec3 normal = glm::angleAxis(-fovX, up) * right;
+                const float projection = glm::dot(normal, relativeMeshPosition);
+                if (projection > boundingSphereRadius * biggestScale)
+                {
+                    continue;
+                }
+            }
+            { // Bottom.
+                const glm::vec3 normal = glm::angleAxis(fovY, -right) * -up;
+                const float projection = glm::dot(normal, relativeMeshPosition);
+                if (projection > boundingSphereRadius * biggestScale)
+                {
+                    continue;
+                }
+            }
+            { // Top.
+                const glm::vec3 normal = glm::angleAxis(-fovY, -right) * up;
+                const float projection = glm::dot(normal, relativeMeshPosition);
+                if (projection > boundingSphereRadius * biggestScale)
+                {
+                    continue;
+                }
+            }
+            returnVal.push_back(modelMatrices_[i]);
         }
     }
 

@@ -1,10 +1,6 @@
 #include "framebuffer.h"
 
 #include <glad/glad.h>
-#ifdef TRACY_ENABLE
-#include <Tracy.hpp>
-#include <TracyOpenGL.hpp>
-#endif//!TRACY_ENABLE
 
 #include "defines.h"
 #include "resource_manager.h"
@@ -118,10 +114,6 @@ void gl::Framebuffer::Resize(std::array<size_t, 2> newResolution)
 
 void gl::Framebuffer::Bind() const
 {
-#ifdef TRACY_ENABLE
-    ZoneNamedN(framebufferBind, "Framebuffer::Bind()", true);
-    TracyGpuNamedZone(gpuframebufferBind, "Framebuffer::Bind()", true);
-#endif
     CheckGlError();
     glViewport(0, 0, (int)defCopy_.resolution[0], (int)defCopy_.resolution[1]);
     glBindFramebuffer(GL_FRAMEBUFFER, FBO_);
@@ -131,10 +123,6 @@ void gl::Framebuffer::Bind() const
 }
 void gl::Framebuffer::BindGBuffer(bool generateMipmaps) const
 {
-#ifdef TRACY_ENABLE
-    ZoneNamedN(framebufferBindGBuffer, "Framebuffer::BindGBuffer()", true);
-    TracyGpuNamedZone(gpuframebufferBindGBuffer, "Framebuffer::BindGBuffer()", true);
-#endif
     CheckGlError();
     for (const auto& tex : TEXs_)
     {
@@ -149,10 +137,6 @@ void gl::Framebuffer::BindGBuffer(bool generateMipmaps) const
 }
 void gl::Framebuffer::UnbindGBuffer() const
 {
-#ifdef TRACY_ENABLE
-    ZoneNamedN(framebufferUnbindGBuffer, "Framebuffer::UnbindGBuffer()", true);
-    TracyGpuNamedZone(gpuframebufferUnbindGBuffer, "Framebuffer::UnbindGBuffer()", true);
-#endif
     for (const auto& tex : TEXs_)
     {
         glActiveTexture(GL_TEXTURE0 + FRAMEBUFFER_TEXTURE0_UNIT + tex.second);
@@ -163,10 +147,6 @@ void gl::Framebuffer::UnbindGBuffer() const
 
 void gl::Framebuffer::Unbind(const std::array<size_t, 2> screenResolution) const
 {
-#ifdef TRACY_ENABLE
-    ZoneNamedN(framebufferUnbind, "Framebuffer::Unbind()", true);
-    TracyGpuNamedZone(gpuframebufferUnbind, "Framebuffer::Unbind()", true);
-#endif
     CheckGlError();
     glViewport(0, 0, (int)screenResolution[0], (int)screenResolution[1]);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);

@@ -6,11 +6,6 @@
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_sdl.h"
 
-#ifdef TRACY_ENABLE
-#include <Tracy.hpp>
-#include <TracyOpenGL.hpp>
-#endif//!TRACY_ENABLE
-
 namespace gl {
 
 Engine::Engine(Program& program) : program_(program)
@@ -19,11 +14,7 @@ Engine::Engine(Program& program) : program_(program)
 
 void Engine::Init()
 {
-#ifdef TRACY_ENABLE
-	ZoneScopedN("Engine Init");
-#endif
-
-	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
+	SDL_Init(SDL_INIT_VIDEO);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 4);
@@ -65,10 +56,6 @@ void Engine::Init()
 		assert(false);
 	}
 
-#ifdef TRACY_ENABLE
-	TracyGpuContext
-#endif
-
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO();
@@ -86,8 +73,6 @@ void Engine::Init()
 	program_.Init();
 }
 
-
-
 void Engine::Run()
 {
 	try 
@@ -98,19 +83,11 @@ void Engine::Run()
 			std::chrono::system_clock::now();
 		while (isOpen)
 		{
-#ifdef TRACY_ENABLE
-			ZoneNamedN(engineLoop, "Engine Loop", true);
-			TracyGpuNamedZone(gpuEngineLoop, "Engine Loop", true);
-#endif
 			const auto start = std::chrono::system_clock::now();
 			const auto dt = std::chrono::duration_cast<seconds>(start - clock);
 			deltaTime_ = dt.count();
 			clock = start;
 			{
-#ifdef TRACY_ENABLE
-				ZoneNamedN(eventManagement, "Event Management", true);
-				TracyGpuNamedZone(eventManagementGpu, "Event Management", true);
-#endif
 				SDL_Event event;
 				while (SDL_PollEvent(&event))
 				{
@@ -137,24 +114,8 @@ void Engine::Run()
 			DrawImGui();
 			ImGui::Render();
 			program_.Update(dt);
-			{
-#ifdef TRACY_ENABLE
-				ZoneNamedN(imguiRender, "ImGui Render Data", true);
-				TracyGpuNamedZone(gpuImguiRender, "ImGui Render Data", true);
-#endif
-				ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-			}
-			{
-#ifdef TRACY_ENABLE
-			ZoneNamedN(swapWindow, "Swap Window", true);
-			TracyGpuNamedZone(gpuSwapWindow, "Swap Window", true);
-#endif
+			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 			SDL_GL_SwapWindow(window_);
-			}
-#ifdef TRACY_ENABLE
-			TracyGpuCollect
-			FrameMark
-#endif
 		}
 
 		Destroy();
@@ -179,9 +140,9 @@ void Engine::Destroy()
 
 void Engine::DrawImGui()
 {
-	ImGui::Begin("Engine");
-	ImGui::Text("FPS: %f", 1.0f / deltaTime_);
-	ImGui::End();
+	// ImGui::Begin("Engine");
+	// ImGui::Text("FPS: %f", 1.0f / deltaTime_);
+	// ImGui::End();
 	program_.DrawImGui();
 }
 

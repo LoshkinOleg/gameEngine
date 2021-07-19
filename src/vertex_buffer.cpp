@@ -8,10 +8,6 @@
 #define XXH_INLINE_ALL
 #endif // !XXH_INLINE_ALL
 #include "xxhash.h"
-#ifdef TRACY_ENABLE
-#include <Tracy.hpp>
-#include <TracyOpenGL.hpp>
-#endif//!TRACY_ENABLE
 
 #include "resource_manager.h"
 #include "defines.h"
@@ -78,20 +74,12 @@ std::array<unsigned int, 2> gl::VertexBuffer::GetVAOandVBO() const
 
 void gl::VertexBuffer::Bind() const
 {
-#ifdef TRACY_ENABLE
-    ZoneNamedN(vertexbufferBind, "VertexBuffer::Bind()", true);
-    TracyGpuNamedZone(gpuvertexbufferBind, "VertexBuffer::Bind()", true);
-#endif
     glBindVertexArray(VAO_);
     CheckGlError();
 }
 
 void gl::VertexBuffer::Unbind()
 {
-#ifdef TRACY_ENABLE
-    ZoneNamedN(vertexbufferUnbind, "VertexBuffer::Unbind()", true);
-    TracyGpuNamedZone(gpuvertexbufferUnbind, "VertexBuffer::Unbind()", true);
-#endif
     glBindVertexArray(0);
     CheckGlError();
 }
@@ -99,11 +87,6 @@ void gl::VertexBuffer::Unbind()
 void gl::VertexBuffer::Draw(int nrOfInstances) const
 {
     assert(VAO_ != 0 && VBO_ != 0);
-
-#ifdef TRACY_ENABLE
-    ZoneNamedN(vertexbufferDraw, "VertexBuffer::Draw()", true);
-    TracyGpuNamedZone(gpuvertexbufferDraw, "VertexBuffer::Draw()", true);
-#endif
 
     Bind();
     glDrawArraysInstanced(GL_TRIANGLES, 0, verticesCount_, nrOfInstances);
