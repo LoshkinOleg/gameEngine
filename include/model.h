@@ -24,9 +24,9 @@ namespace gl
     private:
         const std::vector<glm::mat4> ComputeVisibleModels() const;
 
-        size_t modelMatrixOffset_ = MODEL_MATRIX_LOCATION; // TODO: make dynamic data always start at location 0 to be able to automate binding of vertex attribs without being overly verbose.
+        size_t modelMatrixOffset_ = MODEL_MATRIX_LOCATION;
         std::vector<Mesh> meshes_ = {};
-        std::vector<glm::mat4> modelMatrices_ = {}; // TODO: move this to ResourceManager. They must be accessible by other systems, like a physics engine or audio engine.
+        std::vector<glm::mat4> modelMatrices_ = {};
         unsigned int modelMatricesVBO_ = 0;
     };
 }//!gl

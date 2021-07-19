@@ -4,7 +4,6 @@
 
 namespace gl
 {
-    // TODO: make ResourceManager manage the lifetime of Clips
     class Clip
     {
     public:
@@ -17,7 +16,6 @@ namespace gl
         size_t len = 0;
     };
 
-    // TODO: move this into the scope of the audio device. Nothing else should have access to it.
     class AudioBuffer
     {
     public:
@@ -39,7 +37,7 @@ namespace gl
     class AudioDevice
     {
     public:
-        static void AudioCallback(void* userdata, unsigned char* output, int maxLen); // move this to private. a user shouldn't be able to call it manually
+        static void AudioCallback(void* userdata, unsigned char* output, int maxLen);
         void Init();
         void Enable();
         void Disable();

@@ -102,7 +102,7 @@ const std::vector<glm::mat4> gl::Model::ComputeVisibleModels() const
         const float far = PROJECTION_FAR;
         const float aspect = SCREEN_RESOLUTION[0] / SCREEN_RESOLUTION[1];
         const float fovY = PROJECTION_FOV * 0.5f;
-        const float fovX = std::atan(std::tan(PROJECTION_FOV * 0.5f) * aspect); // TODO: look more into this
+        const float fovX = std::atan(std::tan(PROJECTION_FOV * 0.5f) * aspect);
         const glm::vec3 cameraPos = ResourceManager::Get().GetCamera().GetPosition();
         const glm::vec3 right = ResourceManager::Get().GetCamera().GetRight();
         const glm::vec3 up = ResourceManager::Get().GetCamera().GetUp();
@@ -122,7 +122,6 @@ const std::vector<glm::mat4> gl::Model::ComputeVisibleModels() const
                 const float biggestScale = std::max(std::max(scale.x, scale.y), scale.z);
                 const float boundingSphereRadius = meshes_[mesh].GetBoundingSphereRadius();
 
-                // TODO: suspicious culling behaviour when scaling is taken into account, culls the object when it's well off the screen. Look into it.
                 { // Front and back.
                     const float projection = glm::dot(front, relativeMeshPosition);
                     if (projection < (near - boundingSphereRadius * biggestScale) || projection >(far + boundingSphereRadius * biggestScale))
@@ -131,7 +130,6 @@ const std::vector<glm::mat4> gl::Model::ComputeVisibleModels() const
                     }
                 }
                 { // Left.
-                    // Q: @Elias: can you explain angleAxis function in detail?
                     const glm::vec3 normal = glm::angleAxis(fovX, up) * -right; // Normal to the left side of the frustum.
                     const float projection = glm::dot(normal, relativeMeshPosition);
                     if (projection > boundingSphereRadius * biggestScale) // projection is positive, meaning the position is outside the frustrum on the left.

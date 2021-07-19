@@ -6,7 +6,6 @@
 
 void gl::Clip::Load(const char* path)
 {
-    // TODO: ensure this is a wav file
     SDL_AudioSpec desiredSpecs;
     unsigned int length;
     SDL_AudioSpec* recievedSpecs = SDL_LoadWAV_RW
@@ -78,8 +77,6 @@ void gl::AudioBuffer::Destroy()
 
 void gl::AudioDevice::AudioCallback(void* userdata, unsigned char* output, int maxLen)
 {
-    // TODO: figure out where the crackling comes from at the end of sound. Should I fill the remainder of the buffer with silence?
-
     AudioBuffer* input = (AudioBuffer*)userdata;
     const size_t len = maxLen;
     const unsigned char* const begin = input->GetBegin();

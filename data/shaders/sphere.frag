@@ -61,14 +61,14 @@ void main()
     fbTexture3 = vec4(1.0);
 
     // Albedo.
-    fbTexture0.rgb = pow(texture(material.diffuseMap, fs_in.TexCoords).rgb, vec3(2.2)) * (1.0 - ComputeShadow(fs_in.l_FragPos)); // TODO: specify we're in sRGB when generating ktx
+    fbTexture0.rgb = pow(texture(material.diffuseMap, fs_in.TexCoords).rgb, vec3(2.2)) * (1.0 - ComputeShadow(fs_in.l_FragPos));
 
     // FragPos.
     fbTexture1.xyz = fs_in.w_FragPos;
     fbTexture1.x = INVALID_FLOAT;
     
     // Normals. Retrieve from normalmap, remap to range [-1;1] and convert to world space.
-    fbTexture2.xyz = fs_in.TBN * normalize((texture(material.normalMap, fs_in.TexCoords).rgb) * 2.0 - 1.0); // TODO: remove this. Needless calculation
+    fbTexture2.xyz = fs_in.TBN * normalize((texture(material.normalMap, fs_in.TexCoords).rgb) * 2.0 - 1.0);
 
     fbTexture3.x = material.shininess;
 }

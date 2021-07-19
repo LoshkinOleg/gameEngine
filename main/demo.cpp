@@ -15,29 +15,18 @@
 #include "skybox.h"
 #include "resource_manager.h"
 
-// TODO: see what the nsight errors are all about
-// TODO: see what the camera fuckery is all about
-// TODO: investigate unnecessary binding of transform models?
-// TODO: investigate origin of sharp transitions in textures: might be because we're not specifying minification parameters
-// TODO: replace particles with little Todd's heads
-// TODO: make repo public!!!
-// TODO: tidy up the shaders / use generic ones
-// TODO: adjust texcoords for cube. They're too close together. Or use a different texture
-// TODO: do something about all these constants...
-// TODO: move camera movement into Regions' callbacks
-
 namespace gl
 {
     const float SKIP_FRAME_THRESHOLD = 1.0f / 30.0f; // Prevents the camera from jumping forward suddently if there's a lag spike like when we start the program.
-    const std::string assetsPath = "C:/Users/admin/Desktop/demoAssets/";
+    const std::string assetsPath = "";
 
     const glm::vec3 LIGHT_DIR = glm::normalize(glm::vec3(1.0, -1.0, -1.0));
 
-    const bool CONTROL_CAMERA = true;
+    const bool CONTROL_CAMERA = false;
     const glm::vec3 CAMERA_STARTING_POS = UP_VEC3;
     const glm::vec3 CAMERA_STARTING_FRONT = CAMERA_STARTING_POS + FRONT_VEC3;
 
-    const size_t ROAD_LENGTH = 7;
+    const size_t ROAD_LENGTH = 6;
 
     const glm::vec3 HORSE_POS =
         RIGHT_VEC3 *  6.0f +
@@ -76,10 +65,23 @@ namespace gl
     // Regions.
     const float TURN_AROUND_START = 0.1f;
     const float TURN_AROUND_END = 2.0f;
-    const float TURN_TOWARDS_HORSE_END = 3.0f;
-    const float FOLLOW_HORSE_END = 13.0f;
+
+    const float TURN_TOWARDS_HORSE_END = 5.0f;
+    const float FOLLOW_HORSE_END = 14.0f;
+
     const float TURN_TOWARDS_PARTICLES_END = 15.0f;
-    const float FOLLOW_PARTICLES_END = 25.0f;
+    const float FOLLOW_PARTICLES_END = 24.0f;
+
+    const float TURN_TOWARDS_DIAMOND_END = 25.0f;
+    const float FOLLOW_DIAMOND_END = 34.0f;
+
+    const float TURN_TOWARDS_SPHERES_END = 35.0f;
+    const float FOLLOW_SPHERES_END = 44.0f;
+
+    const float TURN_TOWARDS_CUBE_END = 45.0f;
+    const float FOLLOW_CUBE_END = 54.0f;
+
+    const float TURN_BACK_END = 55.0f;
 
     class Region
     {
@@ -300,7 +302,7 @@ namespace gl
             modelMatrices[0] = glm::rotate(modelMatrices[0], glm::radians(-90.0f), UP_VEC3);
             modelMatrices[0] = glm::scale(modelMatrices[0], glm::vec3(HORSE_SIZE));
 
-            horse_.Create({ vbdef }, { ResourceManager::PreprocessMaterialData(objData0)[0] }, modelMatrices, 7); // TODO: remove the model matrix offset argument?
+            horse_.Create({ vbdef }, { ResourceManager::PreprocessMaterialData(objData0)[0] }, modelMatrices, 7);
         }
         void InitFloor()
         {
@@ -353,7 +355,7 @@ namespace gl
         void InitFramebuffers()
         {
             Framebuffer::Definition fbdef;
-            fbdef.type = (Framebuffer::Type) // TODO: add a specular color intensity, floor is too shiny, maybe add a noise to the specular?
+            fbdef.type = (Framebuffer::Type)
                 (
                     Framebuffer::Type::FBO_RGBA0 | // Albedo
                     Framebuffer::Type::FBO_RGBA1 | // Positions
@@ -424,7 +426,6 @@ namespace gl
         }
         void InitCamera()
         {
-            // TODO: figure out the glitchy fuckery that happens when you control the camera yourself. Something to do with the usage of pitch and yaw in the camera I think.
             camera_.SetPosition(CAMERA_STARTING_POS);
             camera_.LookAt(CAMERA_STARTING_FRONT, UP_VEC3);
         }
@@ -474,6 +475,67 @@ namespace gl
                 const glm::vec3 newFront = glm::normalize(EMITTER_POS + UP_VEC3 * 1.5f - camera_.GetPosition());
                 camera_.LookAt(camera_.GetPosition() + newFront, UP_VEC3);
             }));
+            regions_.push_back(Region(FOLLOW_PARTICLES_END, TURN_TOWARDS_DIAMOND_END, [this](const float start, const float end)->void
+            {
+                // Turn towards diamond.
+                const float current = RemapToRange(start, end, 0.0f, 1.0f, timer_);
+                const glm::quat startingRot = glm::quatLookAt(glm::normalize(EMITTER_POS + UP_VEC3 * 1.5f - camera_.GetPosition()), UP_VEC3);
+                const glm::quat endingRot = glm::quatLookAt(glm::normalize(DIAMOND_POS - camera_.GetPosition()), UP_VEC3);
+                const glm::quat interpolatedRot = glm::slerp(startingRot, endingRot, current);
+                const glm::vec3 newFront = interpolatedRot * BACK_VEC3;
+                camera_.LookAt(camera_.GetPosition() + newFront, UP_VEC3);
+            }));
+            regions_.push_back(Region(TURN_TOWARDS_DIAMOND_END, FOLLOW_DIAMOND_END, [this](const float start, const float end)->void
+            {
+                // Look at diamond.
+                const float current = RemapToRange(start, end, 0.0f, 1.0f, timer_);
+                const glm::vec3 newFront = glm::normalize(DIAMOND_POS - camera_.GetPosition());
+                camera_.LookAt(camera_.GetPosition() + newFront, UP_VEC3);
+            }));
+            regions_.push_back(Region(FOLLOW_DIAMOND_END, TURN_TOWARDS_SPHERES_END, [this](const float start, const float end)->void
+            {
+                // Turn towards spheres.
+                const float current = RemapToRange(start, end, 0.0f, 1.0f, timer_);
+                const glm::quat startingRot = glm::quatLookAt(glm::normalize(DIAMOND_POS - camera_.GetPosition()), UP_VEC3);
+                const glm::quat endingRot = glm::quatLookAt(glm::normalize(SHADOW_SPHERES_POS - camera_.GetPosition()), UP_VEC3);
+                const glm::quat interpolatedRot = glm::slerp(startingRot, endingRot, current);
+                const glm::vec3 newFront = interpolatedRot * BACK_VEC3;
+                camera_.LookAt(camera_.GetPosition() + newFront, UP_VEC3);
+            }));
+            regions_.push_back(Region(TURN_TOWARDS_SPHERES_END, FOLLOW_SPHERES_END, [this](const float start, const float end)->void
+            {
+                // Look at spheres.
+                const float current = RemapToRange(start, end, 0.0f, 1.0f, timer_);
+                const glm::vec3 newFront = glm::normalize(SHADOW_SPHERES_POS - camera_.GetPosition());
+                camera_.LookAt(camera_.GetPosition() + newFront, UP_VEC3);
+            }));
+            regions_.push_back(Region(FOLLOW_SPHERES_END, TURN_TOWARDS_CUBE_END, [this](const float start, const float end)->void
+            {
+                // Turn towards cube.
+                const float current = RemapToRange(start, end, 0.0f, 1.0f, timer_);
+                const glm::quat startingRot = glm::quatLookAt(glm::normalize(SHADOW_SPHERES_POS - camera_.GetPosition()), UP_VEC3);
+                const glm::quat endingRot = glm::quatLookAt(glm::normalize(CUBE_POS - camera_.GetPosition()), UP_VEC3);
+                const glm::quat interpolatedRot = glm::slerp(startingRot, endingRot, current);
+                const glm::vec3 newFront = interpolatedRot * BACK_VEC3;
+                camera_.LookAt(camera_.GetPosition() + newFront, UP_VEC3);
+            }));
+            regions_.push_back(Region(TURN_TOWARDS_CUBE_END, FOLLOW_CUBE_END, [this](const float start, const float end)->void
+            {
+                // Look at cube.
+                const float current = RemapToRange(start, end, 0.0f, 1.0f, timer_);
+                const glm::vec3 newFront = glm::normalize(CUBE_POS - camera_.GetPosition());
+                camera_.LookAt(camera_.GetPosition() + newFront, UP_VEC3);
+            }));
+            regions_.push_back(Region(FOLLOW_CUBE_END, TURN_BACK_END, [this](const float start, const float end)->void
+            {
+                // Turn back.
+                const float current = RemapToRange(start, end, 0.0f, 1.0f, timer_);
+                const glm::quat startingRot = glm::quatLookAt(glm::normalize(CUBE_POS - camera_.GetPosition()), UP_VEC3);
+                const glm::quat endingRot = glm::angleAxis(glm::radians(0.0f), UP_VEC3);
+                const glm::quat interpolatedRot = glm::slerp(startingRot, endingRot, current);
+                const glm::vec3 newFront = interpolatedRot * BACK_VEC3;
+                camera_.LookAt(camera_.GetPosition() + newFront, UP_VEC3);
+            }));
         }
         
         void UpdateParticles(const float dt)
@@ -508,10 +570,17 @@ namespace gl
         }
         void UpdateCamera(const float dt)
         {
-            // TODO: move camera movements to regions too?
             if (!CONTROL_CAMERA)
             {
-                camera_.SetPosition(camera_.GetPosition() + BACK_VEC3 * dt);
+                if (timer_ < TURN_BACK_END + 0.1f)
+                {
+                    camera_.SetPosition(camera_.GetPosition() + BACK_VEC3 * dt);
+                }
+                else
+                {
+                    timer_ = 0.0f;
+                    InitCamera();
+                }
 
                 for (const auto& region : regions_)
                 {
@@ -584,7 +653,7 @@ namespace gl
                 diamond_.Draw(diamondShader_);
                 horse_.Draw(horseShader_);
                 sphere_.Draw(spheresShader_);
-                cube_.Draw(floorShader_); // TODO: use generic shaders
+                cube_.Draw(floorShader_);
                 floor_.Draw(floorShader_);
                 RenderParticles();
                 skybox_.Draw();
@@ -743,7 +812,7 @@ public:
         Framebuffer
             deferredFb_,
             postprocessFb_,
-            shadowpassFb_; // TODO: throw error if trying to use a shader that hasn't been .Create()'ed. Throw error when not all uniforms have been initialized
+            shadowpassFb_;
         Shader
             postprocessShader_,
             deferredShader_,

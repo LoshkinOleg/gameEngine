@@ -84,7 +84,7 @@ GLuint gl::ResourceManager::RequestTEX(XXH32_hash_t hash) const
     const auto match = TEXs_.find(hash);
     if (match != TEXs_.end())
     {
-        // EngineWarning("TEX hash already in the map. Returning existing gpu name.");
+        EngineWarning("TEX hash already in the map. Returning existing gpu name.");
         return match->second;
     }
     else return 0;
@@ -195,7 +195,6 @@ std::vector<gl::ResourceManager::ObjData> gl::ResourceManager::ReadObj(std::stri
         }
         else
         {
-            // TODO: refactor EngineError func to avoid this kind of horror...
             std::string msg = "Failed to load file at path: ";
             msg += path.data();
             msg += ", at directory: ";
@@ -374,13 +373,13 @@ std::vector<gl::Material::Definition> gl::ResourceManager::PreprocessMaterialDat
         path += objData[mesh].diffuseMap;
         if (!objData[mesh].diffuseMap.empty())
         {
-            returnVal[mesh].texturePathsAndTypes.push_back({ path, gl::Texture::Type::DIFFUSE_OR_ROUGHNESS });
+            returnVal[mesh].texturePathsAndTypes.push_back({ path, gl::Texture::Type::DIFFUSE });
         }
         path = dir;
         path += objData[mesh].specularMap;
         if (!objData[mesh].specularMap.empty())
         {
-            returnVal[mesh].texturePathsAndTypes.push_back({ path, gl::Texture::Type::SPECULAR_OR_METALLIC });
+            returnVal[mesh].texturePathsAndTypes.push_back({ path, gl::Texture::Type::SPECULAR });
         }
     }
     return returnVal;

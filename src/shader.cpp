@@ -108,8 +108,6 @@ void gl::Shader::SetMat4(const std::pair<std::string_view, const glm::mat4*> pai
     CheckGlError();
     assert(isBound_);
     const int gpuName = GetUniformLocation(pair.first);
-    // const glm::vec3 value = *pair.second;
-    // glUniformMatrix4fv(ResourceManager::Get().GetUniformName(pair.first, PROGRAM_), 1, GL_FALSE, &value[0][0]);
     glUniformMatrix4fv(gpuName, 1, GL_FALSE, &(*pair.second)[0][0]);
     CheckGlError();
 }

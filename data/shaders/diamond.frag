@@ -13,7 +13,6 @@ in VS_OUT {
 uniform samplerCube cubemap;
 uniform vec3 viewPos;
 
-// const float IOR = 1.1;
 const float INVALID_FLOAT = 1.0/0.0; // Allowed by glsl. Can be checked via isinf().
 const float COLOR_MULTIPLIER = 10.0; // To make the diamond shine and bloom.
 
@@ -24,14 +23,9 @@ void main()
     fbTexture2 = vec4(1.0);
     fbTexture3 = vec4(1.0);
 
-    // TODO: add specular?
-
-    // const float ratio = 1.0 / IOR;
     const vec3 cameraFront = normalize(fs_in.w_FragPos - viewPos);
-    // const vec3 refractDir = refract(cameraFront, fs_in.w_Normal, ratio);
     const vec3 reflectDir = reflect(cameraFront, fs_in.w_Normal);
-    // const vec3 color = vec3(pow(texture(cubemap, refractDir).rgb, vec3(2.2))); // TODO: specify we're in sRGB when generating ktx
-    const vec3 color = vec3(pow(texture(cubemap, reflectDir).rgb, vec3(2.2))); // TODO: specify we're in sRGB when generating ktx
+    const vec3 color = vec3(pow(texture(cubemap, reflectDir).rgb, vec3(2.2)));
 
     fbTexture0.rgb = COLOR_MULTIPLIER * color;
 

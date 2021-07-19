@@ -28,7 +28,6 @@ void gl::Texture::Create(Type textureType, std::string_view path)
     std::string accumulatedData = path.data();
     accumulatedData += std::to_string((int)textureType);
 
-    // TODO: make loading of textures from textures folder only. Right now if the folder structure is different between models, the same texture can be loaded multiple times.
     const XXH32_hash_t hash = XXH32(accumulatedData.c_str(), sizeof(char) * accumulatedData.size(), HASHING_SEED);
 
     TEX_ = ResourceManager::Get().RequestTEX(hash);
@@ -38,7 +37,6 @@ void gl::Texture::Create(Type textureType, std::string_view path)
         return;
     }
 
-    // Gli black magic fuckery.
     gli::texture Texture = gli::load(path.data());
     if (Texture.empty()) EngineError("Could not open image file!");
 
@@ -56,7 +54,6 @@ void gl::Texture::Create(Type textureType, std::string_view path)
     glTexParameteri(Target, GL_TEXTURE_SWIZZLE_G, Format.Swizzles[1]);
     glTexParameteri(Target, GL_TEXTURE_SWIZZLE_B, Format.Swizzles[2]);
     glTexParameteri(Target, GL_TEXTURE_SWIZZLE_A, Format.Swizzles[3]);
-    // TODO: specify minifying / magnifying parameters? Might be the reason ground textures get pixelated the further they get?
     CheckGlError();
 
     glm::tvec3<GLsizei> const Extent(Texture.extent());

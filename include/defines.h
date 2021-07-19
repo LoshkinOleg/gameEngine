@@ -13,9 +13,6 @@ namespace gl
 	const float PROJECTION_NEAR = 0.1f;
 	const float PROJECTION_FAR = 100.0f;
 	const float PROJECTION_FOV = glm::radians(45.0f);
-	// const float ORTHO_BOUNDS_MULTIPLIER = 10.0;
-	// const float ORTHO_HALF_WIDTH = 4.0f * 0.5f * ORTHO_BOUNDS_MULTIPLIER; // 4:3 aspect
-	// const float ORTHO_HALF_HEIGHT = 3.0f * 0.5f * ORTHO_BOUNDS_MULTIPLIER;
 	const float ORTHO_HALF_HEIGHT = 10.0f;
 	const float ORTHO_HALF_WIDTH = 10.0f;
 	const glm::mat4 PERSPECTIVE = glm::perspective(PROJECTION_FOV, SCREEN_RESOLUTION[0] / SCREEN_RESOLUTION[1], PROJECTION_NEAR, PROJECTION_FAR);
@@ -111,6 +108,6 @@ namespace gl
 	const int TEXCOORD_LOCATION = 1;
 	const int NORMAL_LOCATION = 2;
 	const int TANGENT_LOCATION = 3;
-	const int MODEL_MATRIX_LOCATION = 4; // TODO: rearrange data to have dynamic data first.
+	const int MODEL_MATRIX_LOCATION = 4;
 
 }//!gl

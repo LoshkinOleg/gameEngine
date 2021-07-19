@@ -8,9 +8,6 @@ uniform sampler2D fbTexture0; // rgb: albedo, w: shininess
 uniform sampler2D fbTexture1; // xyz: w_FragPos
 uniform sampler2D fbTexture2; // xyz: w_Normal normalized and in range [-1;1]
 uniform sampler2D fbTexture3; // x: shininess
-// uniform sampler2D fbTexture3;
-// uniform sampler2D fbTexture4;
-// uniform sampler2D fbTexture5;
 
 uniform vec3 viewPos;
 uniform vec3 lightDir;
@@ -21,7 +18,7 @@ const float AMBIENT_FACTOR = 0.01;
 const float INVALID_FLOAT = 1.0/0.0; // Allowed by glsl. Can be checked via isinf().
 const vec3 HUMAN_EYE_SENSITIVITY = vec3(0.2126, 0.7152, 0.0722);
 
-vec3 ExtendedReinhard(vec3 color, float maxWhite) // TODO: move this to post process stage.
+vec3 ExtendedReinhard(vec3 color, float maxWhite)
 {
 	vec3 numerator = color * (1.0 + (color / vec3(maxWhite * maxWhite)));
     return numerator / (1.0 + color);

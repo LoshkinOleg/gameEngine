@@ -10,7 +10,7 @@ uniform sampler2D fbTexture1; // Brights.
 const float GAMMA = 2.2;
 const int MEAN_BLUR_MAXTRIX_ORDER = 8;
 
-vec3 ExtendedReinhard(vec3 color, float maxWhite) // TODO: move this to post process stage.
+vec3 ExtendedReinhard(vec3 color, float maxWhite)
 {
 	vec3 numerator = color * (1.0 + (color / vec3(maxWhite * maxWhite)));
     return numerator / (1.0 + color);

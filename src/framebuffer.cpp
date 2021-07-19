@@ -138,11 +138,10 @@ void gl::Framebuffer::BindGBuffer(bool generateMipmaps) const
     CheckGlError();
     for (const auto& tex : TEXs_)
     {
-        glActiveTexture(GL_TEXTURE0 + FRAMEBUFFER_TEXTURE0_UNIT + tex.second); // TODO: replace TextureUnitOffset with just... TextureUnit.
+        glActiveTexture(GL_TEXTURE0 + FRAMEBUFFER_TEXTURE0_UNIT + tex.second);
         glBindTexture(GL_TEXTURE_2D, tex.first);
         if (generateMipmaps)
         {
-            // TODO: this generates mipmaps for ALL framebuffer textures, which isn't necessary. We could specify for which index of TEXs_ we want to generate a mipmap for...
             glGenerateMipmap(GL_TEXTURE_2D);
         }
         CheckGlError();
