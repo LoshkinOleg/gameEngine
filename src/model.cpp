@@ -6,7 +6,7 @@
 
 #include "resource_manager.h"
 
-void gl::Model::Create(std::vector<VertexBuffer::Definition> vb, std::vector<Material::Definition> mat, std::vector<glm::mat4> modelMatrices, const size_t modelMatrixOffset)
+/*void gl::Model::Create(std::vector<VertexBuffer::Definition> vb, std::vector<Material::Definition> mat, std::vector<glm::mat4> modelMatrices, const size_t modelMatrixOffset)
 {
     modelMatrices_ = modelMatrices;
     modelMatrixOffset_ = modelMatrixOffset;
@@ -24,7 +24,7 @@ void gl::Model::Create(std::vector<VertexBuffer::Definition> vb, std::vector<Mat
         meshes_.back().Create(vb[i], mat[i]);
         CheckGlError();
     }
-}
+}*/
 
 void gl::Model::Draw(Shader& shader, bool bypassFrustumCulling)
 {
@@ -42,7 +42,7 @@ void gl::Model::Draw(Shader& shader, bool bypassFrustumCulling)
             }
             for (size_t i = 0; i < meshes_.size(); i++)
             {
-                meshes_[i].Draw(modelMatricesToDraw, shader, true, modelMatrixOffset_);
+                // meshes_[i].Draw(modelMatricesToDraw, shader, true, modelMatrixOffset_);
             }
         }
     }
@@ -57,7 +57,7 @@ void gl::Model::Draw(Shader& shader, bool bypassFrustumCulling)
         }
         for (size_t i = 0; i < meshes_.size(); i++)
         {
-            meshes_[i].Draw(modelMatrices_, shader, modelMatrices_.size() > 0, modelMatrixOffset_);
+            // meshes_[i].Draw(modelMatrices_, shader, modelMatrices_.size() > 0, modelMatrixOffset_);
         }
     }
     shader.Unbind();

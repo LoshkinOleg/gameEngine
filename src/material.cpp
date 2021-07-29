@@ -6,7 +6,7 @@ void gl::Material::Create(Definition def)
 {
     for (const auto& pair : def.texturePathsAndTypes)
     {
-        assert(!pair.first.empty() && (int)pair.second < (int)Texture::Type::INVALID);
+        // assert(!pair.first.empty() && (int)pair.second < (int)Texture::Type::INVALID);
     }
 
     for (size_t i = 0; i < def.texturePathsAndTypes.size(); i++)

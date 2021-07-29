@@ -140,9 +140,9 @@ void Engine::Destroy()
 
 void Engine::DrawImGui()
 {
-	// ImGui::Begin("Engine");
-	// ImGui::Text("FPS: %f", 1.0f / deltaTime_);
-	// ImGui::End();
+	ImGui::Begin("Engine");
+	ImGui::Text("FPS: %f", 1.0f / deltaTime_);
+	ImGui::End();
 	program_.DrawImGui();
 }
 

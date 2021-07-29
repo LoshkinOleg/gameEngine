@@ -13,7 +13,7 @@
 #endif // !TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 
-#include "material.h"
+// #include "material.h"
 #include "defines.h"
 
 gl::ResourceManager::~ResourceManager()
@@ -350,7 +350,7 @@ std::vector<gl::ResourceManager::ObjData> gl::ResourceManager::ReadObj(std::stri
     return returnVal;
 }
 
-std::vector<gl::Material::Definition> gl::ResourceManager::PreprocessMaterialData(const std::vector<gl::ResourceManager::ObjData> objData)
+/*std::vector<gl::Material::Definition> gl::ResourceManager::PreprocessMaterialData(const std::vector<gl::ResourceManager::ObjData> objData)
 {
     std::vector<gl::Material::Definition> returnVal = std::vector<gl::Material::Definition>(objData.size(), gl::Material::Definition());
 
@@ -422,4 +422,4 @@ std::vector<gl::Shader::Definition> gl::ResourceManager::PreprocessShaderData(co
         }
     }
     return returnVal;
-}
+}*/

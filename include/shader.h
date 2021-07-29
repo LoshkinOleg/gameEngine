@@ -36,16 +36,17 @@ namespace gl
 
         void Bind();
         void Unbind();
+
+        void SetInt(const std::pair<std::string_view, int> pair);
+        void SetVec3(const std::pair<std::string_view, glm::vec3> pair);
+        void SetMat4(const std::pair<std::string_view, glm::mat4> pair);
+        void SetFloat(const std::pair<std::string_view, float> pair);
     private:
         unsigned int PROGRAM_ = 0;
         bool isBound_ = false;
 
         int GetUniformLocation(std::string_view uniformName);
 
-        void SetInt(const std::pair<std::string_view, int> pair);
-        void SetVec3(const std::pair<std::string_view, glm::vec3> pair);
-        void SetMat4(const std::pair<std::string_view, glm::mat4> pair);
-        void SetFloat(const std::pair<std::string_view, float> pair);
 
         void SetInt(const std::pair<std::string_view, const int*> pair);
         void SetVec3(const std::pair<std::string_view, const glm::vec3*> pair);

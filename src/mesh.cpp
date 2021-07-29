@@ -37,7 +37,7 @@ void gl::Mesh::Create(const VertexBuffer::Definition vbdef, const Material::Defi
     CheckGlError();
 }
 
-void gl::Mesh::Draw(const std::vector<glm::mat4>& modelMatrices, Shader& shader, bool updateModels, size_t transformModelOffset)
+/*void gl::Mesh::Draw(const std::vector<glm::mat4>& modelMatrices, Shader& shader, bool updateModels, size_t transformModelOffset)
 {
     if (updateModels)
     {
@@ -68,7 +68,7 @@ void gl::Mesh::Draw(const std::vector<glm::mat4>& modelMatrices, Shader& shader,
     vb_.Draw(modelMatrices.size());
     shader.Unbind();
     material_.Unbind();
-}
+}*/
 
 float gl::Mesh::GetBoundingSphereRadius() const
 {

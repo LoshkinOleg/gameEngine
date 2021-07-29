@@ -18,7 +18,7 @@ void gl::Texture::Create(Type textureType, std::string_view path)
         EngineError("Calling Create() a second time...");
     }
 
-    assert((int)textureType < (int)Type::CUBEMAP + 1 && (int)textureType > -1 && !path.empty());
+    // assert((int)textureType < (int)Type::CUBEMAP + 1 && (int)textureType > -1 && !path.empty());
 
     // Accumulate all the relevant data in a single string for hashing.
     std::string accumulatedData = path.data();
@@ -27,7 +27,7 @@ void gl::Texture::Create(Type textureType, std::string_view path)
     const XXH32_hash_t hash = XXH32(accumulatedData.c_str(), sizeof(char) * accumulatedData.size(), HASHING_SEED);
 
     TEX_ = ResourceManager::Get().RequestTEX(hash);
-    type_ = textureType;
+    // type_ = textureType;
     if (TEX_ != 0) // This means the data has been already loaded. Just use the returned gpu name.
     {
         return;
@@ -162,17 +162,17 @@ GLuint gl::Texture::GetTEX() const
 void gl::Texture::Bind() const
 {
     CheckGlError();
-    assert((int)type_ > -1 && (int)type_ < (int)Type::INVALID);
-    glActiveTexture(GL_TEXTURE0 + (int)type_);
-    glBindTexture((int)type_ == (int)Type::CUBEMAP ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D, TEX_);
+    // assert((int)type_ > -1 && (int)type_ < (int)Type::INVALID);
+    // glActiveTexture(GL_TEXTURE0 + (int)type_);
+    // glBindTexture((int)type_ == (int)Type::CUBEMAP ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D, TEX_);
     CheckGlError();
 }
 
 void gl::Texture::Unbind() const
 {
     CheckGlError();
-    assert((int)type_ > -1 && (int)type_ < (int)Type::INVALID);
-    glActiveTexture(GL_TEXTURE0 + (int)type_);
-    glBindTexture((int)type_ == (int)Type::CUBEMAP ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D, 0);
+    // assert((int)type_ > -1 && (int)type_ < (int)Type::INVALID);
+    // glActiveTexture(GL_TEXTURE0 + (int)type_);
+    // glBindTexture((int)type_ == (int)Type::CUBEMAP ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D, 0);
     CheckGlError();
 }

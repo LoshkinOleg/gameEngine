@@ -29,7 +29,7 @@ void gl::Framebuffer::Create(Definition def)
         );
 
         CheckGlError();
-        TEXs_.push_back({ 0, FRAMEBUFFER_SHADOWMAP_UNIT - FRAMEBUFFER_TEXTURE0_UNIT }); // Shadowmap's texture unit is the last out the ones attributed to framebuffers (15 in this case).
+        // TEXs_.push_back({ 0, FRAMEBUFFER_SHADOWMAP_UNIT - FRAMEBUFFER_TEXTURE0_UNIT }); // Shadowmap's texture unit is the last out the ones attributed to framebuffers (15 in this case).
         glGenTextures(1, &TEXs_.back().first);
         assert(TEXs_.back().first != 0);
         glBindTexture(GL_TEXTURE_2D, TEXs_.back().first);
@@ -126,7 +126,7 @@ void gl::Framebuffer::BindGBuffer(bool generateMipmaps) const
     CheckGlError();
     for (const auto& tex : TEXs_)
     {
-        glActiveTexture(GL_TEXTURE0 + FRAMEBUFFER_TEXTURE0_UNIT + tex.second);
+        // glActiveTexture(GL_TEXTURE0 + FRAMEBUFFER_TEXTURE0_UNIT + tex.second);
         glBindTexture(GL_TEXTURE_2D, tex.first);
         if (generateMipmaps)
         {
@@ -139,7 +139,7 @@ void gl::Framebuffer::UnbindGBuffer() const
 {
     for (const auto& tex : TEXs_)
     {
-        glActiveTexture(GL_TEXTURE0 + FRAMEBUFFER_TEXTURE0_UNIT + tex.second);
+        // glActiveTexture(GL_TEXTURE0 + FRAMEBUFFER_TEXTURE0_UNIT + tex.second);
         glBindTexture(GL_TEXTURE_2D, 0);
         CheckGlError();
     }

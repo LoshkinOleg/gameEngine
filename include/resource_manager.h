@@ -4,7 +4,7 @@
 #include <map>
 
 #include "camera.h"
-#include "material.h"
+// #include "material.h"
 #include "shader.h"
 
 using XXH32_hash_t = unsigned int;
@@ -60,8 +60,8 @@ namespace gl
         /*
         @brief: This function returns a list of per mesh materials with material related data filled out. Use it to avoid having repetitive sections in a Program::Init().
         */
-        static std::vector<Material::Definition> PreprocessMaterialData(const std::vector<ObjData> objData);
-        static std::vector<Shader::Definition> PreprocessShaderData(const std::vector<ObjData> objData);
+        // static std::vector<Material::Definition> PreprocessMaterialData(const std::vector<ObjData> objData);
+        // static std::vector<Shader::Definition> PreprocessShaderData(const std::vector<ObjData> objData);
 
         Camera& GetCamera();
 
